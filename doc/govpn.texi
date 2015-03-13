@@ -17,13 +17,11 @@ GNU General Public License for more details.
 @end quotation
 @end copying
 
-@ifnottex
 @node Top
 @top GoVPN
 
 This manual is for GoVPN -- simple secure free software virtual private
 network (VPN) daemon, written entirely on Go programming language.
-@end ifnottex
 
 @menu
 * Overview::
