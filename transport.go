@@ -112,7 +112,7 @@ func TAPListen(ifaceName string) (*TAP, chan []byte, chan struct{}, chan struct{
 			case <-sinkTerminate:
 				break ListenCycle
 			case <-heartbeat:
-				sink <- make([]byte, 0)
+				go func() { sink <- make([]byte, 0) }()
 				continue
 			case <-sinkReady:
 				if exists {
@@ -124,7 +124,7 @@ func TAPListen(ifaceName string) (*TAP, chan []byte, chan struct{}, chan struct{
 		HeartbeatCatched:
 			select {
 			case <-heartbeat:
-				sink <- make([]byte, 0)
+				go func() { sink <- make([]byte, 0) }()
 				goto HeartbeatCatched
 			case <-sinkTerminate:
 				break ListenCycle
