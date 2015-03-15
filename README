@@ -1,7 +1,9 @@
-GoVPN is simple secure free software virtual private network daemon. It
-uses Diffie-Hellman Encrypted Key Exchange (DH-EKE) for mutual
-zero-knowledge peers authentication and authenticated encrypted data
-transport.
+GoVPN is simple secure free software virtual private network daemon,
+written on Go programming language. It uses Diffie-Hellman Encrypted Key
+Exchange (DH-EKE) for mutual zero-knowledge peers authentication and
+authenticated encrypted data transport. Other features include:
+IPv4/IPv6, rehandshake, heartbeat, pre-shared keys (PSK), perfect
+forward secrecy (PFS). GNU/Linux and FreeBSD support.
 
 Home page: http://www.cypherpunks.ru/govpn/
 

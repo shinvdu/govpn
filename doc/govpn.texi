@@ -69,6 +69,12 @@ Each client also has it's own identification key and server works with
 all of them independently. Identification key is not secret, but it is
 encrypted (obfuscated) during transmission.
 
+The only platform specific requirement is TAP network interface support.
+API to that kind of device is different, OS dependent and non portable.
+So only a few operating systems is officially supported. Author has no
+proprietary software to work with, so currently there is lack of either
+popular Microsoft Windows or Apple OS X support.
+
 @itemize @bullet
 @item
 Works with @url{https://en.wikipedia.org/wiki/TAP_(network_driver), TAP}
