@@ -172,7 +172,7 @@ MainCycle:
 				}
 			}(state)
 		case ethEvent = <-ethSink:
-			if _, exists := peers[ethEvent.peer.Addr.String()]; !exists {
+			if s, exists := peers[ethEvent.peer.Addr.String()]; !exists || s.peer != ethEvent.peer {
 				continue
 			}
 			ethEvent.peer.EthProcess(ethEvent.data, conn, ethEvent.ready)
