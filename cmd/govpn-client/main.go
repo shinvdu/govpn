@@ -102,7 +102,9 @@ MainCycle:
 			break MainCycle
 		case ethPkt = <-ethSink:
 			if peer == nil {
-				ethReady <- struct{}{}
+				if len(ethPkt) > 0 {
+					ethReady <- struct{}{}
+				}
 				continue
 			}
 			peer.EthProcess(ethPkt, conn, ethReady)
