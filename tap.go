@@ -26,11 +26,12 @@ import (
 )
 
 type TAP struct {
-	Name  string
-	dev   io.ReadWriter
-	buf   []byte
-	sink  chan []byte
-	ready chan struct{}
+	Name   string
+	dev    io.ReadWriter
+	buf    []byte
+	sink   chan []byte
+	ready  chan struct{}
+	synced bool
 }
 
 func NewTAP(ifaceName string) (*TAP, error) {
@@ -40,11 +41,12 @@ func NewTAP(ifaceName string) (*TAP, error) {
 		return nil, err
 	}
 	tap := TAP{
-		Name:  ifaceName,
-		dev:   tapRaw,
-		buf:   make([]byte, maxIfacePktSize),
-		sink:  make(chan []byte),
-		ready: make(chan struct{}),
+		Name:   ifaceName,
+		dev:    tapRaw,
+		buf:    make([]byte, maxIfacePktSize),
+		sink:   make(chan []byte),
+		ready:  make(chan struct{}),
+		synced: false,
 	}
 	go func() {
 		var n int

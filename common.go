@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 )
 
@@ -40,6 +41,9 @@ var (
 func ScriptCall(path, ifaceName string) ([]byte, error) {
 	if path == "" {
 		return nil, nil
+	}
+	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
+		return nil, err
 	}
 	cmd := exec.Command(path, ifaceName)
 	var out bytes.Buffer

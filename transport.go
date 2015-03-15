@@ -102,6 +102,7 @@ func TAPListen(ifaceName string) (*TAP, chan []byte, chan struct{}, chan struct{
 	sink := make(chan []byte)
 	sinkReady := make(chan struct{})
 	sinkTerminate := make(chan struct{})
+	sinkSkip := make(chan struct{})
 
 	go func() {
 		heartbeat := time.Tick(heartbeatPeriodGet())
@@ -112,29 +113,34 @@ func TAPListen(ifaceName string) (*TAP, chan []byte, chan struct{}, chan struct{
 			case <-sinkTerminate:
 				break ListenCycle
 			case <-heartbeat:
-				sink <- make([]byte, 0)
+				go func() { sink <- make([]byte, 0) }()
 				continue
+			case <-sinkSkip:
 			case <-sinkReady:
-				if exists {
-					exists = false
-					break
-				}
 				tap.ready <- struct{}{}
+				tap.synced = true
 			}
 		HeartbeatCatched:
 			select {
 			case <-heartbeat:
-				sink <- make([]byte, 0)
+				go func() { sink <- make([]byte, 0) }()
 				goto HeartbeatCatched
 			case <-sinkTerminate:
 				break ListenCycle
 			case pkt = <-tap.sink:
+				tap.synced = false
 				sink <- pkt
 			}
 		}
 		close(sink)
+		close(sinkReady)
+		close(sinkTerminate)
 	}()
-	sinkReady <- struct{}{}
+	if exists && tap.synced {
+		sinkSkip <- struct{}{}
+	} else {
+		sinkReady <- struct{}{}
+	}
 	return tap, sink, sinkReady, sinkTerminate, nil
 }
 
