@@ -26,7 +26,7 @@ network (VPN) daemon, written entirely on Go programming language.
 @menu
 * Overview::
 * News::
-* Getting and building source code::
+* Installation::
 * Precautions::
 * User manual::
 * Developer manual::
@@ -108,8 +108,8 @@ the peers, not even it's hash value)
 
 @verbatiminclude ../NEWS
 
-@node Getting and building source code
-@unnumbered Getting and building source code
+@node Installation
+@unnumbered Installation
 
 GoVPN is written on Go programming language, But
 @url{https://www.gnu.org/software/make/, Make} program is recommended
