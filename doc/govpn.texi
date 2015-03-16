@@ -27,6 +27,7 @@ network (VPN) daemon, written entirely on Go programming language.
 * Overview::
 * News::
 * Getting and building source code::
+* Precautions::
 * User manual::
 * Developer manual::
 * Reporting bugs::
@@ -155,6 +156,25 @@ directory:
 @end example
 
 @include pubkey.texi
+
+@node Precautions
+@unnumbered Precautions
+
+The very important precaution is the @strong{cryptographically good}
+pseudo random number generator. GoVPN uses native operating system PRNG
+as entropy source. You have no way to check it's quality in closed
+source code operating systems, so it is recommended not to use them if
+you really needs security. Moreover it is possible that those OS leaks
+information about possible PRNG states. And at least Apple OS X and
+Microsoft Windows are already known to have weak CSPRNGs.
+
+GoVPN could use it's own PRNG implementation like Fortuna, but it is
+much easier to use the right OS, to use free software.
+
+Also you should @strong{never} use one key for multiple clients. Salsa20
+encryption is randomized in each session, but it depends again on PRNG.
+If it fails, produces equal values at least once, then all you traffic
+related to that key could be decrypted.
 
 @node User manual
 @unnumbered User manual
