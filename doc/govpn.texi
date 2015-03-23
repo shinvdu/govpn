@@ -168,7 +168,8 @@ you really needs security. Moreover it is possible that those OS leaks
 information about possible PRNG states. And at least Apple OS X and
 Microsoft Windows are already known to have weak CSPRNGs.
 
-GoVPN could use it's own PRNG implementation like Fortuna, but it is
+GoVPN could use it's own PRNG implementation like
+@url{https://www.schneier.com/fortuna.html, Fortuna}, but it is
 much easier to use the right OS, to use free software.
 
 Also you should @strong{never} use one key for multiple clients. Salsa20
