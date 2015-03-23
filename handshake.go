@@ -69,6 +69,25 @@ func IsValidHandshakePkt(pkt []byte) bool {
 	return true
 }
 
+// Zero handshake's memory state
+func (h *Handshake) Zero() {
+	sliceZero(h.rNonce[:])
+	sliceZero(h.dhPriv[:])
+	sliceZero(h.key[:])
+	if h.rServer != nil {
+		sliceZero(h.rServer[:])
+	}
+	if h.rClient != nil {
+		sliceZero(h.rClient[:])
+	}
+	if h.sServer != nil {
+		sliceZero(h.sServer[:])
+	}
+	if h.sClient != nil {
+		sliceZero(h.sClient[:])
+	}
+}
+
 func (h *Handshake) rNonceNext() []byte {
 	nonce := make([]byte, 8)
 	nonceCurrent, _ := binary.Uvarint(h.rNonce[:])

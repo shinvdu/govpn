@@ -129,6 +129,7 @@ MainCycle:
 			for addr, hs := range states {
 				if hs.LastPing.Add(timeout).Before(now) {
 					log.Println("Deleting handshake state", addr)
+					hs.Zero()
 					delete(states, addr)
 				}
 			}
@@ -143,6 +144,7 @@ MainCycle:
 					)
 					go govpn.ScriptCall(downPath, state.tap.Name)
 					state.terminate <- struct{}{}
+					state.peer.Zero()
 				}
 			}
 		case peerReady = <-peerReadySink:
@@ -152,6 +154,7 @@ MainCycle:
 				}
 				delete(peers, addr)
 				state.terminate <- struct{}{}
+				state.peer.Zero()
 				break
 			}
 			addr = peerReady.peer.Addr.String()
@@ -160,6 +163,7 @@ MainCycle:
 				continue
 			}
 			peers[addr] = state
+			states[addr].Zero()
 			delete(states, addr)
 			log.Println("Registered interface", peerReady.iface, "with peer", peer)
 			go func(state *PeerState) {

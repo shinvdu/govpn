@@ -74,3 +74,10 @@ func KeyRead(path string) *[KeySize]byte {
 	copy(key[:], keyDecoded)
 	return key
 }
+
+// Zero each byte
+func sliceZero(data []byte) {
+	for i := 0; i < len(data); i++ {
+		data[i] = '\x00'
+	}
+}

@@ -67,6 +67,16 @@ func (p *Peer) String() string {
 	return p.Id.String() + ":" + p.Addr.String()
 }
 
+// Zero peer's memory state
+func (p *Peer) Zero() {
+	sliceZero(p.Key[:])
+	sliceZero(p.tag[:])
+	sliceZero(p.keyAuth[:])
+	sliceZero(p.buf)
+	sliceZero(p.frame)
+	sliceZero(p.nonce)
+}
+
 var (
 	HeartbeatMark   = []byte("\x00\x00\x00HEARTBEAT")
 	Emptiness       = make([]byte, KeySize)

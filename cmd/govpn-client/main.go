@@ -93,6 +93,7 @@ func main() {
 MainCycle:
 	for {
 		if peer != nil && peer.Bytes > govpn.MaxBytesPerKey {
+			peer.Zero()
 			peer = nil
 			handshake = govpn.HandshakeStart(conn, remote, id, key)
 			log.Println("Rehandshaking")
@@ -132,6 +133,7 @@ MainCycle:
 						firstUpCall = false
 					}
 					peer = p
+					handshake.Zero()
 					handshake = nil
 				}
 				udpReady <- struct{}{}
