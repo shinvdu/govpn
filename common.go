@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
-	"bytes"
 	"encoding/hex"
 	"io/ioutil"
 	"log"
@@ -45,15 +44,11 @@ func ScriptCall(path, ifaceName string) ([]byte, error) {
 	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
 		return nil, err
 	}
-	cmd := exec.Command(path, ifaceName)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	result := out.Bytes()
+	out, err := exec.Command(path, ifaceName).CombinedOutput()
 	if err != nil {
-		log.Println("Script error", path, err, string(result))
+		log.Println("Script error", path, err, string(out))
 	}
-	return result, err
+	return out, err
 }
 
 // Read authentication key from the file.
