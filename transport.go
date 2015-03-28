@@ -37,7 +37,7 @@ const (
 	S20BS         = 64
 	HeartbeatSize = 12
 	// Maximal amount of bytes transfered with single key (4 GiB)
-	MaxBytesPerKey = 4294967296
+	MaxBytesPerKey = 1 << 32
 )
 
 type UDPPkt struct {
