@@ -426,6 +426,9 @@ Please send all your bug requests, patches and related questions to
 Visit @url{https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel}
 for information about subscription options and archived messages access.
 
+Official website is @url{http://www.cypherpunks.ru/govpn/}, also available
+as @url{https://www.torproject.org/, Tor} hidden service:
+@url{http://vabu56j2ep2rwv3b.onion/govpn/}.
 Development Git source code repository currently is located on:
 @url{https://github.com/stargrave/govpn}.
 

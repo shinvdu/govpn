@@ -6,6 +6,7 @@ IPv4/IPv6, rehandshake, heartbeat, pre-shared keys (PSK), perfect
 forward secrecy (PFS). GNU/Linux and FreeBSD support.
 
 Home page: http://www.cypherpunks.ru/govpn/
+also available as Tor hidden service: http://vabu56j2ep2rwv3b.onion/govpn/
 
 Send bug reports, questions and patches to govpn-devel@lists.cypherpunks.ru
 mailing list. Visit https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel
