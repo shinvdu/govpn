@@ -86,7 +86,7 @@ func main() {
 	termSignal := make(chan os.Signal, 1)
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
 
-	log.Println("Client version", govpn.Version)
+	log.Println(govpn.VersionGet())
 	log.Println("Starting handshake")
 	handshake := govpn.HandshakeStart(conn, remote, id, key)
 

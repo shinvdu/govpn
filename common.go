@@ -24,6 +24,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 )
 
 var (
@@ -75,4 +76,8 @@ func sliceZero(data []byte) {
 	for i := 0; i < len(data); i++ {
 		data[i] = '\x00'
 	}
+}
+
+func VersionGet() string {
+	return "GoVPN version " + Version + " built with " + runtime.Version()
 }

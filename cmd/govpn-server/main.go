@@ -116,7 +116,7 @@ func main() {
 	var ethEvent EthEvent
 	ethSink := make(chan EthEvent)
 
-	log.Println("Server version", govpn.Version)
+	log.Println(govpn.VersionGet())
 	log.Println("Server started")
 
 MainCycle:
