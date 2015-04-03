@@ -37,7 +37,7 @@ const (
 	S20BS         = 64
 	HeartbeatSize = 12
 	// Maximal amount of bytes transfered with single key (4 GiB)
-	MaxBytesPerKey = 1 << 32
+	MaxBytesPerKey int64 = 1 << 32
 )
 
 type UDPPkt struct {
@@ -58,7 +58,7 @@ type Peer struct {
 	tag         *[poly1305.TagSize]byte
 	keyAuth     *[KeySize]byte
 	nonceRecv   uint64
-	Bytes       int
+	Bytes       int64
 	frame       []byte
 	nonce       []byte
 }
@@ -242,7 +242,7 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap *TAP, ready chan struct{}) bool {
 	p.LastPing = time.Now()
 	p.NonceRecv = p.nonceRecv
 	p.frame = p.buf[S20BS : S20BS+size-NonceSize-poly1305.TagSize]
-	p.Bytes += len(p.frame)
+	p.Bytes += int64(len(p.frame))
 	if subtle.ConstantTimeCompare(p.frame[:HeartbeatSize], HeartbeatMark) == 1 {
 		return true
 	}
@@ -282,7 +282,7 @@ func (p *Peer) EthProcess(ethPkt []byte, conn *net.UDPConn, ready chan struct{})
 	p.frame = p.buf[S20BS-NonceSize : S20BS+size]
 	poly1305.Sum(p.tag, p.frame, p.keyAuth)
 
-	p.Bytes += len(p.frame)
+	p.Bytes += int64(len(p.frame))
 	p.LastSent = now
 	if _, err := conn.WriteTo(append(p.frame, p.tag[:]...), p.Addr); err != nil {
 		log.Println("Error sending UDP", err)
