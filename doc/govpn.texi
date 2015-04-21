@@ -398,19 +398,19 @@ server remembers clients address, decrypt @code{CPubKey}, generates
 number @code{RS} and 256bit random @code{SS}. PSK-encryption uses
 incremented @code{R} (from previous message) for nonce
 @item
-@verb{|enc(PSK, SPubKey) + enc(K, RS + SS) + NULLs -> Client|} [88 bytes]
+@verb{|enc(PSK, R+1, SPubKey) + enc(K, R, RS + SS) + NULLs -> Client|} [88 bytes]
 @item
 client decrypt @code{SPubKey}, computes @code{K}, decrypts @code{RS},
 @code{SS} with key @code{K}, remembers @code{SS}, generates 64bit random
 number @code{RC} and 256bit random @code{SC},
 @item
-@verb{|enc(K, RS + RC + SC) + NULLs -> Server|} [64 bytes]
+@verb{|enc(K, R+1, RS + RC + SC) + NULLs -> Server|} [64 bytes]
 @item
 server decrypt @code{RS}, @code{RC}, @code{SC} with key @code{K},
 compares @code{RS} with it's own one send before, computes final main
 encryption key @code{S = SS XOR SC}
 @item
-@verb{|ENC(K, RC) + NULLs -> Client|} [24 bytes]
+@verb{|ENC(K, 0, RC) + NULLs -> Client|} [24 bytes]
 @item
 server switches to the new client
 @item
