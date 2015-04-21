@@ -326,7 +326,7 @@ cases you have to rehandshake again.
 @item Message authentication
 @url{http://cr.yp.to/mac.html, Poly1305}
 @item Password authenticated key agreement
-@url{http://cr.yp.to/ecdh.html, Curve25519} based DH-EKE
+DH-EKE powered by @url{http://cr.yp.to/ecdh.html, Curve25519}
 @item Packet overhead
 24 bytes per packet
 @item Handshake overhead
