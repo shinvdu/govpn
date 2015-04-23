@@ -8,9 +8,11 @@ forward secrecy (PFS). GNU/Linux and FreeBSD support.
 Home page: http://www.cypherpunks.ru/govpn/
 also available as Tor hidden service: http://vabu56j2ep2rwv3b.onion/govpn/
 
-Send bug reports, questions and patches to govpn-devel@lists.cypherpunks.ru
-mailing list. Visit https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel
-for subscription and archive access information.
+Send bug reports, questions and patches to
+govpn-devel@lists.cypherpunks.ru mailing list. Either visit
+https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel for
+subscription and archive access information, or send email with the
+subject "subscribe" to govpn-devel-request@lists.cypherpunks.ru.
 
 Development Git source code repository currently is located here:
 https://github.com/stargrave/govpn.git

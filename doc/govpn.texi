@@ -430,8 +430,10 @@ ones.
 
 Please send all your bug requests, patches and related questions to
 @email{govpn-devel@@lists.cypherpunks.ru} mailing list.
-Visit @url{https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel}
-for information about subscription options and archived messages access.
+Either visit @url{https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel}
+for information about subscription options and archived messages access, or
+send email with the subject @code{subscribe} to
+@email{govpn-devel-request@@lists.cypherpunks.ru}.
 
 Official website is @url{http://www.cypherpunks.ru/govpn/}, also available
 as @url{https://www.torproject.org/, Tor} hidden service:
