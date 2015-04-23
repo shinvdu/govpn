@@ -139,7 +139,7 @@ clone the repository or decompress tarball and set path like this:
 
 @example
 % mkdir -p govpn/src
-% git clone https://github.com/stargrave/govpn govpn/src/govpn
+% git clone https://github.com/stargrave/govpn.git govpn/src/govpn
 or
 % tar xfC govpn-1.5.tar.xz govpn/src && mv govpn/src/govpn-1.5 govpn/src/govpn
 % export GOPATH=$(pwd)/govpn:$GOPATH
@@ -436,8 +436,8 @@ for information about subscription options and archived messages access.
 Official website is @url{http://www.cypherpunks.ru/govpn/}, also available
 as @url{https://www.torproject.org/, Tor} hidden service:
 @url{http://vabu56j2ep2rwv3b.onion/govpn/}.
-Development Git source code repository currently is located on:
-@url{https://github.com/stargrave/govpn}.
+Development Git source code repository currently is located here:
+@url{https://github.com/stargrave/govpn.git}.
 
 @node Copying conditions
 @unnumbered Copying conditions
