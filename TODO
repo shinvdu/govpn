@@ -4,3 +4,4 @@
   human memorized passphrases to be used
 * Randomize ports usage
 * Fragmentize packets, noise the traffic
+* Indistinguishable from noise handshake packets
