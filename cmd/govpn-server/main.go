@@ -114,6 +114,8 @@ func main() {
 	var udpPkt *govpn.UDPPkt
 	var udpPktData []byte
 	var ethEvent EthEvent
+	var peerId *govpn.PeerId
+	var handshakeProcessForce bool
 	ethSink := make(chan EthEvent)
 
 	log.Println(govpn.VersionGet())
@@ -187,13 +189,21 @@ MainCycle:
 			}
 			udpPktData = udpBuf[:udpPkt.Size]
 			addr = udpPkt.Addr.String()
-			if govpn.IsValidHandshakePkt(udpPktData) {
+			handshakeProcessForce = false
+		HandshakeProcess:
+			if _, exists = peers[addr]; handshakeProcessForce || !exists {
+				peerId = govpn.IDsCache.Find(udpPktData)
+				if peerId == nil {
+					log.Println("Unknown identity from", addr)
+					udpReady <- struct{}{}
+					continue
+				}
 				state, exists = states[addr]
 				if !exists {
 					state = govpn.HandshakeNew(udpPkt.Addr)
 					states[addr] = state
 				}
-				peer = state.Server(conn, udpPktData)
+				peer = state.Server(peerId, conn, udpPktData)
 				if peer != nil {
 					log.Println("Peer handshake finished", peer)
 					if _, exists = peers[addr]; exists {
@@ -216,7 +226,9 @@ MainCycle:
 						}()
 					}
 				}
-				udpReady <- struct{}{}
+				if !handshakeProcessForce {
+					udpReady <- struct{}{}
+				}
 				continue
 			}
 			peerState, exists = peers[addr]
@@ -224,7 +236,12 @@ MainCycle:
 				udpReady <- struct{}{}
 				continue
 			}
-			peerState.peer.UDPProcess(udpPktData, peerState.tap, udpReady)
+			// If it fails during processing, then try to work with it
+			// as with handshake packet
+			if !peerState.peer.UDPProcess(udpPktData, peerState.tap, udpReady) {
+				handshakeProcessForce = true
+				goto HandshakeProcess
+			}
 		}
 	}
 }

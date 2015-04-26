@@ -52,6 +52,7 @@ func main() {
 	govpn.Noncediff = *nonceDiff
 
 	id := govpn.IDDecode(*IDRaw)
+	govpn.PeersInitDummy(id)
 	key := govpn.KeyRead(*keyPath)
 	if id == nil {
 		panic("ID is not specified")
@@ -120,13 +121,18 @@ MainCycle:
 			}
 
 			udpPktData = udpBuf[:udpPkt.Size]
-			if govpn.IsValidHandshakePkt(udpPktData) {
+			if peer == nil {
 				if udpPkt.Addr.String() != remote.String() {
 					udpReady <- struct{}{}
 					log.Println("Unknown handshake message")
 					continue
 				}
-				if p := handshake.Client(conn, key, udpPktData); p != nil {
+				if govpn.IDsCache.Find(udpPktData) == nil {
+					log.Println("Invalid identity in handshake packet")
+					udpReady <- struct{}{}
+					continue
+				}
+				if p := handshake.Client(id, conn, key, udpPktData); p != nil {
 					log.Println("Handshake completed")
 					if firstUpCall {
 						go govpn.ScriptCall(*upPath, *ifaceName)

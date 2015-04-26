@@ -60,6 +60,17 @@ func PeersInit(path string) {
 	}()
 }
 
+// Initialize dummy cache for client-side usage. It will consist only
+// of single key.
+func PeersInitDummy(id *PeerId) {
+	IDsCache = make(map[PeerId]*xtea.Cipher)
+	cipher, err := xtea.NewCipher(id[:])
+	if err != nil {
+		panic(err)
+	}
+	IDsCache[*id] = cipher
+}
+
 // Refresh IDsCache: remove disappeared keys, add missing ones with
 // initialized ciphers.
 func (cc cipherCache) refresh() {
@@ -103,13 +114,17 @@ func (cc cipherCache) refresh() {
 }
 
 // Try to find peer's identity (that equals to an encryption key)
-// by providing cipher and plain texts.
-func (cc cipherCache) Find(plaintext, ciphertext []byte) *PeerId {
+// by taking first blocksize sized bytes from data at the beginning
+// as plaintext and last bytes as cyphertext.
+func (cc cipherCache) Find(data []byte) *PeerId {
+	if len(data) < xtea.BlockSize*2 {
+		return nil
+	}
 	buf := make([]byte, xtea.BlockSize)
 	cipherCacheLock.RLock()
 	for pid, cipher := range cc {
-		cipher.Decrypt(buf, ciphertext)
-		if subtle.ConstantTimeCompare(buf, plaintext) == 1 {
+		cipher.Decrypt(buf, data[len(data)-xtea.BlockSize:])
+		if subtle.ConstantTimeCompare(buf, data[:xtea.BlockSize]) == 1 {
 			ppid := PeerId(pid)
 			cipherCacheLock.RUnlock()
 			return &ppid

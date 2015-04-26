@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/curve25519"
-	"golang.org/x/crypto/poly1305"
 	"golang.org/x/crypto/salsa20"
 	"golang.org/x/crypto/salsa20/salsa"
 	"golang.org/x/crypto/xtea"
@@ -55,25 +54,17 @@ func keyFromSecrets(server, client []byte) *[KeySize]byte {
 	return k
 }
 
-// Check if it is valid handshake-related message.
-// Minimal size and last 16 zero bytes.
-func IsValidHandshakePkt(pkt []byte) bool {
-	if len(pkt) < 24 {
-		return false
-	}
-	for i := len(pkt) - poly1305.TagSize; i < len(pkt); i++ {
-		if pkt[i] != '\x00' {
-			return false
-		}
-	}
-	return true
-}
-
 // Zero handshake's memory state
 func (h *Handshake) Zero() {
-	sliceZero(h.rNonce[:])
-	sliceZero(h.dhPriv[:])
-	sliceZero(h.key[:])
+	if h.rNonce != nil {
+		sliceZero(h.rNonce[:])
+	}
+	if h.dhPriv != nil {
+		sliceZero(h.dhPriv[:])
+	}
+	if h.key != nil {
+		sliceZero(h.key[:])
+	}
 	if h.rServer != nil {
 		sliceZero(h.rServer[:])
 	}
@@ -119,6 +110,17 @@ func HandshakeNew(addr *net.UDPAddr) *Handshake {
 	return &state
 }
 
+// Generate ID tag from client identification and data.
+func idTag(id *PeerId, data []byte) []byte {
+	ciph, err := xtea.NewCipher(id[:])
+	if err != nil {
+		panic(err)
+	}
+	enc := make([]byte, xtea.BlockSize)
+	ciph.Encrypt(enc, data[:xtea.BlockSize])
+	return enc
+}
+
 // Start handshake's procedure from the client.
 // It is the entry point for starting the handshake procedure.
 // You have to specify outgoing conn address, remote's addr address,
@@ -137,19 +139,8 @@ func HandshakeStart(conn *net.UDPConn, addr *net.UDPAddr, id *PeerId, key *[32]b
 	}
 	enc := make([]byte, 32)
 	salsa20.XORKeyStream(enc, dhPub[:], state.rNonce[:], key)
-
-	ciph, err := xtea.NewCipher(id[:])
-	if err != nil {
-		panic(err)
-	}
-	rEnc := make([]byte, xtea.BlockSize)
-	ciph.Encrypt(rEnc, state.rNonce[:])
-
 	data := append(state.rNonce[:], enc...)
-	data = append(data, rEnc...)
-	data = append(data, '\x00')
-	data = append(data, make([]byte, poly1305.TagSize)...)
-
+	data = append(data, idTag(id, state.rNonce[:])...)
 	if _, err := conn.WriteTo(data, addr); err != nil {
 		panic(err)
 	}
@@ -158,24 +149,14 @@ func HandshakeStart(conn *net.UDPConn, addr *net.UDPAddr, id *PeerId, key *[32]b
 
 // Process handshake message on the server side.
 // This function is intended to be called on server's side.
-// Our outgoing conn connection and received data are required.
+// Client identity, our outgoing conn connection and
+// received data are required.
 // If this is the final handshake message, then new Peer object
 // will be created and used as a transport. If no mutually
 // authenticated Peer is ready, then return nil.
-func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
-	switch len(data) {
-	case 65: // R + ENC(PSK, dh_client_pub) + xtea(ID, R) + NULL + NULLs
-		if h.rNonce != nil {
-			log.Println("Invalid handshake stage from", h.addr)
-			return nil
-		}
-
-		// Try to determine client's ID
-		id := IDsCache.Find(data[:8], data[8+32:8+32+8])
-		if id == nil {
-			log.Println("Unknown identity from", h.addr)
-			return nil
-		}
+func (h *Handshake) Server(id *PeerId, conn *net.UDPConn, data []byte) *Peer {
+	// R + ENC(PSK, dh_client_pub) + IDtag
+	if len(data) == 48 && h.rNonce == nil {
 		key := KeyRead(path.Join(PeersPath, id.String(), "key"))
 		h.Id = *id
 
@@ -210,17 +191,13 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 
 		// Send that to client
 		if _, err := conn.WriteTo(
-			append(encPub,
-				append(encRs, make([]byte, poly1305.TagSize)...)...), h.addr); err != nil {
+			append(encPub, append(encRs, idTag(id, encPub)...)...), h.addr); err != nil {
 			panic(err)
 		}
 		h.LastPing = time.Now()
-	case 64: // ENC(K, RS + RC + SC) + NULLs
-		if (h.rNonce == nil) || (h.rClient != nil) {
-			log.Println("Invalid handshake stage from", h.addr)
-			return nil
-		}
-
+	} else
+	// ENC(K, RS + RC + SC) + IDtag
+	if len(data) == 56 && h.rClient == nil {
 		// Decrypted Rs compare rServer
 		decRs := make([]byte, 8+8+32)
 		salsa20.XORKeyStream(decRs, data[:8+8+32], h.rNonceNext(), h.key)
@@ -232,7 +209,7 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 		// Send final answer to client
 		enc := make([]byte, 8)
 		salsa20.XORKeyStream(enc, decRs[8:8+8], make([]byte, 8), h.key)
-		if _, err := conn.WriteTo(append(enc, make([]byte, poly1305.TagSize)...), h.addr); err != nil {
+		if _, err := conn.WriteTo(append(enc, idTag(id, enc)...), h.addr); err != nil {
 			panic(err)
 		}
 
@@ -240,7 +217,7 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 		peer := newPeer(h.addr, h.Id, 0, keyFromSecrets(h.sServer[:], decRs[8+8:]))
 		h.LastPing = time.Now()
 		return peer
-	default:
+	} else {
 		log.Println("Invalid handshake message from", h.addr)
 	}
 	return nil
@@ -248,15 +225,14 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 
 // Process handshake message on the client side.
 // This function is intended to be called on client's side.
-// Our outgoing conn connection, authentication key and received data
-// are required. Client does not work with identities, as he is the
-// only one, so key is a requirement.
+// Our outgoing conn connection, authentication
+// key and received data are required.
 // If this is the final handshake message, then new Peer object
 // will be created and used as a transport. If no mutually
 // authenticated Peer is ready, then return nil.
-func (h *Handshake) Client(conn *net.UDPConn, key *[KeySize]byte, data []byte) *Peer {
+func (h *Handshake) Client(id *PeerId, conn *net.UDPConn, key *[KeySize]byte, data []byte) *Peer {
 	switch len(data) {
-	case 88: // ENC(PSK, dh_server_pub) + ENC(K, RS + SS) + NULLs
+	case 80: // ENC(PSK, dh_server_pub) + ENC(K, RS + SS) + IDtag
 		if h.key != nil {
 			log.Println("Invalid handshake stage from", h.addr)
 			return nil
@@ -290,11 +266,11 @@ func (h *Handshake) Client(conn *net.UDPConn, key *[KeySize]byte, data []byte) *
 				append(h.rClient[:], h.sClient[:]...)...), h.rNonceNext(), h.key)
 
 		// Send that to server
-		if _, err := conn.WriteTo(append(encRs, make([]byte, poly1305.TagSize)...), h.addr); err != nil {
+		if _, err := conn.WriteTo(append(encRs, idTag(id, encRs)...), h.addr); err != nil {
 			panic(err)
 		}
 		h.LastPing = time.Now()
-	case 24: // ENC(K, RC) + NULLs
+	case 16: // ENC(K, RC) + IDtag
 		if h.key == nil {
 			log.Println("Invalid handshake stage from", h.addr)
 			return nil
