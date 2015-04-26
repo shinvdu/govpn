@@ -23,12 +23,15 @@ import (
 	"encoding/hex"
 	"log"
 	"os"
+	"sync"
+	"time"
 
 	"golang.org/x/crypto/xtea"
 )
 
 const (
-	IDSize = 128 / 8
+	IDSize      = 128 / 8
+	RefreshRate = 60 * time.Second
 )
 
 type PeerId [IDSize]byte
@@ -40,15 +43,21 @@ func (id PeerId) String() string {
 type cipherCache map[PeerId]*xtea.Cipher
 
 var (
-	PeersPath string
-	IDsCache  cipherCache
+	PeersPath       string
+	IDsCache        cipherCache
+	cipherCacheLock sync.RWMutex
 )
 
 // Initialize (pre-cache) available peers info.
 func PeersInit(path string) {
 	PeersPath = path
 	IDsCache = make(map[PeerId]*xtea.Cipher)
-	IDsCache.refresh()
+	go func() {
+		for {
+			IDsCache.refresh()
+			time.Sleep(RefreshRate)
+		}
+	}()
 }
 
 // Refresh IDsCache: remove disappeared keys, add missing ones with
@@ -70,6 +79,8 @@ func (cc cipherCache) refresh() {
 		}
 		available[*id] = true
 	}
+
+	cipherCacheLock.Lock()
 	// Cleanup deleted ones from cache
 	for k, _ := range cc {
 		if _, exists := available[k]; !exists {
@@ -88,20 +99,23 @@ func (cc cipherCache) refresh() {
 			cc[peerId] = cipher
 		}
 	}
+	cipherCacheLock.Unlock()
 }
 
 // Try to find peer's identity (that equals to an encryption key)
 // by providing cipher and plain texts.
 func (cc cipherCache) Find(plaintext, ciphertext []byte) *PeerId {
-	cc.refresh()
 	buf := make([]byte, xtea.BlockSize)
+	cipherCacheLock.RLock()
 	for pid, cipher := range cc {
 		cipher.Decrypt(buf, ciphertext)
 		if subtle.ConstantTimeCompare(buf, plaintext) == 1 {
 			ppid := PeerId(pid)
+			cipherCacheLock.RUnlock()
 			return &ppid
 		}
 	}
+	cipherCacheLock.RUnlock()
 	return nil
 }
 
