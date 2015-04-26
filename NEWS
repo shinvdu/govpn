@@ -1,3 +1,12 @@
+Release 2.3
+-----------
+* Handshake packets became indistinguishable from the random.
+  Now all GoVPN's traffic is the noise for men in the middle.
+* Handshake messages are smaller (16% traffic reduce).
+* Adversary now can not create malicious fake handshake packets that
+  will force server to generate private DH key, preventing entropy
+  consuming and resource heavy computations.
+
 Release 2.2
 -----------
 * Fixed several possible channel deadlocks.

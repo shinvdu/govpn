@@ -4,7 +4,7 @@ participant Server
 
 Client -> Client : R=rand(64bit)
 Client -> Client : CPrivKey=rand(256bit)
-Client -> Server : R, enc(PSK, R, CPubKey), xtea(ID, R)
+Client -> Server : R, enc(PSK, R, CPubKey)
 Server -> Server : SPrivKey=rand(256bit)
 Server -> Server : K=DH(SPrivKey, CPubKey)
 Server -> Server : RS=rand(64bit)
