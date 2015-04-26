@@ -1,0 +1,48 @@
+@node Handshake protocol
+@section Handshake protocol
+
+@verbatiminclude handshake.utxt
+
+Each handshake message ends with so called @code{IDtag}: it is an XTEA
+encrypted first 64 bits of each message with client's identity as a key.
+It is used to transmit identity and to mark packet as handshake message.
+Server can determine used identity by trying all possible known to him
+keys. It consumes resources, but XTEA is rather fast algorithm and
+handshake messages checking is seldom enough event.
+
+@enumerate
+@item
+client generates @code{CPubKey}, random 64bit @code{R} that is used as a
+nonce for encryption
+@item
+@verb{|R + enc(PSK, R, CPubKey) + IDtag -> Server|} [48 bytes]
+@item
+server remembers clients address, decrypt @code{CPubKey}, generates
+@code{SPrivKey}/@code{SPubKey}, computes common shared key @code{K}
+(based on @code{CPubKey} and @code{SPrivKey}), generates 64bit random
+number @code{RS} and 256bit random @code{SS}. PSK-encryption uses
+incremented @code{R} (from previous message) for nonce
+@item
+@verb{|enc(PSK, R+1, SPubKey) + enc(K, R, RS + SS) + IDtag -> Client|} [80 bytes]
+@item
+client decrypt @code{SPubKey}, computes @code{K}, decrypts @code{RS},
+@code{SS} with key @code{K}, remembers @code{SS}, generates 64bit random
+number @code{RC} and 256bit random @code{SC},
+@item
+@verb{|enc(K, R+1, RS + RC + SC) + IDtag -> Server|} [56 bytes]
+@item
+server decrypt @code{RS}, @code{RC}, @code{SC} with key @code{K},
+compares @code{RS} with it's own one send before, computes final main
+encryption key @code{S = SS XOR SC}
+@item
+@verb{|ENC(K, 0, RC) + IDtag -> Client|} [16 bytes]
+@item
+server switches to the new client
+@item
+client decrypts @code{RC} and compares with it's own generated one,
+computes final main encryption key @code{S}
+@end enumerate
+
+Where PSK is 256bit pre-shared key. @code{R*} are required for handshake
+randomization and two-way authentication. K key is used only during
+handshake. DH public keys can be trivially derived from private ones.
