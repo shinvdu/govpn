@@ -1,6 +1,6 @@
 .PHONY: govpn-client govpn-server
 
-VERSION=2.3
+VERSION=2.4
 LDFLAGS=-X govpn.Version $(VERSION)
 
 all: govpn-client govpn-server

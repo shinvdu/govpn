@@ -1,3 +1,9 @@
+Release 2.4
+-----------
+* Added ability to optionally run built-in HTTP-server responding with
+  JSON of all known connected peers information. Real-time client's
+  statistics
+
 Release 2.3
 -----------
 * Handshake packets became indistinguishable from the random.
