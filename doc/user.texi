@@ -144,3 +144,30 @@ Client will exit if won't finish handshake during @code{-timeout}.
 If no packets are received from remote side during timeout, then daemon
 will stop sending packets to the client and client will exit. In all
 cases you have to rehandshake again.
+
+To view stats you should make GET request on a stats port and receive
+JSON in the response. For example:
+
+@verbatim
+% curl http://localhost:5678/ | jq .
+[
+  {
+    "HeartbeatSent": 1,
+    "HeartbeatRecv": 2,
+    "FramesDup": 0,
+    "FramesUnauth": 0,
+    "Addr": {
+      "Zone": "igb1",
+      "Port": 12989,
+      "IP": "fe80::221:ccff:feb9:ba7f"
+    },
+    "Id": "stargrave",
+    "LastPing": "2015-04-30T22:05:49.426616166+03:00",
+    "LastSent": "2015-04-30T22:05:49.426704138+03:00",
+    "BytesIn": 1392774,
+    "BytesOut": 17228877,
+    "FramesIn": 12412,
+    "FramesOut": 16588
+  }
+]
+@end verbatim
