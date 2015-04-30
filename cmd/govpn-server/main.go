@@ -35,6 +35,7 @@ import (
 var (
 	bindAddr  = flag.String("bind", "[::]:1194", "Bind to address")
 	peersPath = flag.String("peers", "peers", "Path to peers keys directory")
+	stats     = flag.String("stats", "", "Enable stats retrieving on host:port")
 	mtu       = flag.Int("mtu", 1500, "MTU")
 	nonceDiff = flag.Int("noncediff", 1, "Allow nonce difference")
 	timeoutP  = flag.Int("timeout", 60, "Timeout seconds")
@@ -110,6 +111,7 @@ func main() {
 	states := make(map[string]*govpn.Handshake)
 	peers := make(map[string]*PeerState)
 	peerReadySink := make(chan PeerReadyEvent)
+	knownPeers := govpn.KnownPeers(make(map[string]**govpn.Peer))
 	var peerReady PeerReadyEvent
 	var udpPkt *govpn.UDPPkt
 	var udpPktData []byte
@@ -119,6 +121,14 @@ func main() {
 	ethSink := make(chan EthEvent)
 
 	log.Println(govpn.VersionGet())
+	if *stats != "" {
+		log.Println("Stats are going to listen on", *stats)
+		statsPort, err := net.Listen("tcp", *stats)
+		if err != nil {
+			panic(err)
+		}
+		go govpn.StatsProcessor(statsPort, &knownPeers)
+	}
 	log.Println("Server started")
 
 MainCycle:
@@ -139,6 +149,7 @@ MainCycle:
 				if state.peer.LastPing.Add(timeout).Before(now) {
 					log.Println("Deleting peer", state.peer)
 					delete(peers, addr)
+					delete(knownPeers, addr)
 					downPath := path.Join(
 						govpn.PeersPath,
 						state.peer.Id.String(),
@@ -155,6 +166,7 @@ MainCycle:
 					continue
 				}
 				delete(peers, addr)
+				delete(knownPeers, addr)
 				state.terminate <- struct{}{}
 				state.peer.Zero()
 				break
@@ -165,6 +177,7 @@ MainCycle:
 				continue
 			}
 			peers[addr] = state
+			knownPeers[addr] = &peerReady.peer
 			states[addr].Zero()
 			delete(states, addr)
 			log.Println("Registered interface", peerReady.iface, "with peer", peer)

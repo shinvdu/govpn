@@ -36,6 +36,7 @@ var (
 	keyPath    = flag.String("key", "", "Path to authentication key file")
 	upPath     = flag.String("up", "", "Path to up-script")
 	downPath   = flag.String("down", "", "Path to down-script")
+	stats      = flag.String("stats", "", "Enable stats retrieving on host:port")
 	mtu        = flag.Int("mtu", 1500, "MTU")
 	nonceDiff  = flag.Int("noncediff", 1, "Allow nonce difference")
 	timeoutP   = flag.Int("timeout", 60, "Timeout seconds")
@@ -83,11 +84,21 @@ func main() {
 	var ethPkt []byte
 	var udpPkt *govpn.UDPPkt
 	var udpPktData []byte
+	knownPeers := govpn.KnownPeers(map[string]**govpn.Peer{remote.String(): &peer})
+
+	log.Println(govpn.VersionGet())
+	if *stats != "" {
+		log.Println("Stats are going to listen on", *stats)
+		statsPort, err := net.Listen("tcp", *stats)
+		if err != nil {
+			panic(err)
+		}
+		go govpn.StatsProcessor(statsPort, &knownPeers)
+	}
 
 	termSignal := make(chan os.Signal, 1)
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
 
-	log.Println(govpn.VersionGet())
 	log.Println("Starting handshake")
 	handshake := govpn.HandshakeStart(conn, remote, id, key)
 

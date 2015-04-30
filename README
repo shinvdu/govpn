@@ -3,8 +3,8 @@ written on Go programming language. It uses Diffie-Hellman Encrypted Key
 Exchange (DH-EKE) for mutual zero-knowledge peers authentication and
 authenticated encrypted data transport. Other features include:
 IPv4/IPv6, rehandshake, heartbeat, pre-shared authentication keys (PSK),
-perfect forward secrecy (PFS), replay attack protection.
-GNU/Linux and FreeBSD support.
+perfect forward secrecy (PFS), replay attack protection, JSON real-time
+statistics. GNU/Linux and FreeBSD support.
 
 Home page: http://www.cypherpunks.ru/govpn/
 also available as Tor hidden service: http://vabu56j2ep2rwv3b.onion/govpn/

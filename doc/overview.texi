@@ -62,4 +62,6 @@ authentication (pre-shared key is not transmitted in any form between
 the peers, not even it's hash value)
 @item Built-in rehandshake and heartbeat features
 @item Several simultaneous clients support
+@item Optional built-in HTTP-server for retrieving information about
+known connected peers in @url{http://json.org/, JSON} format
 @end itemize

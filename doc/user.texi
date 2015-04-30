@@ -39,6 +39,10 @@ script that has to print interface's name on the first output line.
 Optionally there can be @code{down.sh} that will be executed when client
 disconnects, and @code{name} file containing human readable client's name.
 
+Each of them have ability to show statistics about known connected
+peers. If you specify @emph{host:port} in @code{-stats} argument, then
+it will run HTTP server on it, responding with JSON documents.
+
 @menu
 * Example usage::
 @end menu
@@ -99,7 +103,8 @@ client% while :; do
 done
 @end example
 
-FreeBSD IPv6 client-server example:
+FreeBSD IPv6 client-server example, with stats enabled on the server
+(localhost's 5678 port):
 
 @example
 server% cat > peers/CLIENTID/up.sh <<EOF
@@ -109,7 +114,7 @@ ifconfig $tap inet6 fc00::1/96 mtu 1462 up
 echo $tap
 EOF
 server% ifconfig em0 inet6 fe80::1/64
-server% GOMAXPROC=4 govpn-server -bind fe80::1%em0
+server% GOMAXPROC=4 govpn-server -bind fe80::1%em0 -stats [::1]:5678
 @end example
 
 @example
