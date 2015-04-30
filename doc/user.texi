@@ -1,0 +1,146 @@
+@node User manual
+@unnumbered User manual
+
+Announcements about updates and new releases can be found in
+@ref{Reporting bugs}.
+
+GoVPN is split into two pieces: client and server. Each of them work on
+top of UDP and TAP virtual network interfaces. Client and server have
+several common configuration command line options:
+
+@table @asis
+@item Timeout
+Because of stateless UDP nature there is no way to know if
+remote peer is dead, but after some timeout. Client and server
+heartbeats each other every third part of heartbeat. Also this timeout
+is the time when server purge his obsolete handshake and peers states.
+@item Allowable nonce difference
+To prevent replay attacks we just remember latest received nonce number
+from the remote peer and drop those who has lower ones. Because UDP
+packets can be reordered: that behaviour can lead to dropping of not
+replayed ones. This option gives ability to create some window of
+allowable difference. That opens the door for replay attacks for narrow
+time interval.
+@item MTU
+Maximum transmission unit, maximum frame size that is acceptable on TAP
+interface.
+@end table
+
+Client needs to know his identification, path to the authentication key,
+remote server's address, TAP interface name, and optional path to up and
+down scripts, that will be executed after connection is either initiated
+or terminated.
+
+Server needs to know only the address to listen on and path to directory
+containing peers information. This directory must contain subdirectories
+with the names equal to client's identifications. Each of them must have
+@strong{key} file with corresponding authentication key, @strong{up.sh}
+script that has to print interface's name on the first output line.
+Optionally there can be @code{down.sh} that will be executed when client
+disconnects, and @code{name} file containing human readable client's name.
+
+Each of them have ability to show statistics about known connected
+peers. If you specify @emph{host:port} in @code{-stats} argument, then
+it will run HTTP server on it, responding with JSON documents.
+
+@menu
+* Example usage::
+@end menu
+
+@node Example usage
+@section Example usage
+
+Let's assume that there is some insecure link between your computer and
+WiFi-reachable gateway. You have got preconfigured @code{wlan0} network
+interface with 192.168.0/24 network. You want to create virtual
+encrypted and authenticated 172.16.0/24 network and use it as a default
+transport. MTU for that wlan0 is 1500 bytes. GoVPN will say that maximum
+MTU for the link is 1476, however it does not take in account TAP's
+Ethernet frame header length, that in my case is 14 bytes long (1476 - 14).
+
+Do not forget about setting @code{GOMAXPROC} environment variable for
+using more than one CPU.
+
+At first you have to generate client's authentication key and client's
+unique identification. There is @code{utils/newclient.sh} script for
+convenience.
+
+@example
+% ./utils/newclient.sh Alice
+9b40701bdaf522f2b291cb039490312
+@end example
+
+@code{9b40701bdaf522f2b291cb039490312} is client's identification.
+@code{peers/9b40701bdaf522f2b291cb039490312/name} contains @emph{Alice},
+@code{peers/9b40701bdaf522f2b291cb039490312/key} contains authentication key and
+@code{peers/9b40701bdaf522f2b291cb039490312/up.sh} contains currently
+dummy empty up-script.
+
+GNU/Linux IPv4 client-server example:
+
+@example
+server% echo "echo tap10" >> peers/CLIENTID/up.sh
+server% ip addr add 192.168.0.1/24 dev wlan0
+server% tunctl -t tap10
+server% ip link set mtu 1462 dev tap10
+server% ip addr add 172.16.0.1/24 dev tap10
+server% ip link set up dev tap10
+server% GOMAXPROC=4 govpn-server -bind 192.168.0.1:1194
+@end example
+
+@example
+client% umask 066
+client% echo MYLONG64HEXKEY > key.txt
+client% ip addr add 192.168.0.2/24 dev wlan0
+client% tunctl -t tap10
+client% ip link set mtu 1462 dev tap10
+client% ip addr add 172.16.0.2/24 dev tap10
+client% ip link set up dev tap10
+client% ip route add default via 172.16.0.1
+client% export GOMAXPROC=4
+client% while :; do
+    govpn-client -key key.txt -id CLIENTID -iface tap10 -remote 192.168.0.1:1194
+done
+@end example
+
+FreeBSD IPv6 client-server example, with stats enabled on the server
+(localhost's 5678 port):
+
+@example
+server% cat > peers/CLIENTID/up.sh <<EOF
+#!/bin/sh
+$tap=$(ifconfig tap create)
+ifconfig $tap inet6 fc00::1/96 mtu 1462 up
+echo $tap
+EOF
+server% ifconfig em0 inet6 fe80::1/64
+server% GOMAXPROC=4 govpn-server -bind fe80::1%em0 -stats [::1]:5678
+@end example
+
+@example
+client% ifconfig me0 inet6 -ifdisabled auto_linklocal
+client% ifconfig tap10
+client% ifconfig tap10 inet6 fc00::2/96 mtu 1462 up
+client% route -6 add default fc00::1
+client% export GOMAXPROC=4
+client% while :; do
+    govpn-client -key key.txt -id CLIENTID -iface tap10 -remote [fe80::1%me0]:1194
+done
+@end example
+
+Example up-script:
+
+@example
+client% cat > up.sh <<EOF
+#!/bin/sh
+dhclient $1
+rtsol $1
+EOF
+client% chmod +x up.sh
+client% govpn -id CLIENTID -key key.txt -iface tap10 -remote [fe80::1%me0]:1194 -up ./up.sh
+@end example
+
+Client will exit if won't finish handshake during @code{-timeout}.
+If no packets are received from remote side during timeout, then daemon
+will stop sending packets to the client and client will exit. In all
+cases you have to rehandshake again.

@@ -1,0 +1,39 @@
+@node Installation
+@unnumbered Installation
+
+GoVPN is written on @url{http://golang.org/, Go programming language},
+with @code{golang.org/x/crypto} libraries dependencies.
+@url{https://www.gnu.org/software/make/, GNU Make} is recommended for
+convenient building. @url{https://www.gnu.org/software/texinfo/, Texinfo}
+is used for building documentation.
+
+@include download.texi
+
+You @strong{have to} verify downloaded archives integrity and check
+their signature to be sure that you have got trusted, untampered
+software. For integrity and authentication of downloaded binaries
+@url{https://www.gnupg.org/, The GNU Privacy Guard} is used. You must
+download signature provided with the tarball.
+
+For the very first time you have to import signing public keys. They
+are provided below, but be sure that you are reading them from the
+trusted source. Alternatively check this page from other sources (Tor's
+hidden service for example) and look for the mailing list announcements.
+
+For example you can get tarball, set proper @code{$GOPATH} and run
+@code{make} (that will install all necessary libraries and build
+client/server binaries) like this:
+
+@example
+% mkdir -p govpn/src
+% set -e
+% wget http://www.cypherpunks.ru/govpn/download/govpn-2.3.tar.xz
+% wget http://www.cypherpunks.ru/govpn/download/govpn-2.3.tar.xz.sig
+% gpg --verify govpn-2.3.tar.xz.sig govpn-2.3.tar.xz
+% tar xfC govpn-2.3.tar.xz govpn/src
+% mv govpn/src/govpn-2.3 govpn/src/govpn
+% export GOPATH=$(pwd)/govpn:$GOPATH
+% gmake -C govpn/src/govpn all
+@end example
+
+@include pubkey.texi

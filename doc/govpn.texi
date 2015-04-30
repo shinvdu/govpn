@@ -4,16 +4,17 @@
 @settitle GoVPN
 
 @copying
-@quotation
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-any later version.
+This manual is for GoVPN -- simple secure free software virtual private
+network (VPN) daemon, written entirely on Go programming language.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+Copyright @copyright{} 2014-2015 Sergey Matveev @email{stargrave@@stargrave.org}
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+A copy of the license is included below.
 @end quotation
 @end copying
 
@@ -34,420 +35,27 @@ network (VPN) daemon, written entirely on Go programming language.
 * Copying conditions::
 @end menu
 
-@node Overview
-@unnumbered Overview
-
-GoVPN is simple secure virtual private network daemon. It uses
-@url{https://en.wikipedia.org/wiki/Encrypted_key_exchange, Diffie-Hellman Encrypted Key Exchange}
-(DH-EKE) for mutual zero-knowledge peers authentication and
-authenticated encrypted data transport. It is written entirely on
-@url{http://golang.org/, Go programming language}.
-
-All packets captured on network interface are encrypted, authenticated
-and sent to remote server, that writes them to his interface, and vice
-versa. Client and server use pre-shared authentication key (PSK) and
-128-bit identification key.
-
-Because of stateless UDP nature, after some timeout of inactivity peers
-forget about each other and have to retry handshake process again,
-therefore background heartbeat process will be ran.
-
-Handshake is used to mutually authenticate peers, exchange common secret
-per-session encryption key and check UDP transport availability.
-
-Because of UDP and authentication overhead: each packet grows in size
-during transmission, so you have to lower you maximum transmission unit
-(MTU) on virtual network interface.
-
-High security is the goal for that daemon. It uses fast cryptography
-algorithms with 128bit security margin, strong mutual zero-knowledge
-authentication and perfect-forward secrecy property. An attacker can not
-know anything about payload (except it's size and time) from captured
-traffic, even if pre-shared key is compromised. Rehandshake is performed
-by client every 4 GiB of transfered data.
-
-Each client also has it's own identification key and server works with
-all of them independently. Identification key is not secret, but it is
-encrypted (obfuscated) during transmission.
-
-The only platform specific requirement is TAP network interface support.
-API to that kind of device is different, OS dependent and non portable.
-So only a few operating systems is officially supported. Author has no
-proprietary software to work with, so currently there is lack of either
-popular Microsoft Windows or Apple OS X support.
-
-@itemize @bullet
-@item
-Works with @url{https://en.wikipedia.org/wiki/TAP_(network_driver), TAP}
-network interfaces on top of UDP entirely
-@item
-@url{https://www.gnu.org/, GNU}/Linux and
-@url{http://www.freebsd.org/, FreeBSD} support
-@item IPv6 compatible
-@item Encrypted and authenticated transport
-@item Relatively fast handshake
-@item
-@url{https://en.wikipedia.org/wiki/Replay_attack, Replay attack} protection
-@item
-@url{https://en.wikipedia.org/wiki/Forward_secrecy, Perfect forward secrecy}
-(if long-term pre-shared keys are compromised, no captured traffic can
-be decrypted anyway)
-@item
-Mutual two-side authentication (noone will send real network interface
-data unless the other side is authenticated)
-@item
-@url{https://en.wikipedia.org/wiki/Zero-knowledge_password_proof, Zero knowledge}
-authentication (pre-shared key is not transmitted in any form between
-the peers, not even it's hash value)
-@item Built-in rehandshake and heartbeat features
-@item Several simultaneous clients support
-@end itemize
+@include overview.texi
 
 @node News
 @unnumbered News
 
 @verbatiminclude ../NEWS
 
-@node Installation
-@unnumbered Installation
+@include installation.texi
 
-GoVPN is written on Go programming language, But
-@url{https://www.gnu.org/software/make/, Make} program is recommended
-also to be used. @url{https://www.gnu.org/software/texinfo/, Texinfo} is
-used for building documentation. Also it depends on
-@code{golang.org/x/crypto} Go libraries.
+@include precautions.texi
 
-@include download.texi
+@include user.texi
 
-You @strong{have to} verify downloaded archives integrity and check
-their signature to be sure that you have got trusted, untampered
-software. For integrity and authentication of downloaded binaries
-@url{https://www.gnupg.org/, The GNU Privacy Guard} is used. You must
-download signature provided with the tarball and run for example:
+@include developer.texi
 
-@example
-gpg --verify govpn-1.5.tar.xz.sig govpn-1.5.tar.xz
-@end example
-
-For the very first time you must also import signing public keys. They
-are provided below, but be sure that you are reading them from the
-trusted source. Alternatively check this page from other sources and
-look for the mailing list announcements.
-
-You have to set up @code{$GOPATH} properly first. For example you can
-clone the repository or decompress tarball and set path like this:
-
-@example
-% mkdir -p govpn/src
-% git clone https://github.com/stargrave/govpn.git govpn/src/govpn
-or
-% tar xfC govpn-1.5.tar.xz govpn/src && mv govpn/src/govpn-1.5 govpn/src/govpn
-% export GOPATH=$(pwd)/govpn:$GOPATH
-@end example
-
-After that you can just type @code{make} and all necessary Go libraries
-will be installed and client/server binaries are built in the current
-directory:
-
-@example
-% cd govpn/src/govpn
-% make
-[or gmake under FreeBSD]
-@end example
-
-@include pubkey.texi
-
-@node Precautions
-@unnumbered Precautions
-
-The very important precaution is the @strong{cryptographically good}
-pseudo random number generator. GoVPN uses native operating system PRNG
-as entropy source. You have no way to check it's quality in closed
-source code operating systems, so it is recommended not to use them if
-you really needs security. Moreover it is possible that those OS leaks
-information about possible PRNG states. And at least Apple OS X and
-Microsoft Windows are already known to have weak CSPRNGs.
-
-GoVPN could use it's own PRNG implementation like
-@url{https://www.schneier.com/fortuna.html, Fortuna}, but it is
-much easier to use the right OS, to use free software.
-
-Also you should @strong{never} use one key for multiple clients. Salsa20
-encryption is randomized in each session, but it depends again on PRNG.
-If it fails, produces equal values at least once, then all you traffic
-related to that key could be decrypted.
-
-@node User manual
-@unnumbered User manual
-
-GoVPN is split into two pieces: client and server. Each of them work on
-top of UDP and TAP virtual network interfaces. Client and server have
-several common configuration command line options:
-
-@table @asis
-@item Timeout
-Because of stateless UDP nature there is no way to know if
-remote peer is dead, but after some timeout. Client and server
-heartbeats each other every third part of heartbeat. Also this timeout
-is the time when server purge his obsolete handshake and peers states.
-@item Allowable nonce difference
-To prevent replay attacks we just remembers
-latest received nonce number from the remote peer and drops those who
-has lower ones. Because UDP packets can be reordered during: that
-behaviour can lead to dropping of not replayed ones. This options gives
-ability to create some window of allows difference. That opens the door
-for replay attacks for narrow time interval.
-@item MTU
-Maximum transmission unit.
-@end table
-
-Client needs to know his identification, path to the authentication key,
-remote server's address, TAP interface name, and optional path to up and
-down scripts, that will be executed after connection is either initiated
-or terminated.
-
-Server needs to know only the address to listen on and path to directory
-containing peers information. This directory must contain subdirectories
-with the names equal to client's identifications. Each of them must have
-key file with corresponding authentication key, up.sh script that has to
-print interface's name on the first line and optional down.sh.
-
-@menu
-* Example usage::
-@end menu
-
-@node Example usage
-@section Example usage
-
-Let's assume that there is some insecure link between your computer and
-WiFi-reachable gateway. You have got preconfigured @code{wlan0} network
-interface with 192.168.0/24 network. You want to create virtual
-encrypted and authenticated 172.16.0/24 network and use it as a default
-transport. MTU for that wlan0 is 1500 bytes. GoVPN will say that maximum
-MTU for the link is 1476, however it does not take in account TAP's
-Ethernet frame header length, that in my case is 14 bytes long (1476 - 14).
-
-Do not forget about setting @code{GOMAXPROC} environment variable for
-using more than one CPU.
-
-At first you have to generate client's authentication key and client's
-unique identification. There is @code{utils/newclient.sh} script for
-convenience.
-
-@example
-% ./utils/newclient.sh Alice
-peers/9b40701bdaf522f2b291cb039490312/Alice
-@end example
-
-@code{9b40701bdaf522f2b291cb039490312} is client's identification.
-@code{Alice} is just an empty file that can help to search them like
-this: @verb{|find peers -name Alice|}. @code{key} file inside peer's
-directory contains authentication key.
-
-GNU/Linux IPv4 client-server example:
-
-@example
-server% echo "#!/bin/sh" > peers/CLIENTID/up.sh
-server% echo "echo tap10" >> peers/CLIENTID/up.sh
-server% chmod 500 peers/CLIENTID/up.sh
-server% ip addr add 192.168.0.1/24 dev wlan0
-server% tunctl -t tap10
-server% ip link set mtu 1462 dev tap10
-server% ip addr add 172.16.0.1/24 dev tap10
-server% ip link set up dev tap10
-server% GOMAXPROC=4 govpn-server -bind 192.168.0.1:1194
-@end example
-
-@example
-client% umask 066
-client% echo MYLONG64HEXKEY > key.txt
-client% ip addr add 192.168.0.2/24 dev wlan0
-client% tunctl -t tap10
-client% ip link set mtu 1462 dev tap10
-client% ip addr add 172.16.0.2/24 dev tap10
-client% ip link set up dev tap10
-client% ip route add default via 172.16.0.1
-client% export GOMAXPROC=4
-client% while :; do
-    govpn-client -key key.txt -id CLIENTID -iface tap10 -remote 192.168.0.1:1194
-done
-@end example
-
-FreeBSD IPv6 client-server example:
-
-@example
-server% cat > peers/CLIENTID/up.sh <<EOF
-#!/bin/sh
-$tap=$(ifconfig tap create)
-ifconfig $tap inet6 fc00::1/96 mtu 1462 up
-echo $tap
-EOF
-server% chmod 500 peers/CLIENTID/up.sh
-server% ifconfig em0 inet6 fe80::1/64
-server% GOMAXPROC=4 govpn-server -bind fe80::1%em0
-@end example
-
-@example
-client% ifconfig me0 inet6 -ifdisabled auto_linklocal
-client% ifconfig tap10
-client% ifconfig tap10 inet6 fc00::2/96 mtu 1462 up
-client% route -6 add default fc00::1
-client% export GOMAXPROC=4
-client% while :; do
-    govpn-client -key key.txt -id CLIENTID -iface tap10 -remote [fe80::1%me0]:1194
-done
-@end example
-
-Example up-script:
-
-@example
-client% cat > up.sh <<EOF
-#!/bin/sh
-dhclient $1
-rtsol $1
-EOF
-client% chmod +x up.sh
-client% govpn -id CLIENTID -key key.txt -iface tap10 -remote [fe80::1%me0]:1194 -up ./up.sh
-@end example
-
-Client will exit if won't finish handshake during @code{-timeout}.
-If no packets are received from remote side during timeout, then daemon
-will stop sending packets to the client and client will exit. In all
-cases you have to rehandshake again.
-
-@node Developer manual
-@unnumbered Developer manual
-
-@table @asis
-@item Nonce and identification encryption
-@url{http://143.53.36.235:8080/tea.htm, XTEA}
-@item Data encryption
-@url{http://cr.yp.to/snuffle.html, Salsa20}
-@item Message authentication
-@url{http://cr.yp.to/mac.html, Poly1305}
-@item Password authenticated key agreement
-DH-EKE powered by @url{http://cr.yp.to/ecdh.html, Curve25519}
-@item Packet overhead
-24 bytes per packet
-@item Handshake overhead
-4 UDP (2 from client, 2 from server) packets, 200 bytes total payload
-@end table
-
-@menu
-* Transport protocol::
-* Handshake protocol::
-@end menu
-
-@node Transport protocol
-@section Transport protocol
-
-@verbatim
-ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA) +
-    AUTH(ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA))
-@end verbatim
-
-All transport and handshake messages are indistinguishable from
-pseudo random noise.
-
-@code{SERIAL} is message's serial number. Odds are reserved for
-client(→server) messages, evens for server(→client) messages.
-
-@code{ENCn} is XTEA block cipher algorithm used here as PRP (pseudo
-random permutation) to randomize, obfuscate @code{SERIAL}. Plaintext
-@code{SERIAL} state is kept in peers internal state, but encrypted
-before transmission. XTEA is compact and fast enough. Salsa20 is PRF
-function and requires much more code to create PRP from it. XTEA's
-encryption key is the first 128-bit of Salsa20's output with established
-common key and zero nonce (message nonces start from 1).
-
-Encrypted @code{SERIAL} is used as a nonce for @code{DATA} encryption:
-encryption key is different during each handshake, so (key, nonce) pair
-is always used only once. @code{ENC} is Salsa20 cipher, with established
-session @code{KEY} and encrypted @code{SERIAL} used as a nonce.
-
-@code{AUTH} is Poly1305 authentication function. First 256 bits of
-Salsa20 output are used as a one-time key for @code{AUTH}. Next 256 bits
-of Salsa20 are ignored. All remaining output is XORed with the data,
-encrypting it.
-
-To prevent replay attacks we remember latest @code{SERIAL} from the
-remote peer. If received message's @code{SERIAL} is not greater that the
-saved one, then drop it. Optionally, because some UDP packets can be
-reordered during transmission, we can allow some window for valid
-serials with the @code{-noncediff} option. @code{-noncediff 10} with
-current saved serial state equals to 78 allows messages with 68…78
-serials. That time window can be used by attacker to replay packets, so
-by default it equals to 1. However it can improve performance because of
-rearranged UDP packets.
-
-@node Handshake protocol
-@section Handshake protocol
-
-@verbatiminclude handshake.utxt
-
-Each handshake message ends with so called @code{IDtag}: it is an XTEA
-encrypted first 64 bits of each message with client's identity as a key.
-It is used to transmit identity and to mark packet as handshake message.
-Server can determine used identity by trying all possible known to him
-keys. It consumes resources, but XTEA is rather fast algorithm and
-handshake messages checking is seldom enough event.
-
-@enumerate
-@item
-client generates @code{CPubKey}, random 64bit @code{R} that is used as a
-nonce for encryption
-@item
-@verb{|R + enc(PSK, R, CPubKey) + IDtag -> Server|} [48 bytes]
-@item
-server remembers clients address, decrypt @code{CPubKey}, generates
-@code{SPrivKey}/@code{SPubKey}, computes common shared key @code{K}
-(based on @code{CPubKey} and @code{SPrivKey}), generates 64bit random
-number @code{RS} and 256bit random @code{SS}. PSK-encryption uses
-incremented @code{R} (from previous message) for nonce
-@item
-@verb{|enc(PSK, R+1, SPubKey) + enc(K, R, RS + SS) + IDtag -> Client|} [80 bytes]
-@item
-client decrypt @code{SPubKey}, computes @code{K}, decrypts @code{RS},
-@code{SS} with key @code{K}, remembers @code{SS}, generates 64bit random
-number @code{RC} and 256bit random @code{SC},
-@item
-@verb{|enc(K, R+1, RS + RC + SC) + IDtag -> Server|} [56 bytes]
-@item
-server decrypt @code{RS}, @code{RC}, @code{SC} with key @code{K},
-compares @code{RS} with it's own one send before, computes final main
-encryption key @code{S = SS XOR SC}
-@item
-@verb{|ENC(K, 0, RC) + IDtag -> Client|} [16 bytes]
-@item
-server switches to the new client
-@item
-client decrypts @code{RC} and compares with it's own generated one,
-computes final main encryption key @code{S}
-@end enumerate
-
-Where PSK is 256bit pre-shared key. @code{R*} are required for handshake
-randomization and two-way authentication. K key is used only during
-handshake. DH public keys can be trivially derived from private ones.
-
-@node Reporting bugs
-@unnumbered Reporting bugs
-
-Please send all your bug requests, patches and related questions to
-@email{govpn-devel@@lists.cypherpunks.ru} mailing list.
-Either visit @url{https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel}
-for information about subscription options and archived messages access, or
-send email with the subject @code{subscribe} to
-@email{govpn-devel-request@@lists.cypherpunks.ru}.
-
-Official website is @url{http://www.cypherpunks.ru/govpn/}, also available
-as @url{https://www.torproject.org/, Tor} hidden service:
-@url{http://vabu56j2ep2rwv3b.onion/govpn/}.
-Development Git source code repository currently is located here:
-@url{https://github.com/stargrave/govpn.git}.
+@include bugs.texi
 
 @node Copying conditions
 @unnumbered Copying conditions
 
 @insertcopying
+@verbatiminclude fdl.txt
 
 @bye

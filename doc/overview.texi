@@ -1,0 +1,70 @@
+@node Overview
+@unnumbered Overview
+
+GoVPN is simple secure virtual private network daemon. It uses
+@url{https://en.wikipedia.org/wiki/Encrypted_key_exchange, Diffie-Hellman Encrypted Key Exchange}
+(DH-EKE) for mutual zero-knowledge peers authentication and
+authenticated encrypted data transport. It is written entirely on
+@url{http://golang.org/, Go programming language}.
+
+All packets captured on network interface are encrypted, authenticated
+and sent to remote server, that writes them to his interface, and vice
+versa. Client and server use pre-shared authentication key (PSK) and
+128-bit identification key. There are heartbeat packets used to prevent
+session termination because of peers inactivity.
+
+Handshake is used to mutually authenticate peers, exchange common secret
+per-session encryption key and check UDP transport availability.
+
+Because of UDP and authentication overhead: each packet grows in size
+during transmission, so you have to lower you maximum transmission unit
+(MTU) on virtual network interface.
+
+High security is the goal for that daemon. It uses fast cryptography
+algorithms with 128bit security margin, strong mutual zero-knowledge
+authentication and perfect-forward secrecy property. An attacker can not
+know anything about payload (except it's size and time) from captured
+traffic, even if pre-shared key is compromised. Rehandshake is performed
+by client every 4 GiB of transfered data.
+
+Each client also has it's own identification key and server works with
+all of them independently. Identification key is not secret, but it is
+encrypted (obfuscated) during transmission.
+
+The only platform specific requirement is TAP network interface support.
+API to that kind of device is different, OS dependent and non portable.
+So only a few operating systems is officially supported. Author has no
+proprietary software to work with, so currently there is lack of either
+popular Microsoft Windows or Apple OS X support.
+
+@itemize @bullet
+@item
+Copylefted free software: licensed under
+@url{http://www.gnu.org/licenses/gpl-3.0.html, GPLv3+}
+@item
+Works with @url{https://en.wikipedia.org/wiki/TAP_(network_driver), TAP}
+network interfaces on top of UDP entirely
+@item
+@url{https://www.gnu.org/, GNU}/Linux and
+@url{http://www.freebsd.org/, FreeBSD} support
+@item IPv6 compatible
+@item Encrypted and authenticated transport
+@item Relatively fast handshake
+@item
+@url{https://en.wikipedia.org/wiki/Replay_attack, Replay attack} protection
+@item
+@url{https://en.wikipedia.org/wiki/Forward_secrecy, Perfect forward secrecy}
+(if long-term pre-shared keys are compromised, no captured traffic can
+be decrypted anyway)
+@item
+Mutual two-side authentication (noone will send real network interface
+data unless the other side is authenticated)
+@item
+@url{https://en.wikipedia.org/wiki/Zero-knowledge_password_proof, Zero knowledge}
+authentication (pre-shared key is not transmitted in any form between
+the peers, not even it's hash value)
+@item Built-in rehandshake and heartbeat features
+@item Several simultaneous clients support
+@item Optional built-in HTTP-server for retrieving information about
+known connected peers in @url{http://json.org/, JSON} format
+@end itemize
