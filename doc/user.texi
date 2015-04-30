@@ -1,6 +1,9 @@
 @node User manual
 @unnumbered User manual
 
+Announcements about updates and new releases can be found in
+@ref{Reporting bugs}.
+
 GoVPN is split into two pieces: client and server. Each of them work on
 top of UDP and TAP virtual network interfaces. Client and server have
 several common configuration command line options:
@@ -12,14 +15,15 @@ remote peer is dead, but after some timeout. Client and server
 heartbeats each other every third part of heartbeat. Also this timeout
 is the time when server purge his obsolete handshake and peers states.
 @item Allowable nonce difference
-To prevent replay attacks we just remembers
-latest received nonce number from the remote peer and drops those who
-has lower ones. Because UDP packets can be reordered during: that
-behaviour can lead to dropping of not replayed ones. This options gives
-ability to create some window of allows difference. That opens the door
-for replay attacks for narrow time interval.
+To prevent replay attacks we just remember latest received nonce number
+from the remote peer and drop those who has lower ones. Because UDP
+packets can be reordered: that behaviour can lead to dropping of not
+replayed ones. This option gives ability to create some window of
+allowable difference. That opens the door for replay attacks for narrow
+time interval.
 @item MTU
-Maximum transmission unit.
+Maximum transmission unit, maximum frame size that is acceptable on TAP
+interface.
 @end table
 
 Client needs to know his identification, path to the authentication key,

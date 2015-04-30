@@ -1,6 +1,4 @@
-You can obtain it's source code either by cloning development branches
-from Git repository: @code{git clone https://github.com/stargrave/govpn.git},
-or by downloading prepared tarballs below.
+You can obtain releases source code prepared tarballs from the links below:
 
 @multitable {XXXXX} {XXXX KiB} {link sign} {xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
 @headitem Version @tab Size @tab Tarball @tab SHA256 checksum
@@ -25,3 +23,7 @@ or by downloading prepared tarballs below.
 
 Sourceforge.net also provides mirror for the files above:
 @url{http://sourceforge.net/projects/govpn/files/}.
+
+You can obtain it's development source code either by cloning
+Git repository: @code{git clone https://github.com/stargrave/govpn.git}.
+Pay attention that it does not contain compiled documentation.
