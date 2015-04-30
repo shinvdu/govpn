@@ -34,8 +34,10 @@ or terminated.
 Server needs to know only the address to listen on and path to directory
 containing peers information. This directory must contain subdirectories
 with the names equal to client's identifications. Each of them must have
-key file with corresponding authentication key, up.sh script that has to
-print interface's name on the first line and optional down.sh.
+@strong{key} file with corresponding authentication key, @strong{up.sh}
+script that has to print interface's name on the first output line.
+Optionally there can be @code{down.sh} that will be executed when client
+disconnects, and @code{name} file containing human readable client's name.
 
 @menu
 * Example usage::
@@ -61,20 +63,19 @@ convenience.
 
 @example
 % ./utils/newclient.sh Alice
-peers/9b40701bdaf522f2b291cb039490312/Alice
+9b40701bdaf522f2b291cb039490312
 @end example
 
 @code{9b40701bdaf522f2b291cb039490312} is client's identification.
-@code{Alice} is just an empty file that can help to search them like
-this: @verb{|find peers -name Alice|}. @code{key} file inside peer's
-directory contains authentication key.
+@code{peers/9b40701bdaf522f2b291cb039490312/name} contains @emph{Alice},
+@code{peers/9b40701bdaf522f2b291cb039490312/key} contains authentication key and
+@code{peers/9b40701bdaf522f2b291cb039490312/up.sh} contains currently
+dummy empty up-script.
 
 GNU/Linux IPv4 client-server example:
 
 @example
-server% echo "#!/bin/sh" > peers/CLIENTID/up.sh
 server% echo "echo tap10" >> peers/CLIENTID/up.sh
-server% chmod 500 peers/CLIENTID/up.sh
 server% ip addr add 192.168.0.1/24 dev wlan0
 server% tunctl -t tap10
 server% ip link set mtu 1462 dev tap10
@@ -107,7 +108,6 @@ $tap=$(ifconfig tap create)
 ifconfig $tap inet6 fc00::1/96 mtu 1462 up
 echo $tap
 EOF
-server% chmod 500 peers/CLIENTID/up.sh
 server% ifconfig em0 inet6 fe80::1/64
 server% GOMAXPROC=4 govpn-server -bind fe80::1%em0
 @end example

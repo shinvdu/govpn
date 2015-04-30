@@ -21,8 +21,11 @@ package govpn
 import (
 	"crypto/subtle"
 	"encoding/hex"
+	"io/ioutil"
 	"log"
 	"os"
+	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -38,6 +41,16 @@ type PeerId [IDSize]byte
 
 func (id PeerId) String() string {
 	return hex.EncodeToString(id[:])
+}
+
+// Return human readable name of the peer.
+// It equals either to peers/PEER/name file contents or PEER's hex.
+func (id PeerId) MarshalJSON() ([]byte, error) {
+	result := id.String()
+	if name, err := ioutil.ReadFile(path.Join(PeersPath, result, "name")); err == nil {
+		result = strings.TrimRight(string(name), "\n")
+	}
+	return []byte(`"` + result + `"`), nil
 }
 
 type cipherCache map[PeerId]*xtea.Cipher
