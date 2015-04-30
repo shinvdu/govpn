@@ -93,7 +93,7 @@ func main() {
 
 MainCycle:
 	for {
-		if peer != nil && peer.Bytes > govpn.MaxBytesPerKey {
+		if peer != nil && (peer.BytesIn+peer.BytesOut) > govpn.MaxBytesPerKey {
 			peer.Zero()
 			peer = nil
 			handshake = govpn.HandshakeStart(conn, remote, id, key)

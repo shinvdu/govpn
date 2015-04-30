@@ -46,21 +46,28 @@ type UDPPkt struct {
 }
 
 type Peer struct {
-	Addr        *net.UDPAddr
-	Id          PeerId
-	Key         *[KeySize]byte // encryption key
-	NonceOur    uint64         // nonce for our messages
-	NonceRecv   uint64         // latest received nonce from remote peer
-	NonceCipher *xtea.Cipher   // nonce cipher
-	LastPing    time.Time
-	LastSent    time.Time
-	buf         []byte
-	tag         *[poly1305.TagSize]byte
-	keyAuth     *[KeySize]byte
-	nonceRecv   uint64
-	Bytes       int64
-	frame       []byte
-	nonce       []byte
+	Addr          *net.UDPAddr
+	Id            PeerId
+	Key           *[KeySize]byte `json:"-"`
+	NonceOur      uint64         `json:"-"`
+	NonceRecv     uint64         `json:"-"`
+	NonceCipher   *xtea.Cipher   `json:"-"`
+	LastPing      time.Time
+	LastSent      time.Time
+	buf           []byte
+	tag           *[poly1305.TagSize]byte
+	keyAuth       *[KeySize]byte
+	nonceRecv     uint64
+	frame         []byte
+	nonce         []byte
+	BytesIn       int64
+	BytesOut      int64
+	FramesIn      int
+	FramesOut     int
+	FramesUnauth  int
+	FramesDup     int
+	HeartbeatRecv int
+	HeartbeatSent int
 }
 
 func (p *Peer) String() string {
@@ -207,7 +214,6 @@ func newPeer(addr *net.UDPAddr, id PeerId, nonce int, key *[KeySize]byte) *Peer 
 		NonceRecv:   uint64(Noncediff + 0),
 		Key:         key,
 		NonceCipher: newNonceCipher(key),
-		Bytes:       0,
 		buf:         make([]byte, MTU+S20BS),
 		tag:         new([poly1305.TagSize]byte),
 		keyAuth:     new([KeySize]byte),
@@ -235,20 +241,24 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap *TAP, ready chan struct{}) bool {
 	copy(p.keyAuth[:], p.buf[:KeySize])
 	if !poly1305.Verify(p.tag, udpPkt[:size-poly1305.TagSize], p.keyAuth) {
 		ready <- struct{}{}
+		p.FramesUnauth++
 		return false
 	}
 	p.NonceCipher.Decrypt(p.buf, udpPkt[:NonceSize])
 	p.nonceRecv, _ = binary.Uvarint(p.buf[:NonceSize])
 	if int(p.NonceRecv)-Noncediff >= 0 && int(p.nonceRecv) < int(p.NonceRecv)-Noncediff {
 		ready <- struct{}{}
+		p.FramesDup++
 		return false
 	}
 	ready <- struct{}{}
 	p.LastPing = time.Now()
 	p.NonceRecv = p.nonceRecv
 	p.frame = p.buf[S20BS : S20BS+size-NonceSize-poly1305.TagSize]
-	p.Bytes += int64(len(p.frame))
+	p.BytesIn += int64(len(p.frame))
+	p.FramesIn++
 	if subtle.ConstantTimeCompare(p.frame[:HeartbeatSize], HeartbeatMark) == 1 {
+		p.HeartbeatRecv++
 		return true
 	}
 	tap.Write(p.frame)
@@ -272,6 +282,7 @@ func (p *Peer) EthProcess(ethPkt []byte, conn *net.UDPConn, ready chan struct{})
 		copy(p.buf[S20BS:], ethPkt)
 		ready <- struct{}{}
 	} else {
+		p.HeartbeatSent++
 		copy(p.buf[S20BS:], HeartbeatMark)
 		size = HeartbeatSize
 	}
@@ -287,7 +298,8 @@ func (p *Peer) EthProcess(ethPkt []byte, conn *net.UDPConn, ready chan struct{})
 	p.frame = p.buf[S20BS-NonceSize : S20BS+size]
 	poly1305.Sum(p.tag, p.frame, p.keyAuth)
 
-	p.Bytes += int64(len(p.frame))
+	p.BytesOut += int64(len(p.frame))
+	p.FramesOut++
 	p.LastSent = now
 	if _, err := conn.WriteTo(append(p.frame, p.tag[:]...), p.Addr); err != nil {
 		log.Println("Error sending UDP", err)
