@@ -21,7 +21,7 @@ trusted source. Alternatively check this page from other sources (Tor's
 hidden service for example) and look for the mailing list announcements.
 
 For example you can get tarball, set proper @code{$GOPATH} and run
-@code{make} ((that will install all necessary libraries and build
+@code{make} (that will install all necessary libraries and build
 client/server binaries) like this:
 
 @example

@@ -39,6 +39,9 @@ popular Microsoft Windows or Apple OS X support.
 
 @itemize @bullet
 @item
+Copylefted free software: licensed under
+@url{http://www.gnu.org/licenses/gpl-3.0.html, GPLv3+}
+@item
 Works with @url{https://en.wikipedia.org/wiki/TAP_(network_driver), TAP}
 network interfaces on top of UDP entirely
 @item
