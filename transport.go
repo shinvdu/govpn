@@ -185,7 +185,12 @@ func ConnListen(conn *net.UDPConn) (chan *UDPPkt, []byte, chan struct{}) {
 
 func newNonceCipher(key *[KeySize]byte) *xtea.Cipher {
 	nonceKey := make([]byte, 16)
-	salsa20.XORKeyStream(nonceKey, make([]byte, KeySize), make([]byte, xtea.BlockSize), key)
+	salsa20.XORKeyStream(
+		nonceKey,
+		make([]byte, KeySize),
+		make([]byte, xtea.BlockSize),
+		key,
+	)
 	ciph, err := xtea.NewCipher(nonceKey)
 	if err != nil {
 		panic(err)
