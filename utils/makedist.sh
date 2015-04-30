@@ -10,6 +10,7 @@ git checkout $release
 rm -fr .git
 find . -name .gitignore -delete
 echo > doc/download.texi
+rm utils/makedist.sh
 make -C doc
 cd $tmp
 tar cvf govpn-"$release".tar govpn-"$release"
