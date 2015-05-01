@@ -25,6 +25,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"time"
 
 	"govpn"
 )
@@ -50,7 +51,7 @@ func main() {
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
 	govpn.MTU = *mtu
-	govpn.Timeout = timeout
+	govpn.Timeout = time.Second * time.Duration(timeout)
 	govpn.Noncediff = *nonceDiff
 	govpn.NoiseEnable = *noisy
 

@@ -25,11 +25,12 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"time"
 )
 
 var (
 	MTU         int
-	Timeout     int
+	Timeout     time.Duration
 	Noncediff   int
 	Version     string
 	NoiseEnable bool = false

@@ -84,7 +84,7 @@ func main() {
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
 	govpn.MTU = *mtu
-	govpn.Timeout = *timeoutP
+	govpn.Timeout = timeout
 	govpn.Noncediff = *nonceDiff
 	govpn.NoiseEnable = *noisy
 	govpn.PeersInit(*peersPath)

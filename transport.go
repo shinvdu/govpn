@@ -39,6 +39,8 @@ const (
 	MaxBytesPerKey int64 = 1 << 32
 	// Size of packet's size mark in bytes
 	PktSizeSize = 2
+	// Heartbeat rate, relative to Timeout
+	TimeoutHeartbeat = 4
 )
 
 type UDPPkt struct {
@@ -91,15 +93,14 @@ func (p *Peer) Zero() {
 var (
 	Emptiness       = make([]byte, 1<<14)
 	taps            = make(map[string]*TAP)
-	heartbeatPeriod *time.Duration
+	heartbeatPeriod time.Duration
 )
 
 func heartbeatPeriodGet() time.Duration {
-	if heartbeatPeriod == nil {
-		period := time.Second * time.Duration(Timeout/4)
-		heartbeatPeriod = &period
+	if heartbeatPeriod == time.Duration(0) {
+		heartbeatPeriod = Timeout / TimeoutHeartbeat
 	}
-	return *heartbeatPeriod
+	return heartbeatPeriod
 }
 
 // Create TAP listening goroutine.
