@@ -166,9 +166,9 @@ func TAPListen(ifaceName string) (*TAP, chan []byte, chan struct{}, chan struct{
 // all UDP packet data will be saved, channel where information about
 // remote address and number of written bytes are stored, and a channel
 // used to tell that buffer is ready to be overwritten.
-func ConnListen(conn *net.UDPConn) (chan *UDPPkt, []byte, chan struct{}) {
+func ConnListen(conn *net.UDPConn) (chan UDPPkt, []byte, chan struct{}) {
 	buf := make([]byte, MTU)
-	sink := make(chan *UDPPkt)
+	sink := make(chan UDPPkt)
 	sinkReady := make(chan struct{})
 	go func(conn *net.UDPConn) {
 		var n int
@@ -180,10 +180,10 @@ func ConnListen(conn *net.UDPConn) (chan *UDPPkt, []byte, chan struct{}) {
 			n, addr, err = conn.ReadFromUDP(buf)
 			if err != nil {
 				// This is needed for ticking the timeouts counter outside
-				sink <- nil
+				sink <- UDPPkt{nil, 0}
 				continue
 			}
-			sink <- &UDPPkt{addr, n}
+			sink <- UDPPkt{addr, n}
 		}
 	}(conn)
 	sinkReady <- struct{}{}

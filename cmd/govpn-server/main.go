@@ -113,7 +113,7 @@ func main() {
 	peerReadySink := make(chan PeerReadyEvent)
 	knownPeers := govpn.KnownPeers(make(map[string]**govpn.Peer))
 	var peerReady PeerReadyEvent
-	var udpPkt *govpn.UDPPkt
+	var udpPkt govpn.UDPPkt
 	var udpPktData []byte
 	var ethEvent EthEvent
 	var peerId *govpn.PeerId
@@ -196,7 +196,7 @@ MainCycle:
 			}
 			ethEvent.peer.EthProcess(ethEvent.data, conn, ethEvent.ready)
 		case udpPkt = <-udpSink:
-			if udpPkt == nil {
+			if udpPkt.Addr == nil {
 				udpReady <- struct{}{}
 				continue
 			}

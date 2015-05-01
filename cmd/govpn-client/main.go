@@ -82,7 +82,7 @@ func main() {
 	firstUpCall := true
 	var peer *govpn.Peer
 	var ethPkt []byte
-	var udpPkt *govpn.UDPPkt
+	var udpPkt govpn.UDPPkt
 	var udpPktData []byte
 	knownPeers := govpn.KnownPeers(map[string]**govpn.Peer{remote.String(): &peer})
 
@@ -126,7 +126,7 @@ MainCycle:
 			if timeouts >= timeout {
 				break MainCycle
 			}
-			if udpPkt == nil {
+			if udpPkt.Addr == nil {
 				udpReady <- struct{}{}
 				continue
 			}
