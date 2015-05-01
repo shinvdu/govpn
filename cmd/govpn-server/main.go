@@ -36,7 +36,7 @@ var (
 	bindAddr  = flag.String("bind", "[::]:1194", "Bind to address")
 	peersPath = flag.String("peers", "peers", "Path to peers keys directory")
 	stats     = flag.String("stats", "", "Enable stats retrieving on host:port")
-	mtu       = flag.Int("mtu", 1500, "MTU")
+	mtu       = flag.Int("mtu", 1452, "MTU for outgoing packets")
 	nonceDiff = flag.Int("noncediff", 1, "Allow nonce difference")
 	timeoutP  = flag.Int("timeout", 60, "Timeout seconds")
 )
@@ -121,6 +121,7 @@ func main() {
 	ethSink := make(chan EthEvent)
 
 	log.Println(govpn.VersionGet())
+	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
 		statsPort, err := net.Listen("tcp", *stats)

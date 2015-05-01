@@ -22,8 +22,12 @@ replayed ones. This option gives ability to create some window of
 allowable difference. That opens the door for replay attacks for narrow
 time interval.
 @item MTU
-Maximum transmission unit, maximum frame size that is acceptable on TAP
-interface.
+Maximum transmission unit for outgoing GoVPN's packets. It varies and
+depends on your environment. By default MTU equals to 1452 bytes: 40
+bytes per IPv6 and 8 bytes per UDP. So GoVPN's packets won't be larger
+than this value. It will print maximum acceptable value for TAP
+interface during startup. As a rule TAP's MTU is 42 bytes smaller: 26
+bytes overheard for transport message, 14 bytes Ethernet frame overhead.
 @end table
 
 Client needs to know his identification, path to the authentication key,
@@ -82,7 +86,7 @@ GNU/Linux IPv4 client-server example:
 server% echo "echo tap10" >> peers/CLIENTID/up.sh
 server% ip addr add 192.168.0.1/24 dev wlan0
 server% tunctl -t tap10
-server% ip link set mtu 1462 dev tap10
+server% ip link set mtu 1412 dev tap10
 server% ip addr add 172.16.0.1/24 dev tap10
 server% ip link set up dev tap10
 server% GOMAXPROC=4 govpn-server -bind 192.168.0.1:1194
@@ -93,7 +97,7 @@ client% umask 066
 client% echo MYLONG64HEXKEY > key.txt
 client% ip addr add 192.168.0.2/24 dev wlan0
 client% tunctl -t tap10
-client% ip link set mtu 1462 dev tap10
+client% ip link set mtu 1412 dev tap10
 client% ip addr add 172.16.0.2/24 dev tap10
 client% ip link set up dev tap10
 client% ip route add default via 172.16.0.1
@@ -110,7 +114,7 @@ FreeBSD IPv6 client-server example, with stats enabled on the server
 server% cat > peers/CLIENTID/up.sh <<EOF
 #!/bin/sh
 $tap=$(ifconfig tap create)
-ifconfig $tap inet6 fc00::1/96 mtu 1462 up
+ifconfig $tap inet6 fc00::1/96 mtu 1412 up
 echo $tap
 EOF
 server% ifconfig em0 inet6 fe80::1/64
@@ -120,7 +124,7 @@ server% GOMAXPROC=4 govpn-server -bind fe80::1%em0 -stats [::1]:5678
 @example
 client% ifconfig me0 inet6 -ifdisabled auto_linklocal
 client% ifconfig tap10
-client% ifconfig tap10 inet6 fc00::2/96 mtu 1462 up
+client% ifconfig tap10 inet6 fc00::2/96 mtu 1412 up
 client% route -6 add default fc00::1
 client% export GOMAXPROC=4
 client% while :; do
