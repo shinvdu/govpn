@@ -1,0 +1,34 @@
+@node Client part
+@section Client part
+
+Except for common @code{-mtu}, @code{-noncediff}, @code{-timeout},
+@code{-stats} options client has the following ones:
+
+@table @code
+@item -remote
+Address (@code{host:port} format) of remote server we need to connect to.
+@item -iface
+TAP interface name.
+@item -id
+Our client's identification (hexadecimal string).
+@item -key
+Path to the file with the PSK key.
+@item -up
+Optional path to script that will be executed after connection is
+established. Interface name will be given to it as a first argument.
+@item -down
+Same as @code{-up} above, but it is executed when connection is lost,
+when we exit.
+@end table
+
+Example up-script that calls DHCP client and IPv6 advertisement
+solicitation:
+
+@example
+client% cat > up.sh <<EOF
+#!/bin/sh
+dhclient $1
+rtsol $1
+EOF
+client% chmod +x up.sh
+@end example

@@ -1,0 +1,48 @@
+@node Server part
+@section Server part
+
+Except for common @code{-mtu}, @code{-noncediff}, @code{-timeout},
+@code{-stats} options server has the following ones:
+
+@table @code
+@item -bind
+Address (@code{host:port} format) we must bind to.
+@item -peers
+Path to the directory containing peers information, database.
+@end table
+
+Peers directory must contain subdirectories with the names of client's identities
+in hexadecimal notation. Each of those subdirectories must have
+@strong{key} file with the corresponding authentication key,
+@strong{up.sh} script that executes each time connection with the client
+establishes, optional @code{name} file containing human readable
+client's name and optional @code{down.sh} that executes during
+connection lost.
+
+@code{up.sh} script @strong{must} print on the first stdout line the
+name of TAP interface. This script can be simple @code{echo tap10},
+maybe more advanced with dynamic interface creation:
+
+@example
+#!/bin/sh
+$tap=$(ifconfig tap create)
+ifconfig $tap inet6 fc00::1/96 mtu 1412 up
+echo $tap
+@end example
+
+Each minute server refreshes peers directory contents and adds newly
+appeared identities, deletes an obsolete ones.
+
+You can use convenient @code{utils/newclient.sh} script for new client
+creation:
+
+@example
+% ./utils/newclient.sh Alice
+9b40701bdaf522f2b291cb039490312
+@end example
+
+@code{9b40701bdaf522f2b291cb039490312} is client's identification.
+@code{peers/9b40701bdaf522f2b291cb039490312/name} contains @emph{Alice},
+@code{peers/9b40701bdaf522f2b291cb039490312/key} contains authentication key and
+@code{peers/9b40701bdaf522f2b291cb039490312/up.sh} contains currently
+dummy empty up-script.

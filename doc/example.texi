@@ -1,0 +1,65 @@
+@node Example usage
+@section Example usage
+
+Let's assume that there is some insecure link between your computer and
+WiFi-reachable gateway.
+
+@itemize @bullet
+@item You have got @code{wlan0} NIC with 192.168.0/24 network on it.
+@item You want to create virtual encrypted and authenticated 172.16.0/24
+network and use it as a default transport.
+@item @code{wlan0} MTU is 1500, 20 bytes overhead per IPv4. So MTU for
+GoVPN is 1500 - 20 - 8 = 1472.
+@item During startup client and server will say that TAP interface MTU
+is 1432.
+@end itemize
+
+Do not forget about setting @code{GOMAXPROC} environment variable for
+using more than one CPU.
+
+GNU/Linux IPv4 client-server example:
+
+@example
+server% echo "echo tap10" >> peers/CLIENTID/up.sh
+server% ip addr add 192.168.0.1/24 dev wlan0
+server% tunctl -t tap10
+server% ip link set mtu 1432 dev tap10
+server% ip addr add 172.16.0.1/24 dev tap10
+server% ip link set up dev tap10
+server% GOMAXPROC=4 govpn-server -bind 192.168.0.1:1194 -mtu 1472
+@end example
+
+@example
+client% umask 066
+client% echo MYLONG64HEXKEY > key.txt
+client% ip addr add 192.168.0.2/24 dev wlan0
+client% tunctl -t tap10
+client% ip link set mtu 1432 dev tap10
+client% ip addr add 172.16.0.2/24 dev tap10
+client% ip link set up dev tap10
+client% ip route add default via 172.16.0.1
+client% export GOMAXPROC=4
+client% while :; do
+    govpn-client -key key.txt -id CLIENTID -iface tap10 \
+        -remote 192.168.0.1:1194 -mtu 1472
+done
+@end example
+
+FreeBSD IPv6 client-server example:
+
+@example
+server% ifconfig em0 inet6 fe80::1/64
+server% GOMAXPROC=4 govpn-server -bind "fe80::1%em0"
+@end example
+
+@example
+client% ifconfig me0 inet6 -ifdisabled auto_linklocal
+client% ifconfig tap10
+client% ifconfig tap10 inet6 fc00::2/96 mtu 1412 up
+client% route -6 add default fc00::1
+client% export GOMAXPROC=4
+client% while :; do
+    govpn-client -key key.txt -id CLIENTID -iface tap10 \
+        -remote [fe80::1%me0]:1194
+done
+@end example
