@@ -256,6 +256,7 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 		return false
 	}
 	ready <- struct{}{}
+	p.FramesIn++
 	p.BytesIn += int64(size)
 	p.LastPing = time.Now()
 	p.NonceRecv = p.nonceRecv
@@ -266,7 +267,6 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 	}
 	p.frame = p.buf[S20BS+PktSizeSize : S20BS+PktSizeSize+p.pktSize]
 	p.BytesPayloadIn += int64(p.pktSize)
-	p.FramesIn++
 	tap.Write(p.frame)
 	return true
 }
