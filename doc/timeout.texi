@@ -6,7 +6,7 @@ remote peer is alive. That is why timeouts are necessary. If no packets
 are sent during timeout period, then remote peer is considered to be
 dead. Timeout option should be synchronized both for server and client.
 
-If there were no packets at all during third part of timeout, then
+If there were no packets at all during fourth part of timeout, then
 special heartbeat packet is sent. So VPN connection should be alive all
 the time, even if there is no traffic in corresponding TAP interfaces.
 @strong{Beware}: this consumes traffic.
