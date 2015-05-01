@@ -47,29 +47,31 @@ type UDPPkt struct {
 }
 
 type Peer struct {
-	Addr          *net.UDPAddr
-	Id            PeerId
-	Key           *[KeySize]byte `json:"-"`
-	NonceOur      uint64         `json:"-"`
-	NonceRecv     uint64         `json:"-"`
-	NonceCipher   *xtea.Cipher   `json:"-"`
-	LastPing      time.Time
-	LastSent      time.Time
-	buf           []byte
-	tag           *[poly1305.TagSize]byte
-	keyAuth       *[KeySize]byte
-	nonceRecv     uint64
-	frame         []byte
-	nonce         []byte
-	pktSize       uint64
-	BytesIn       int64
-	BytesOut      int64
-	FramesIn      int
-	FramesOut     int
-	FramesUnauth  int
-	FramesDup     int
-	HeartbeatRecv int
-	HeartbeatSent int
+	Addr            *net.UDPAddr
+	Id              PeerId
+	Key             *[KeySize]byte `json:"-"`
+	NonceOur        uint64         `json:"-"`
+	NonceRecv       uint64         `json:"-"`
+	NonceCipher     *xtea.Cipher   `json:"-"`
+	LastPing        time.Time
+	LastSent        time.Time
+	buf             []byte
+	tag             *[poly1305.TagSize]byte
+	keyAuth         *[KeySize]byte
+	nonceRecv       uint64
+	frame           []byte
+	nonce           []byte
+	pktSize         uint64
+	BytesIn         int64
+	BytesOut        int64
+	BytesPayloadIn  int64
+	BytesPayloadOut int64
+	FramesIn        int
+	FramesOut       int
+	FramesUnauth    int
+	FramesDup       int
+	HeartbeatRecv   int
+	HeartbeatSent   int
 }
 
 func (p *Peer) String() string {
@@ -253,6 +255,7 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 		return false
 	}
 	ready <- struct{}{}
+	p.BytesIn += int64(size)
 	p.LastPing = time.Now()
 	p.NonceRecv = p.nonceRecv
 	p.pktSize, _ = binary.Uvarint(p.buf[S20BS : S20BS+PktSizeSize])
@@ -261,7 +264,7 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 		return true
 	}
 	p.frame = p.buf[S20BS+PktSizeSize : S20BS+PktSizeSize+p.pktSize]
-	p.BytesIn += int64(p.pktSize)
+	p.BytesPayloadIn += int64(p.pktSize)
 	p.FramesIn++
 	tap.Write(p.frame)
 	return true
@@ -288,7 +291,7 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 		copy(p.buf[S20BS+PktSizeSize:], ethPkt)
 		ready <- struct{}{}
 		binary.PutUvarint(p.buf[S20BS:S20BS+PktSizeSize], uint64(size))
-		p.BytesOut += int64(size)
+		p.BytesPayloadOut += int64(size)
 	} else {
 		p.HeartbeatSent++
 	}
@@ -308,6 +311,7 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 	}
 	poly1305.Sum(p.tag, p.frame, p.keyAuth)
 
+	p.BytesOut += int64(len(p.frame) + poly1305.TagSize)
 	p.FramesOut++
 	p.LastSent = now
 	if _, err := conn.WriteTo(append(p.frame, p.tag[:]...), p.Addr); err != nil {
