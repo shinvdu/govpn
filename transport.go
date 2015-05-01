@@ -21,6 +21,7 @@ package govpn
 import (
 	"crypto/subtle"
 	"encoding/binary"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -227,7 +228,7 @@ func newPeer(addr *net.UDPAddr, id PeerId, nonce int, key *[KeySize]byte) *Peer 
 // ConnListen'es synchronization channel used to tell him that he is
 // free to receive new packets. Authenticated and decrypted packets
 // will be written to the interface immediately (except heartbeat ones).
-func (p *Peer) UDPProcess(udpPkt []byte, tap *TAP, ready chan struct{}) bool {
+func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) bool {
 	size := len(udpPkt)
 	copy(p.buf[:KeySize], Emptiness)
 	copy(p.tag[:], udpPkt[size-poly1305.TagSize:])
@@ -265,12 +266,16 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap *TAP, ready chan struct{}) bool {
 	return true
 }
 
+type WriteToer interface {
+	WriteTo([]byte, net.Addr) (int, error)
+}
+
 // Process incoming Ethernet packet.
 // ethPkt is received data, conn is our outgoing connection.
 // ready channel is TAPListen's synchronization channel used to tell him
 // that he is free to receive new packets. Encrypted and authenticated
 // packets will be sent to remote Peer side immediately.
-func (p *Peer) EthProcess(ethPkt []byte, conn *net.UDPConn, ready chan struct{}) {
+func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 	now := time.Now()
 	size := len(ethPkt)
 	// If this heartbeat is necessary

@@ -20,7 +20,6 @@ package govpn
 
 import (
 	"io"
-	"log"
 
 	"golang.org/x/crypto/poly1305"
 )
@@ -63,8 +62,6 @@ func NewTAP(ifaceName string) (*TAP, error) {
 	return &tap, nil
 }
 
-func (t *TAP) Write(data []byte) {
-	if _, err := t.dev.Write(data); err != nil {
-		log.Println("Error writing to iface: ", err)
-	}
+func (t *TAP) Write(data []byte) (n int, err error) {
+	return t.dev.Write(data)
 }

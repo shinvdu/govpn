@@ -15,3 +15,6 @@ govpn-client: dependencies
 
 govpn-server: dependencies
 	go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-server
+
+bench: dependencies
+	GOMAXPROC=2 go test -bench .
