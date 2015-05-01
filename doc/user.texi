@@ -18,6 +18,7 @@ automate it using up and down shell scripts.
 * Server part::
 * Stats::
 * Noise::
+* CPR::
 * Example usage::
 @end menu
 
@@ -34,5 +35,7 @@ automate it using up and down shell scripts.
 @include stats.texi
 
 @include noise.texi
+
+@include cpr.texi
 
 @include example.texi

@@ -40,6 +40,7 @@ var (
 	nonceDiff = flag.Int("noncediff", 1, "Allow nonce difference")
 	timeoutP  = flag.Int("timeout", 60, "Timeout seconds")
 	noisy     = flag.Bool("noise", false, "Enable noise appending")
+	cpr        = flag.Int("cpr", 0, "Enable constant KiB/s out traffic rate")
 )
 
 type PeerReadyEvent struct {
@@ -87,6 +88,7 @@ func main() {
 	govpn.Timeout = timeout
 	govpn.Noncediff = *nonceDiff
 	govpn.NoiseEnable = *noisy
+	govpn.CPRInit(*cpr)
 	govpn.PeersInit(*peersPath)
 
 	bind, err := net.ResolveUDPAddr("udp", *bindAddr)

@@ -30,6 +30,10 @@ Server can work with several clients simultaneously. Each client is
 @strong{identified} by 128-bit key, that does not leak during handshake
 and each client stays @strong{anonymous} for MiTM and DPI.
 
+Optional ability to hide payload packets lengths by appending
+@strong{noise} to them during transmission. Ability to generate constant
+packet rate traffic (@strong{CPR}) that will hide even the fact of
+packets appearance.
 
 The only platform specific requirement is TAP network interface support.
 API to that kind of device is different, OS dependent and non portable.
@@ -57,6 +61,7 @@ network interfaces on top of UDP entirely
 @item Built-in rehandshake and heartbeat features
 @item Several simultaneous clients support
 @item Hiding of payload packets length by noise appending
+@item Hiding of payload packets appearance with constant packet rate traffic
 @item Optional built-in HTTP-server for retrieving information about
 known connected peers in @url{http://json.org/, JSON} format
 @end itemize

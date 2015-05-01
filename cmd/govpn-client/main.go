@@ -42,6 +42,7 @@ var (
 	nonceDiff  = flag.Int("noncediff", 1, "Allow nonce difference")
 	timeoutP   = flag.Int("timeout", 60, "Timeout seconds")
 	noisy      = flag.Bool("noise", false, "Enable noise appending")
+	cpr        = flag.Int("cpr", 0, "Enable constant KiB/s out traffic rate")
 )
 
 func main() {
@@ -54,6 +55,7 @@ func main() {
 	govpn.Timeout = time.Second * time.Duration(timeout)
 	govpn.Noncediff = *nonceDiff
 	govpn.NoiseEnable = *noisy
+	govpn.CPRInit(*cpr)
 
 	id := govpn.IDDecode(*IDRaw)
 	govpn.PeersInitDummy(id)

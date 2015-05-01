@@ -57,6 +57,7 @@ type Peer struct {
 	NonceCipher     *xtea.Cipher   `json:"-"`
 	LastPing        time.Time
 	LastSent        time.Time
+	willSentCycle   time.Time
 	buf             []byte
 	tag             *[poly1305.TagSize]byte
 	keyAuth         *[KeySize]byte
@@ -314,6 +315,14 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 
 	p.BytesOut += int64(len(p.frame) + poly1305.TagSize)
 	p.FramesOut++
+
+	if cprEnable {
+		p.willSentCycle = p.LastSent.Add(cprCycle)
+		if p.willSentCycle.After(now) {
+			time.Sleep(p.willSentCycle.Sub(now))
+			now = p.willSentCycle
+		}
+	}
 	p.LastSent = now
 	if _, err := conn.WriteTo(append(p.frame, p.tag[:]...), p.Addr); err != nil {
 		log.Println("Error sending UDP", err)
