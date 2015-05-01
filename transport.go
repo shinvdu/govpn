@@ -296,7 +296,7 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 		p.HeartbeatSent++
 	}
 
-	p.NonceOur = p.NonceOur + 2
+	p.NonceOur += 2
 	copy(p.nonce, Emptiness)
 	binary.PutUvarint(p.nonce, p.NonceOur)
 	p.NonceCipher.Encrypt(p.nonce, p.nonce)
