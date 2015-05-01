@@ -22,7 +22,8 @@ A copy of the license is included below.
 @top GoVPN
 
 This manual is for GoVPN -- simple secure free software virtual private
-network (VPN) daemon, written entirely on Go programming language.
+network (VPN) daemon, aimed to be reviewable, secure, DPI-resistant,
+written entirely on Go.
 
 @menu
 * Overview::

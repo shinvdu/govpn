@@ -14,3 +14,4 @@ In most cases there is no need in so strict nonce boundaries and
 allowable nonce differences. This is trade-off between highest security
 and possible performance degradation. For example @code{-noncediff 128}
 works rather well (no packet drops) with 1 Gbps link with two switches.
+By default no nonce differences are allowed (highest security).
