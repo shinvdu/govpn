@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
-	"crypto/subtle"
 	"encoding/binary"
 	"io"
 	"log"
@@ -35,10 +34,11 @@ const (
 	NonceSize = 8
 	KeySize   = 32
 	// S20BS is Salsa20's internal blocksize in bytes
-	S20BS         = 64
-	HeartbeatSize = 12
+	S20BS = 64
 	// Maximal amount of bytes transfered with single key (4 GiB)
 	MaxBytesPerKey int64 = 1 << 32
+	// Size of packet's size mark in bytes
+	PktSizeSize = 2
 )
 
 type UDPPkt struct {
@@ -61,6 +61,7 @@ type Peer struct {
 	nonceRecv     uint64
 	frame         []byte
 	nonce         []byte
+	pktSize       uint64
 	BytesIn       int64
 	BytesOut      int64
 	FramesIn      int
@@ -86,8 +87,7 @@ func (p *Peer) Zero() {
 }
 
 var (
-	HeartbeatMark   = []byte("\x00\x00\x00HEARTBEAT")
-	Emptiness       = make([]byte, KeySize)
+	Emptiness       = make([]byte, 1<<16)
 	taps            = make(map[string]*TAP)
 	heartbeatPeriod *time.Duration
 )
@@ -230,7 +230,7 @@ func newPeer(addr *net.UDPAddr, id PeerId, nonce int, key *[KeySize]byte) *Peer 
 // will be written to the interface immediately (except heartbeat ones).
 func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) bool {
 	size := len(udpPkt)
-	copy(p.buf[:KeySize], Emptiness)
+	copy(p.buf, Emptiness)
 	copy(p.tag[:], udpPkt[size-poly1305.TagSize:])
 	copy(p.buf[S20BS:], udpPkt[NonceSize:size-poly1305.TagSize])
 	salsa20.XORKeyStream(
@@ -255,13 +255,14 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 	ready <- struct{}{}
 	p.LastPing = time.Now()
 	p.NonceRecv = p.nonceRecv
-	p.frame = p.buf[S20BS : S20BS+size-NonceSize-poly1305.TagSize]
-	p.BytesIn += int64(len(p.frame))
-	p.FramesIn++
-	if subtle.ConstantTimeCompare(p.frame[:HeartbeatSize], HeartbeatMark) == 1 {
+	p.pktSize, _ = binary.Uvarint(p.buf[S20BS : S20BS+PktSizeSize])
+	if p.pktSize == 0 {
 		p.HeartbeatRecv++
 		return true
 	}
+	p.frame = p.buf[S20BS+PktSizeSize : S20BS+PktSizeSize+p.pktSize]
+	p.BytesIn += int64(p.pktSize)
+	p.FramesIn++
 	tap.Write(p.frame)
 	return true
 }
@@ -282,14 +283,14 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 	if size == 0 && !p.LastSent.Add(heartbeatPeriodGet()).Before(now) {
 		return
 	}
-	copy(p.buf[:KeySize], Emptiness)
+	copy(p.buf, Emptiness)
 	if size > 0 {
-		copy(p.buf[S20BS:], ethPkt)
+		copy(p.buf[S20BS+PktSizeSize:], ethPkt)
 		ready <- struct{}{}
+		binary.PutUvarint(p.buf[S20BS:S20BS+PktSizeSize], uint64(size))
+		p.BytesOut += int64(size)
 	} else {
 		p.HeartbeatSent++
-		copy(p.buf[S20BS:], HeartbeatMark)
-		size = HeartbeatSize
 	}
 
 	p.NonceOur = p.NonceOur + 2
@@ -300,10 +301,9 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 	salsa20.XORKeyStream(p.buf, p.buf, p.nonce, p.Key)
 	copy(p.buf[S20BS-NonceSize:S20BS], p.nonce)
 	copy(p.keyAuth[:], p.buf[:KeySize])
-	p.frame = p.buf[S20BS-NonceSize : S20BS+size]
+	p.frame = p.buf[S20BS-NonceSize : S20BS+PktSizeSize+size]
 	poly1305.Sum(p.tag, p.frame, p.keyAuth)
 
-	p.BytesOut += int64(len(p.frame))
 	p.FramesOut++
 	p.LastSent = now
 	if _, err := conn.WriteTo(append(p.frame, p.tag[:]...), p.Addr); err != nil {

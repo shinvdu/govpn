@@ -11,7 +11,7 @@
 @item Password authenticated key agreement
 DH-EKE powered by @url{http://cr.yp.to/ecdh.html, Curve25519}
 @item Packet overhead
-24 bytes per packet
+26 bytes per packet
 @item Handshake overhead
 4 UDP (2 from client, 2 from server) packets, 200 bytes total payload
 @end table

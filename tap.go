@@ -24,6 +24,10 @@ import (
 	"golang.org/x/crypto/poly1305"
 )
 
+const (
+	EtherSize = 14
+)
+
 type TAP struct {
 	Name   string
 	dev    io.ReadWriter
@@ -33,8 +37,12 @@ type TAP struct {
 	synced bool
 }
 
+func TAPMaxMTU() int {
+	return MTU - poly1305.TagSize - NonceSize - PktSizeSize - EtherSize
+}
+
 func NewTAP(ifaceName string) (*TAP, error) {
-	maxIfacePktSize := MTU - poly1305.TagSize - NonceSize
+	maxIfacePktSize := TAPMaxMTU() + EtherSize
 	tapRaw, err := newTAPer(ifaceName)
 	if err != nil {
 		return nil, err
