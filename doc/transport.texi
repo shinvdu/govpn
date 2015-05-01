@@ -2,8 +2,8 @@
 @section Transport protocol
 
 @verbatim
-ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA) +
-    AUTH(ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA))
+ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE) +
+    AUTH(ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE))
 @end verbatim
 
 All transport and handshake messages are indistinguishable from
@@ -25,6 +25,9 @@ encryption key is different during each handshake, so (key, nonce) pair
 is always used only once. @code{ENC} is Salsa20 cipher, with established
 session @code{KEY} and encrypted @code{SERIAL} used as a nonce.
 @code{DATA_SIZE} is @emph{uint16} storing length of the @code{DATA}.
+
+@code{NOISE} is optional. It is just some junk data, intended to fill up
+packet to MTU size. This is useful for concealing payload packets length.
 
 @code{AUTH} is Poly1305 authentication function. First 256 bits of
 Salsa20 output are used as a one-time key for @code{AUTH}. Next 256 bits

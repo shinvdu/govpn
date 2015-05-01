@@ -39,6 +39,7 @@ var (
 	mtu       = flag.Int("mtu", 1452, "MTU for outgoing packets")
 	nonceDiff = flag.Int("noncediff", 1, "Allow nonce difference")
 	timeoutP  = flag.Int("timeout", 60, "Timeout seconds")
+	noisy     = flag.Bool("noise", false, "Enable noise appending")
 )
 
 type PeerReadyEvent struct {
@@ -85,6 +86,7 @@ func main() {
 	govpn.MTU = *mtu
 	govpn.Timeout = *timeoutP
 	govpn.Noncediff = *nonceDiff
+	govpn.NoiseEnable = *noisy
 	govpn.PeersInit(*peersPath)
 
 	bind, err := net.ResolveUDPAddr("udp", *bindAddr)

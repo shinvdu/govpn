@@ -301,7 +301,11 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 	salsa20.XORKeyStream(p.buf, p.buf, p.nonce, p.Key)
 	copy(p.buf[S20BS-NonceSize:S20BS], p.nonce)
 	copy(p.keyAuth[:], p.buf[:KeySize])
-	p.frame = p.buf[S20BS-NonceSize : S20BS+PktSizeSize+size]
+	if NoiseEnable {
+		p.frame = p.buf[S20BS-NonceSize : S20BS+MTU-NonceSize-poly1305.TagSize]
+	} else {
+		p.frame = p.buf[S20BS-NonceSize : S20BS+PktSizeSize+size]
+	}
 	poly1305.Sum(p.tag, p.frame, p.keyAuth)
 
 	p.FramesOut++

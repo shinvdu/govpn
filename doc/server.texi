@@ -2,7 +2,7 @@
 @section Server part
 
 Except for common @code{-mtu}, @code{-noncediff}, @code{-timeout},
-@code{-stats} options server has the following ones:
+@code{-stats}, @code{-noise} options server has the following ones:
 
 @table @code
 @item -bind

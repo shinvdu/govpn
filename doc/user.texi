@@ -17,6 +17,7 @@ automate it using up and down shell scripts.
 * Client part::
 * Server part::
 * Stats::
+* Noise::
 * Example usage::
 @end menu
 
@@ -31,5 +32,7 @@ automate it using up and down shell scripts.
 @include server.texi
 
 @include stats.texi
+
+@include noise.texi
 
 @include example.texi

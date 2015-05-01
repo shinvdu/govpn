@@ -1,0 +1,12 @@
+@node Noise
+@section Noise
+
+You may turn on @code{-noise} option, that forces to fill up all
+outgoing packets to their maximum (MTU) size. Without that option GoVPN
+provides confidentiality and authenticity of payload, but it's size
+leaks to the observer.
+
+As it can be applied only to outgoing traffic, you should enable it on
+both sides in most cases.
+
+Pay attention that this can dramatically increase your traffic!

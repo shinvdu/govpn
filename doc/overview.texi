@@ -48,7 +48,7 @@ network interfaces on top of UDP entirely
 @url{https://www.gnu.org/, GNU}/Linux and
 @url{http://www.freebsd.org/, FreeBSD} support
 @item IPv6 compatible
-@item Encrypted and authenticated transport
+@item Encrypted and authenticated payload transport
 @item Relatively fast handshake
 @item
 @url{https://en.wikipedia.org/wiki/Replay_attack, Replay attack} protection
@@ -65,6 +65,7 @@ authentication (pre-shared key is not transmitted in any form between
 the peers, not even it's hash value)
 @item Built-in rehandshake and heartbeat features
 @item Several simultaneous clients support
+@item Optional noise-appending for concealing underlying packet's length
 @item Optional built-in HTTP-server for retrieving information about
 known connected peers in @url{http://json.org/, JSON} format
 @end itemize

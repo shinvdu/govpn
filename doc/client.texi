@@ -2,7 +2,7 @@
 @section Client part
 
 Except for common @code{-mtu}, @code{-noncediff}, @code{-timeout},
-@code{-stats} options client has the following ones:
+@code{-stats}, @code{-noise} options client has the following ones:
 
 @table @code
 @item -remote

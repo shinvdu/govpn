@@ -28,10 +28,11 @@ import (
 )
 
 var (
-	MTU       int
-	Timeout   int
-	Noncediff int
-	Version   string
+	MTU         int
+	Timeout     int
+	Noncediff   int
+	Version     string
+	NoiseEnable bool = false
 )
 
 // Call external program/script.
