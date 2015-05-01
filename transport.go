@@ -89,7 +89,7 @@ func (p *Peer) Zero() {
 }
 
 var (
-	Emptiness       = make([]byte, 1<<16)
+	Emptiness       = make([]byte, 1<<14)
 	taps            = make(map[string]*TAP)
 	heartbeatPeriod *time.Duration
 )
