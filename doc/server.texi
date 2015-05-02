@@ -1,8 +1,8 @@
 @node Server part
 @section Server part
 
-Except for common @code{-mtu}, @code{-noncediff}, @code{-timeout},
-@code{-stats}, @code{-noise} options server has the following ones:
+Except for common @code{-mtu}, @code{-stats}, options server has the
+following ones:
 
 @table @code
 @item -bind
@@ -11,24 +11,51 @@ Address (@code{host:port} format) we must bind to.
 Path to the directory containing peers information, database.
 @end table
 
-Peers directory must contain subdirectories with the names of client's identities
-in hexadecimal notation. Each of those subdirectories must have
-@strong{key} file with the corresponding authentication key,
-@strong{up.sh} script that executes each time connection with the client
-establishes, optional @code{name} file containing human readable
-client's name and optional @code{down.sh} that executes during
-connection lost.
+Peers directory must contain subdirectories with the names of client's
+identities in hexadecimal notation. Each subdirectory has the following
+files:
 
-@code{up.sh} script @strong{must} print on the first stdout line the
-name of TAP interface. This script can be simple @code{echo tap10},
-maybe more advanced with dynamic interface creation:
+@table @code
 
-@example
-#!/bin/sh
-$tap=$(ifconfig tap create)
-ifconfig $tap inet6 fc00::1/96 mtu 1412 up
-echo $tap
-@end example
+@item key
+@strong{Required}. Contains corresponding authentication PSK key in
+hexadecimal notation.
+
+@item up.sh
+@strong{Required}. up-script executes each time connection with the
+client is established. It's @emph{stdout} output must contain TAP
+interface name on the first string. This script can be simple
+@code{echo tap10}, or maybe more advanced like this:
+    @example
+    #!/bin/sh
+    $tap=$(ifconfig tap create)
+    ifconfig $tap inet6 fc00::1/96 mtu 1412 up
+    echo $tap
+    @end example
+
+@item down.sh
+Optional. Same as @code{up.sh} above, but executes when connection is
+lost.
+
+@item name
+Optional. Contains human readable username. Used to beauty output of
+@ref{Stats}.
+
+@item timeout
+Optional. Contains @ref{Timeout} setting (decimal notation) in seconds.
+Otherwise default minute timeout will be used.
+
+@item noncediff
+Optional. Contains allowable @ref{Nonce difference} setting (decimal
+notation).
+
+@item noise
+Optional. Contains either "1" (enable @ref{Noise} adding), or "0".
+
+@item cpr
+Optional. Contains @ref{CPR} setting (decimal notation) in KiB/sec.
+
+@end table
 
 Each minute server refreshes peers directory contents and adds newly
 appeared identities, deletes an obsolete ones.

@@ -6,8 +6,10 @@ on @url{http://golang.org/, Go programming language}.
 
 Reviewability, high 128-bit security margin and
 @url{https://en.wikipedia.org/wiki/Deep_packet_inspection, DPI}
-resistance in mind in free software solution are the main goals
-for that daemon.
+censorship resistance in mind in free software solution are the main
+goals for that daemon. Most modern widespread protocols and their
+implementations in software are too complex to be reviewed, analyzed and
+modified.
 
 State off art cryptography technologies include:
 @url{http://cr.yp.to/snuffle.html, Salsa20} stream encryption,
@@ -28,7 +30,8 @@ one-time keys protects against
 
 Server can work with several clients simultaneously. Each client is
 @strong{identified} by 128-bit key, that does not leak during handshake
-and each client stays @strong{anonymous} for MiTM and DPI.
+and each client stays @strong{anonymous} for MiTM and DPI. All settings
+are applied per-peer separately.
 
 Optional ability to hide payload packets lengths by appending
 @strong{noise} to them during transmission. Ability to generate constant
@@ -60,6 +63,7 @@ network interfaces on top of UDP entirely
 @item Zero knowledge authentication
 @item Built-in rehandshake and heartbeat features
 @item Several simultaneous clients support
+@item Per-client configuration options
 @item Hiding of payload packets length with noise
 @item Hiding of payload packets appearance with constant packet rate traffic
 @item Optional built-in HTTP-server for retrieving information about

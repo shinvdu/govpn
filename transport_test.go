@@ -17,7 +17,6 @@ var (
 
 func init() {
 	MTU = 1500
-	Noncediff = 100
 	addr, _ = net.ResolveUDPAddr("udp", "[::1]:1")
 	peerId = IDDecode("ffffffffffffffffffffffffffffffff")
 	peer = newPeer(addr, *peerId, 128, new([KeySize]byte))

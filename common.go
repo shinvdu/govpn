@@ -25,15 +25,15 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"time"
+)
+
+const (
+	TimeoutDefault = 60
 )
 
 var (
-	MTU         int
-	Timeout     time.Duration
-	Noncediff   int
-	Version     string
-	NoiseEnable bool = false
+	MTU     int
+	Version string
 )
 
 // Call external program/script.

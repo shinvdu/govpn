@@ -25,6 +25,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -53,12 +54,21 @@ func (id PeerId) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + result + `"`), nil
 }
 
+type PeerConf struct {
+	Id          *PeerId
+	Timeout     time.Duration
+	Noncediff   int
+	NoiseEnable bool
+	CPR         int
+}
+
 type cipherCache map[PeerId]*xtea.Cipher
 
 var (
 	PeersPath       string
 	IDsCache        cipherCache
 	cipherCacheLock sync.RWMutex
+	dummyConf       *PeerConf
 )
 
 // Initialize (pre-cache) available peers info.
@@ -73,15 +83,15 @@ func PeersInit(path string) {
 	}()
 }
 
-// Initialize dummy cache for client-side usage. It will consist only
-// of single key.
-func PeersInitDummy(id *PeerId) {
+// Initialize dummy cache for client-side usage.
+func PeersInitDummy(id *PeerId, conf PeerConf) {
 	IDsCache = make(map[PeerId]*xtea.Cipher)
 	cipher, err := xtea.NewCipher(id[:])
 	if err != nil {
 		panic(err)
 	}
 	IDsCache[*id] = cipher
+	dummyConf = &conf
 }
 
 // Refresh IDsCache: remove disappeared keys, add missing ones with
@@ -145,6 +155,44 @@ func (cc cipherCache) Find(data []byte) *PeerId {
 	}
 	cipherCacheLock.RUnlock()
 	return nil
+}
+
+func readIntFromFile(path string) (int, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return 0, err
+	}
+	val, err := strconv.Atoi(strings.TrimRight(string(data), "\n"))
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
+}
+
+// Get peer related configuration.
+func (id *PeerId) ConfGet() *PeerConf {
+	if dummyConf != nil {
+		return dummyConf
+	}
+	conf := PeerConf{Id: id, Noncediff: 1, NoiseEnable: false, CPR: 0}
+	peerPath := path.Join(PeersPath, id.String())
+
+	timeout := TimeoutDefault
+	if val, err := readIntFromFile(path.Join(peerPath, "timeout")); err == nil {
+		timeout = val
+	}
+	conf.Timeout = time.Second * time.Duration(timeout)
+
+	if val, err := readIntFromFile(path.Join(peerPath, "noncediff")); err == nil {
+		conf.Noncediff = val
+	}
+	if val, err := readIntFromFile(path.Join(peerPath, "noise")); err == nil && val == 1 {
+		conf.NoiseEnable = true
+	}
+	if val, err := readIntFromFile(path.Join(peerPath, "cpr")); err == nil {
+		conf.CPR = val
+	}
+	return &conf
 }
 
 // Decode identification string.

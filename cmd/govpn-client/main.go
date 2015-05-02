@@ -42,7 +42,7 @@ var (
 	nonceDiff  = flag.Int("noncediff", 1, "Allow nonce difference")
 	timeoutP   = flag.Int("timeout", 60, "Timeout seconds")
 	noisy      = flag.Bool("noise", false, "Enable noise appending")
-	cpr        = flag.Int("cpr", 0, "Enable constant KiB/s out traffic rate")
+	cpr        = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
 )
 
 func main() {
@@ -52,13 +52,15 @@ func main() {
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
 	govpn.MTU = *mtu
-	govpn.Timeout = time.Second * time.Duration(timeout)
-	govpn.Noncediff = *nonceDiff
-	govpn.NoiseEnable = *noisy
-	govpn.CPRInit(*cpr)
 
 	id := govpn.IDDecode(*IDRaw)
-	govpn.PeersInitDummy(id)
+	govpn.PeersInitDummy(id, govpn.PeerConf{
+		Id:          id,
+		Timeout:     time.Second * time.Duration(timeout),
+		Noncediff:   *nonceDiff,
+		NoiseEnable: *noisy,
+		CPR:         *cpr,
+	})
 	key := govpn.KeyRead(*keyPath)
 	if id == nil {
 		panic("ID is not specified")
@@ -77,7 +79,11 @@ func main() {
 		panic(err)
 	}
 
-	tap, ethSink, ethReady, _, err := govpn.TAPListen(*ifaceName)
+	tap, ethSink, ethReady, _, err := govpn.TAPListen(
+		*ifaceName,
+		time.Second*time.Duration(timeout),
+		*cpr,
+	)
 	if err != nil {
 		panic(err)
 	}

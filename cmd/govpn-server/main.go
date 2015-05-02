@@ -37,10 +37,6 @@ var (
 	peersPath = flag.String("peers", "peers", "Path to peers keys directory")
 	stats     = flag.String("stats", "", "Enable stats retrieving on host:port")
 	mtu       = flag.Int("mtu", 1452, "MTU for outgoing packets")
-	nonceDiff = flag.Int("noncediff", 1, "Allow nonce difference")
-	timeoutP  = flag.Int("timeout", 60, "Timeout seconds")
-	noisy     = flag.Bool("noise", false, "Enable noise appending")
-	cpr        = flag.Int("cpr", 0, "Enable constant KiB/s out traffic rate")
 )
 
 type PeerReadyEvent struct {
@@ -57,7 +53,7 @@ type PeerState struct {
 }
 
 func NewPeerState(peer *govpn.Peer, iface string) *PeerState {
-	tap, sink, ready, terminate, err := govpn.TAPListen(iface)
+	tap, sink, ready, terminate, err := govpn.TAPListen(iface, peer.Timeout, peer.CPR)
 	if err != nil {
 		log.Println("Unable to create Eth", err)
 		return nil
@@ -80,15 +76,11 @@ type EthEvent struct {
 
 func main() {
 	flag.Parse()
-	timeout := time.Second * time.Duration(*timeoutP)
+	timeout := time.Second * time.Duration(govpn.TimeoutDefault)
 	var err error
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
 	govpn.MTU = *mtu
-	govpn.Timeout = timeout
-	govpn.Noncediff = *nonceDiff
-	govpn.NoiseEnable = *noisy
-	govpn.CPRInit(*cpr)
 	govpn.PeersInit(*peersPath)
 
 	bind, err := net.ResolveUDPAddr("udp", *bindAddr)

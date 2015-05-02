@@ -6,5 +6,5 @@ appearance. In this mode daemon inserts necessary dummy packets and
 delays other ones.
 
 This mode is turned by @code{-cpr} option, where you specify desired
-outgoing traffic rate in KiB/s (kibibytes per second). This option also
+outgoing traffic rate in KiB/sec (kibibytes per second). This option also
 forces using of the @ref{Noise}! It is turned off by default.

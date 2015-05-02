@@ -14,11 +14,11 @@ automate it using up and down shell scripts.
 * Timeout::
 * Nonce difference::
 * MTU::
-* Client part::
-* Server part::
 * Stats::
 * Noise::
 * CPR::
+* Client part::
+* Server part::
 * Example usage::
 @end menu
 
@@ -28,14 +28,14 @@ automate it using up and down shell scripts.
 
 @include mtu.texi
 
-@include client.texi
-
-@include server.texi
-
 @include stats.texi
 
 @include noise.texi
 
 @include cpr.texi
+
+@include client.texi
+
+@include server.texi
 
 @include example.texi

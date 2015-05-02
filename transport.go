@@ -49,23 +49,38 @@ type UDPPkt struct {
 }
 
 type Peer struct {
-	Addr            *net.UDPAddr
-	Id              PeerId
-	Key             *[KeySize]byte `json:"-"`
-	NonceOur        uint64         `json:"-"`
-	NonceRecv       uint64         `json:"-"`
-	NonceCipher     *xtea.Cipher   `json:"-"`
-	Established     time.Time
-	LastPing        time.Time
-	LastSent        time.Time
-	willSentCycle   time.Time
-	buf             []byte
-	tag             *[poly1305.TagSize]byte
-	keyAuth         *[KeySize]byte
-	nonceRecv       uint64
-	frame           []byte
-	nonce           []byte
-	pktSize         uint64
+	Addr *net.UDPAddr
+	Id   PeerId
+
+	// Traffic behaviour
+	NoiseEnable bool
+	CPR         int
+	CPRCycle    time.Duration `json:"-"`
+
+	// Cryptography related
+	Key         *[KeySize]byte `json:"-"`
+	Noncediff   int
+	NonceOur    uint64       `json:"-"`
+	NonceRecv   uint64       `json:"-"`
+	NonceCipher *xtea.Cipher `json:"-"`
+
+	// Timers
+	Timeout       time.Duration `json:"-"`
+	Established   time.Time
+	LastPing      time.Time
+	LastSent      time.Time
+	willSentCycle time.Time
+
+	// This variables are initialized only once to relief GC
+	buf       []byte
+	tag       *[poly1305.TagSize]byte
+	keyAuth   *[KeySize]byte
+	nonceRecv uint64
+	frame     []byte
+	nonce     []byte
+	pktSize   uint64
+
+	// Statistics
 	BytesIn         int64
 	BytesOut        int64
 	BytesPayloadIn  int64
@@ -93,17 +108,9 @@ func (p *Peer) Zero() {
 }
 
 var (
-	Emptiness       = make([]byte, 1<<14)
-	taps            = make(map[string]*TAP)
-	heartbeatPeriod time.Duration
+	Emptiness = make([]byte, 1<<14)
+	taps      = make(map[string]*TAP)
 )
-
-func heartbeatPeriodGet() time.Duration {
-	if heartbeatPeriod == time.Duration(0) {
-		heartbeatPeriod = Timeout / TimeoutHeartbeat
-	}
-	return heartbeatPeriod
-}
 
 // Create TAP listening goroutine.
 // This function takes required TAP interface name, opens it and allocates
@@ -111,7 +118,7 @@ func heartbeatPeriodGet() time.Duration {
 // about number of read bytes is sent to, synchronization channel (external
 // processes tell that read buffer can be used again) and possible channel
 // opening error.
-func TAPListen(ifaceName string) (*TAP, chan []byte, chan struct{}, chan struct{}, error) {
+func TAPListen(ifaceName string, timeout time.Duration, cpr int) (*TAP, chan []byte, chan struct{}, chan struct{}, error) {
 	var tap *TAP
 	var err error
 	tap, exists := taps[ifaceName]
@@ -128,7 +135,13 @@ func TAPListen(ifaceName string) (*TAP, chan []byte, chan struct{}, chan struct{
 	sinkSkip := make(chan struct{})
 
 	go func() {
-		heartbeat := time.Tick(heartbeatPeriodGet())
+		cprCycle := cprCycleCalculate(cpr)
+		if cprCycle != time.Duration(0) {
+			timeout = cprCycle
+		} else {
+			timeout = timeout / TimeoutHeartbeat
+		}
+		heartbeat := time.Tick(timeout)
 		var pkt []byte
 	ListenCycle:
 		for {
@@ -211,15 +224,37 @@ func newNonceCipher(key *[KeySize]byte) *xtea.Cipher {
 	return ciph
 }
 
+func cprCycleCalculate(rate int) time.Duration {
+	if rate == 0 {
+		return time.Duration(0)
+	}
+	return time.Second / time.Duration(rate*(1<<10)/MTU)
+}
+
 func newPeer(addr *net.UDPAddr, id PeerId, nonce int, key *[KeySize]byte) *Peer {
 	now := time.Now()
+	conf := id.ConfGet()
+	timeout := conf.Timeout
+	cprCycle := cprCycleCalculate(conf.CPR)
+	noiseEnable := conf.NoiseEnable
+	if conf.CPR > 0 {
+		noiseEnable = true
+		timeout = cprCycle
+	} else {
+		timeout = timeout / TimeoutHeartbeat
+	}
 	peer := Peer{
 		Addr:        addr,
+		Timeout:     timeout,
 		Established: now,
 		LastPing:    now,
 		Id:          id,
-		NonceOur:    uint64(Noncediff + nonce),
-		NonceRecv:   uint64(Noncediff + 0),
+		NoiseEnable: noiseEnable,
+		CPR:         conf.CPR,
+		CPRCycle:    cprCycle,
+		Noncediff:   conf.Noncediff,
+		NonceOur:    uint64(conf.Noncediff + nonce),
+		NonceRecv:   uint64(conf.Noncediff + 0),
 		Key:         key,
 		NonceCipher: newNonceCipher(key),
 		buf:         make([]byte, MTU+S20BS),
@@ -254,7 +289,7 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 	}
 	p.NonceCipher.Decrypt(p.buf, udpPkt[:NonceSize])
 	p.nonceRecv, _ = binary.Uvarint(p.buf[:NonceSize])
-	if int(p.NonceRecv)-Noncediff >= 0 && int(p.nonceRecv) < int(p.NonceRecv)-Noncediff {
+	if int(p.NonceRecv)-p.Noncediff >= 0 && int(p.nonceRecv) < int(p.NonceRecv)-p.Noncediff {
 		ready <- struct{}{}
 		p.FramesDup++
 		return false
@@ -288,7 +323,7 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 	now := time.Now()
 	size := len(ethPkt)
 	// If this heartbeat is necessary
-	if size == 0 && !p.LastSent.Add(heartbeatPeriodGet()).Before(now) {
+	if size == 0 && !p.LastSent.Add(p.Timeout).Before(now) {
 		return
 	}
 	copy(p.buf, Emptiness)
@@ -309,7 +344,7 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 	salsa20.XORKeyStream(p.buf, p.buf, p.nonce, p.Key)
 	copy(p.buf[S20BS-NonceSize:S20BS], p.nonce)
 	copy(p.keyAuth[:], p.buf[:KeySize])
-	if NoiseEnable {
+	if p.NoiseEnable {
 		p.frame = p.buf[S20BS-NonceSize : S20BS+MTU-NonceSize-poly1305.TagSize]
 	} else {
 		p.frame = p.buf[S20BS-NonceSize : S20BS+PktSizeSize+size]
@@ -319,8 +354,8 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 	p.BytesOut += int64(len(p.frame) + poly1305.TagSize)
 	p.FramesOut++
 
-	if cprEnable {
-		p.willSentCycle = p.LastSent.Add(cprCycle)
+	if p.CPRCycle != time.Duration(0) {
+		p.willSentCycle = p.LastSent.Add(p.CPRCycle)
 		if p.willSentCycle.After(now) {
 			time.Sleep(p.willSentCycle.Sub(now))
 			now = p.willSentCycle
