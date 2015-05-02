@@ -11,7 +11,7 @@ for that daemon.
 
 State off art cryptography technologies include:
 @url{http://cr.yp.to/snuffle.html, Salsa20} stream encryption,
-@url{http://143.53.36.235:8080/tea.htm, XTEA} block encryption,
+@url{http://143.53.36.235:8080/tea.htm, XTEA} PRP,
 @url{http://cr.yp.to/mac.html, Poly1305} message authentication,
 @url{https://en.wikipedia.org/wiki/Encrypted_key_exchange, Diffie-Hellman Encrypted Key Exchange}
 (DH-EKE) powered by @url{http://cr.yp.to/ecdh.html, Curve25519}.
