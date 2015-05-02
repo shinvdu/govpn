@@ -55,6 +55,7 @@ type Peer struct {
 	NonceOur        uint64         `json:"-"`
 	NonceRecv       uint64         `json:"-"`
 	NonceCipher     *xtea.Cipher   `json:"-"`
+	Established     time.Time
 	LastPing        time.Time
 	LastSent        time.Time
 	willSentCycle   time.Time
@@ -211,9 +212,11 @@ func newNonceCipher(key *[KeySize]byte) *xtea.Cipher {
 }
 
 func newPeer(addr *net.UDPAddr, id PeerId, nonce int, key *[KeySize]byte) *Peer {
+	now := time.Now()
 	peer := Peer{
 		Addr:        addr,
-		LastPing:    time.Now(),
+		Established: now,
+		LastPing:    now,
 		Id:          id,
 		NonceOur:    uint64(Noncediff + nonce),
 		NonceRecv:   uint64(Noncediff + 0),
