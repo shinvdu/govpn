@@ -32,7 +32,6 @@ import (
 
 const (
 	NonceSize = 8
-	KeySize   = 32
 	// S20BS is Salsa20's internal blocksize in bytes
 	S20BS = 64
 	// Maximal amount of bytes transfered with single key (4 GiB)
@@ -50,7 +49,7 @@ type UDPPkt struct {
 
 type Peer struct {
 	Addr *net.UDPAddr
-	Id   PeerId
+	Id   *PeerId
 
 	// Traffic behaviour
 	NoiseEnable bool
@@ -58,7 +57,7 @@ type Peer struct {
 	CPRCycle    time.Duration `json:"-"`
 
 	// Cryptography related
-	Key         *[KeySize]byte `json:"-"`
+	Key         *[SSize]byte `json:"-"`
 	Noncediff   int
 	NonceOur    uint64       `json:"-"`
 	NonceRecv   uint64       `json:"-"`
@@ -74,7 +73,7 @@ type Peer struct {
 	// This variables are initialized only once to relief GC
 	buf       []byte
 	tag       *[poly1305.TagSize]byte
-	keyAuth   *[KeySize]byte
+	keyAuth   *[32]byte
 	nonceRecv uint64
 	frame     []byte
 	nonce     []byte
@@ -97,7 +96,7 @@ func (p *Peer) String() string {
 	return p.Id.String() + ":" + p.Addr.String()
 }
 
-// Zero peer's memory state
+// Zero peer's memory state.
 func (p *Peer) Zero() {
 	sliceZero(p.Key[:])
 	sliceZero(p.tag[:])
@@ -209,11 +208,11 @@ func ConnListen(conn *net.UDPConn) (chan UDPPkt, []byte, chan struct{}) {
 	return sink, buf, sinkReady
 }
 
-func newNonceCipher(key *[KeySize]byte) *xtea.Cipher {
+func newNonceCipher(key *[32]byte) *xtea.Cipher {
 	nonceKey := make([]byte, 16)
 	salsa20.XORKeyStream(
 		nonceKey,
-		make([]byte, KeySize),
+		make([]byte, 32),
 		make([]byte, xtea.BlockSize),
 		key,
 	)
@@ -231,9 +230,8 @@ func cprCycleCalculate(rate int) time.Duration {
 	return time.Second / time.Duration(rate*(1<<10)/MTU)
 }
 
-func newPeer(addr *net.UDPAddr, id PeerId, nonce int, key *[KeySize]byte) *Peer {
+func newPeer(addr *net.UDPAddr, conf *PeerConf, nonce int, key *[SSize]byte) *Peer {
 	now := time.Now()
-	conf := id.ConfGet()
 	timeout := conf.Timeout
 	cprCycle := cprCycleCalculate(conf.CPR)
 	noiseEnable := conf.NoiseEnable
@@ -248,7 +246,7 @@ func newPeer(addr *net.UDPAddr, id PeerId, nonce int, key *[KeySize]byte) *Peer 
 		Timeout:     timeout,
 		Established: now,
 		LastPing:    now,
-		Id:          id,
+		Id:          conf.Id,
 		NoiseEnable: noiseEnable,
 		CPR:         conf.CPR,
 		CPRCycle:    cprCycle,
@@ -259,7 +257,7 @@ func newPeer(addr *net.UDPAddr, id PeerId, nonce int, key *[KeySize]byte) *Peer 
 		NonceCipher: newNonceCipher(key),
 		buf:         make([]byte, MTU+S20BS),
 		tag:         new([poly1305.TagSize]byte),
-		keyAuth:     new([KeySize]byte),
+		keyAuth:     new([SSize]byte),
 		nonce:       make([]byte, NonceSize),
 	}
 	return &peer
@@ -281,7 +279,7 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 		udpPkt[:NonceSize],
 		p.Key,
 	)
-	copy(p.keyAuth[:], p.buf[:KeySize])
+	copy(p.keyAuth[:], p.buf[:SSize])
 	if !poly1305.Verify(p.tag, udpPkt[:size-poly1305.TagSize], p.keyAuth) {
 		ready <- struct{}{}
 		p.FramesUnauth++
@@ -343,7 +341,7 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 
 	salsa20.XORKeyStream(p.buf, p.buf, p.nonce, p.Key)
 	copy(p.buf[S20BS-NonceSize:S20BS], p.nonce)
-	copy(p.keyAuth[:], p.buf[:KeySize])
+	copy(p.keyAuth[:], p.buf[:SSize])
 	if p.NoiseEnable {
 		p.frame = p.buf[S20BS-NonceSize : S20BS+MTU-NonceSize-poly1305.TagSize]
 	} else {

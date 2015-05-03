@@ -1,9 +1,9 @@
-@node Reporting bugs
-@unnumbered Reporting bugs
+@node Contacts
+@unnumbered Contacts
 
 Please send all questions, bug reports and patches to to
 @email{govpn-devel@@lists.cypherpunks.ru} mailing list.
-Also it is used for announcements.
+Announcements go to this mailing list too.
 
 Either visit @url{https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel}
 for information about subscription options and archived messages access, or

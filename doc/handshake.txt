@@ -3,19 +3,20 @@ participant Client
 participant Server
 
 Client -> Client : R=rand(64bit)
-Client -> Client : CPrivKey=rand(256bit)
-Client -> Server : R, enc(PSK, R, CPubKey)
-Server -> Server : SPrivKey=rand(256bit)
-Server -> Server : K=DH(SPrivKey, CPubKey)
+Client -> Client : CDHPriv=rand(256bit)
+Client -> Server : R, enc(H(DSAPub), R, CDHPub)
+Server -> Server : SDHPriv=rand(256bit)
+Server -> Server : K=H(DH(SDHPriv, CDHPub))
 Server -> Server : RS=rand(64bit)
 Server -> Server : SS=rand(256bit)
-Server -> Client : enc(PSK, R+1, SPubKey); enc(K, R, RS+SS)
-Client -> Client : K=DH(CPrivKey, SPubKey)
+Server -> Client : enc(H(DSAPub), R+1, SDHPub); enc(K, R, RS+SS)
+Client -> Client : K=H(DH(CDHPriv, SDHPub))
 Client -> Client : RC=rand(64bit); SC=rand(256bit)
-Client -> Server : enc(K, R+1, RS+RC+SC)
+Client -> Server : enc(K, R+1, RS+RC+SC+Sign(DSAPriv, K))
 Server -> Server : compare(RS)
+Server -> Server : Verify(DSAPub, Sign(DSAPriv, K), K)
 Server -> Server : MasterKey=SS XOR SC
-Server -> Client : enc(K, 0x00, RC)
+Server -> Client : enc(K, R+2, RC)
 Client -> Client : compare(RC)
 Client -> Client : MasterKey=SS XOR SC
 @enduml

@@ -113,6 +113,7 @@ func main() {
 	var udpPktData []byte
 	var ethEvent EthEvent
 	var peerId *govpn.PeerId
+	var peerConf *govpn.PeerConf
 	var handshakeProcessForce bool
 	ethSink := make(chan EthEvent)
 
@@ -208,12 +209,18 @@ MainCycle:
 					udpReady <- struct{}{}
 					continue
 				}
+				peerConf = peerId.Conf()
+				if peerConf == nil {
+					log.Println("Can not get peer configuration", peerId.String())
+					udpReady <- struct{}{}
+					continue
+				}
 				state, exists = states[addr]
 				if !exists {
-					state = govpn.HandshakeNew(udpPkt.Addr)
+					state = govpn.HandshakeNew(udpPkt.Addr, peerConf)
 					states[addr] = state
 				}
-				peer = state.Server(peerId, conn, udpPktData)
+				peer = state.Server(conn, udpPktData)
 				if peer != nil {
 					log.Println("Peer handshake finished", peer)
 					if _, exists = peers[addr]; exists {

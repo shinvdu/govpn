@@ -1,41 +1,38 @@
 @node User manual
 @unnumbered User manual
 
-Announcements about updates and new releases can be found in
-@ref{Reporting bugs}.
+Announcements about updates and new releases can be found in @ref{Contacts}.
 
 GoVPN is split into two pieces: client and server. Each of them work on
 top of UDP and TAP virtual network interfaces. GoVPN is just a
 tunnelling of Ethernet frames, nothing less, nothing more. All you
-IP-level network management is not touched by VPN at all. You can
+IP-related network management is not touched by VPN at all. You can
 automate it using up and down shell scripts.
 
 @menu
+* Identity::
+* PAKE:: Password Authenticated Key Agreement
 * Timeout::
 * Nonce difference::
-* MTU::
+* MTU:: Maximum Transmission Unit
 * Stats::
 * Noise::
-* CPR::
+* CPR:: Constant Packet Rate
+* Verifier::
 * Client part::
 * Server part::
 * Example usage::
 @end menu
 
+@include identity.texi
+@include pake.texi
 @include timeout.texi
-
 @include noncediff.texi
-
 @include mtu.texi
-
 @include stats.texi
-
 @include noise.texi
-
 @include cpr.texi
-
+@include verifier.texi
 @include client.texi
-
 @include server.texi
-
 @include example.texi

@@ -9,5 +9,5 @@ You may turn on @code{-noise} option, that forces to fill up all
 outgoing packets to their maximum (MTU) size. As it can be applied only
 to outgoing traffic, you should enable it on both sides in most cases.
 
-Pay attention that this can dramatically increase your traffic! It is
-turned off by default.
+Pay attention that this can dramatically @strong{increase} your traffic!
+It is turned off by default.

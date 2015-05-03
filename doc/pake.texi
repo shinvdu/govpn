@@ -1,0 +1,30 @@
+@node PAKE
+@section PAKE
+
+Previously we used pre-shared high-entropy long-term static key for
+client-server authentication. Is is secure, but not convenient for some
+user use-cases:
+
+@itemize @bullet
+@item Compromising of password files on either server or client side
+allows attacker to masquerade himself a client.
+@item To prevent compromising of keys on the client side, one needs some
+kind of passphrase protected secure storage (like either PGP with
+decryption to the memory, or full-disk encryption).
+@end itemize
+
+Overall security on the client side is concentrated in passphrase
+(high-entropy password), so it is convenient to use it in GoVPN
+directly, without static on-disk keys. That is why we use password
+authenticated key agreement.
+
+We use "passphrase" term instead of "password". Technically there may be
+no difference between them. But as a rule passphrases are @strong{long}
+strings with low entropy characters. Because of low entropy characters,
+they are memorable. Because of their quantity, they acts as a high
+entropy source.
+
+Passphrases are entered directly by the human on the client side. Server
+side stores previously shared so-called @ref{Verifier}. Verifier contains
+dictionary attack resistant password derivative. Attacker can not use it
+to act as a client.

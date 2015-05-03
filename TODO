@@ -1,4 +1,2 @@
 * Increase performance
-* Probably implement alternative Secure Remote Password protocol to allow
-  human memorized passphrases to be used
 * Randomize ports usage

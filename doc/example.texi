@@ -17,6 +17,11 @@ is 1432.
 Do not forget about setting @code{GOMAXPROC} environment variable for
 using more than one CPU.
 
+As a preparation you have to generate peer directory (register new
+client) on the server side using @code{utils/newsclient.sh}, generate
+@ref{Verifier} on client side and place it on the server. Assume that
+you made those steps.
+
 GNU/Linux IPv4 client-server example:
 
 @example
@@ -31,7 +36,7 @@ server% GOMAXPROC=4 govpn-server -bind 192.168.0.1:1194 -mtu 1472
 
 @example
 client% umask 066
-client% echo MYLONG64HEXKEY > key.txt
+client% utils/storekey.sh key.txt
 client% ip addr add 192.168.0.2/24 dev wlan0
 client% tunctl -t tap10
 client% ip link set mtu 1432 dev tap10

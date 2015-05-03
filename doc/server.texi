@@ -1,7 +1,7 @@
 @node Server part
 @section Server part
 
-Except for common @code{-mtu}, @code{-stats}, options server has the
+Except for common @code{-mtu}, @code{-stats} options server has the
 following ones:
 
 @table @code
@@ -17,9 +17,10 @@ files:
 
 @table @code
 
-@item key
-@strong{Required}. Contains corresponding authentication PSK key in
-hexadecimal notation.
+@item verifier
+@strong{Required}. Contains corresponding verifier used to authenticate
+the client in hexadecimal notation. See @ref{Verifier} for how
+to create it.
 
 @item up.sh
 @strong{Required}. up-script executes each time connection with the
@@ -65,11 +66,11 @@ creation:
 
 @example
 % ./utils/newclient.sh Alice
-9b40701bdaf522f2b291cb039490312
+Place verifier to peers/9b40701bdaf522f2b291cb039490312/verifier
 @end example
 
 @code{9b40701bdaf522f2b291cb039490312} is client's identification.
 @code{peers/9b40701bdaf522f2b291cb039490312/name} contains @emph{Alice},
-@code{peers/9b40701bdaf522f2b291cb039490312/key} contains authentication key and
-@code{peers/9b40701bdaf522f2b291cb039490312/up.sh} contains currently
-dummy empty up-script.
+@code{peers/9b40701bdaf522f2b291cb039490312/verifier} contains dummy
+verifier and @code{peers/9b40701bdaf522f2b291cb039490312/up.sh} contains
+currently dummy empty up-script.

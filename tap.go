@@ -37,6 +37,8 @@ type TAP struct {
 	synced bool
 }
 
+// Return maximal acceptable TAP interface MTU. This is daemon's MTU
+// minus nonce, MAC, packet size mark and Ethernet header sizes.
 func TAPMaxMTU() int {
 	return MTU - poly1305.TagSize - NonceSize - PktSizeSize - EtherSize
 }

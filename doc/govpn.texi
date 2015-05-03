@@ -21,9 +21,16 @@ A copy of the license is included below.
 @node Top
 @top GoVPN
 
-This manual is for GoVPN -- simple secure free software virtual private
-network (VPN) daemon, aimed to be reviewable, secure, DPI-resistant,
-written entirely on Go.
+GoVPN is simple secure free software virtual private network daemon,
+aimed to be reviewable, secure, DPI-resistant, written on Go.
+
+It uses fast PAKE DH A-EKE for mutual strong zero-knowledge peers
+authentication. Data transport is encrypted, authenticated, hides
+message's length and timestamp. PFS property, resistance to dictionary
+attacks, replay attacks. Built-in heartbeating, rehandshaking, real-time
+statistics, IPv4/IPv6-compatibility. GNU/Linux and FreeBSD support.
+
+@include keywords.texi
 
 @menu
 * Overview::
@@ -32,26 +39,18 @@ written entirely on Go.
 * Precautions::
 * User manual::
 * Developer manual::
-* Reporting bugs::
+* Contacts::
 * Copying conditions::
+* Thanks::
 @end menu
 
 @include overview.texi
-
-@node News
-@unnumbered News
-
-@verbatiminclude ../NEWS
-
+@include news.texi
 @include installation.texi
-
 @include precautions.texi
-
 @include user.texi
-
 @include developer.texi
-
-@include bugs.texi
+@include contacts.texi
 
 @node Copying conditions
 @unnumbered Copying conditions
@@ -59,4 +58,5 @@ written entirely on Go.
 @insertcopying
 @verbatiminclude fdl.txt
 
+@include thanks.texi
 @bye

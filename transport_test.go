@@ -3,6 +3,7 @@ package govpn
 import (
 	"net"
 	"testing"
+	"time"
 )
 
 var (
@@ -13,13 +14,21 @@ var (
 	ciphertext []byte
 	addr       *net.UDPAddr
 	peerId     *PeerId
+	conf       *PeerConf
 )
 
 func init() {
 	MTU = 1500
 	addr, _ = net.ResolveUDPAddr("udp", "[::1]:1")
 	peerId = IDDecode("ffffffffffffffffffffffffffffffff")
-	peer = newPeer(addr, *peerId, 128, new([KeySize]byte))
+	conf = &PeerConf{
+		Id:          peerId,
+		Timeout:     time.Second * time.Duration(TimeoutDefault),
+		Noncediff:   1,
+		NoiseEnable: false,
+		CPR:         0,
+	}
+	peer = newPeer(addr, conf, 128, new([SSize]byte))
 	plaintext = make([]byte, 789)
 	ready = make(chan struct{})
 	go func() {
@@ -50,7 +59,7 @@ func BenchmarkEnc(b *testing.B) {
 
 func BenchmarkDec(b *testing.B) {
 	peer.EthProcess(plaintext, dummy, ready)
-	peer = newPeer(addr, *peerId, 128, new([KeySize]byte))
+	peer = newPeer(addr, conf, 128, new([SSize]byte))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if !peer.UDPProcess(ciphertext, dummy, ready) {

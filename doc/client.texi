@@ -1,7 +1,7 @@
 @node Client part
 @section Client part
 
-Except for common @code{-mtu}, @code{-stats}, options client has the
+Except for common @code{-mtu}, @code{-stats} options client has the
 following ones:
 
 @table @code
@@ -13,10 +13,11 @@ Address (@code{host:port} format) of remote server we need to connect to.
 TAP interface name.
 
 @item -id
-Our client's identification (hexadecimal string).
+Our client's @ref{Identity} (hexadecimal string).
 
 @item -key
-Path to the file with the PSK key.
+Path to the file with the passphrase. See @ref{Verifier} for
+how to enter passphrase from stdin silently and store it in the file.
 
 @item -timeout
 @ref{Timeout} setting in seconds.

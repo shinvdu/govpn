@@ -1,0 +1,106 @@
+@node News
+@unnumbered News
+
+@table @strong
+@item Release 3.0
+@itemize @bullet
+@item
+EKE protocol is replaced by Augmented-EKE and static symmetric (both
+sides have it) pre-shared key replaced with server-side verifier. This
+requires, 64 more bytes in handshake traffic, Ed25519 dependency with
+corresponding sign/verify computations, PBKDF2 dependency and its
+usage on the client side during handshake.
+
+A-EKE with PBKDF2-based verifiers is resistant to dictionary attacks,
+can use human memorable passphrases instead of static keys and
+server-side verifiers can not be used for authentication (compromised
+server does not leak client's authentication keys/passphrases).
+
+@item
+Changed transport message structure: added payload packet's length.
+This will increase transport overhead for two bytes, but heartbeat
+packets became smaller
+
+@item
+Ability to hide underlying packets lengths by appending noise, junk
+data during transmission. Each packet can be fill up-ed to it's
+maximal MTU size.
+
+@item
+Ability to hide underlying packets appearance rate, by generating
+Constant Packet Rate traffic. This includes noise generation too.
+@item
+Per-peer @code{-timeout}, @code{-noncediff}, @code{-noise} and
+@code{-cpr} configuration options for server.
+@end itemize
+
+@item Release 2.4
+@itemize @bullet
+@item
+Added ability to optionally run built-in HTTP-server responding with
+JSON of all known connected peers information. Real-time client's
+statistics.
+
+@item
+Documentation is explicitly licensed under GNU FDL 1.3+.
+@end itemize
+
+@item Release 2.3
+@itemize @bullet
+@item
+Handshake packets became indistinguishable from the random.
+Now all GoVPN's traffic is the noise for men in the middle.
+
+@item
+Handshake messages are smaller (16% traffic reduce).
+
+@item
+Adversary now can not create malicious fake handshake packets that
+will force server to generate private DH key, preventing entropy
+consuming and resource heavy computations.
+@end itemize
+
+@item Release 2.2
+@itemize @bullet
+@item Fixed several possible channel deadlocks.
+@end itemize
+
+@item Release 2.1
+@itemize @bullet
+@item Fixed Linux-related building.
+@end itemize
+
+@item Release 2.0
+@itemize @bullet
+@item Added clients identification.
+@item Simultaneous several clients support by server.
+@item Per-client up/down scripts.
+@end itemize
+
+@item Release 1.5
+@itemize @bullet
+@item Nonce obfuscation/encryption.
+@end itemize
+
+@item Release 1.4
+@itemize @bullet
+@item Performance optimizations.
+@end itemize
+
+@item Release 1.3
+@itemize @bullet
+@item Heartbeat feature.
+@item Rehandshake feature.
+@item up- and down- optinal scripts.
+@end itemize
+
+@item Release 1.1
+@itemize @bullet
+@item FreeBSD support.
+@end itemize
+
+@item Release 1.0
+@itemize @bullet
+@item Initial stable release.
+@end itemize
+@end table

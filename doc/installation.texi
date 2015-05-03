@@ -2,10 +2,22 @@
 @unnumbered Installation
 
 GoVPN is written on @url{http://golang.org/, Go programming language},
-with @code{golang.org/x/crypto} libraries dependencies.
 @url{https://www.gnu.org/software/make/, GNU Make} is recommended for
 convenient building. @url{https://www.gnu.org/software/texinfo/, Texinfo}
 is used for building documentation.
+
+Required libraries, dependencies (they are installed automatically when
+using @emph{Make}):
+
+@multitable @columnfractions .40 .20 .40
+@headitem Library @tab Platform @tab Licence
+@item @code{golang.org/x/crypto/poly1305} @tab All @tab BSD 3-Clause
+@item @code{golang.org/x/crypto/salsa20} @tab All @tab BSD 3-Clause
+@item @code{golang.org/x/crypto/xtea} @tab All @tab BSD 3-Clause
+@item @code{golang.org/x/crypto/pbkdf2} @tab All @tab BSD 3-Clause
+@item @code{github.com/agl/ed25519} @tab All @tab BSD 3-Clause
+@item @code{github.com/bigeagle/water} @tab GNU/Linux @tab BSD 3-Clause
+@end multitable
 
 @include download.texi
 
@@ -17,12 +29,12 @@ download signature provided with the tarball.
 
 For the very first time you have to import signing public keys. They
 are provided below, but be sure that you are reading them from the
-trusted source. Alternatively check this page from other sources (Tor's
-hidden service for example) and look for the mailing list announcements.
+trusted source. Alternatively check this page from
+@ref{Contacts, other sources} and look for the mailing list announcements.
 
 For example you can get tarball, set proper @code{$GOPATH} and run
 @code{make} (that will install all necessary libraries and build
-client/server binaries) like this:
+@emph{govpn-client}, @emph{govpn-server}, @emph{govpn-verifier} binaries:
 
 @example
 % mkdir -p govpn/src

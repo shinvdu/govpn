@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Simple secure free software virtual private network daemon.
+// Simple secure free software virtual private network daemon client.
 package main
 
 import (
@@ -34,7 +34,7 @@ var (
 	remoteAddr = flag.String("remote", "", "Remote server address")
 	ifaceName  = flag.String("iface", "tap0", "TAP network interface")
 	IDRaw      = flag.String("id", "", "Client identification")
-	keyPath    = flag.String("key", "", "Path to authentication key file")
+	keyPath    = flag.String("key", "", "Path to passphrase file")
 	upPath     = flag.String("up", "", "Path to up-script")
 	downPath   = flag.String("down", "", "Path to down-script")
 	stats      = flag.String("stats", "", "Enable stats retrieving on host:port")
@@ -54,17 +54,21 @@ func main() {
 	govpn.MTU = *mtu
 
 	id := govpn.IDDecode(*IDRaw)
-	govpn.PeersInitDummy(id, govpn.PeerConf{
+	if id == nil {
+		panic("ID is not specified")
+	}
+
+	pub, priv := govpn.NewVerifier(id, govpn.StringFromFile(*keyPath))
+	conf := &govpn.PeerConf{
 		Id:          id,
 		Timeout:     time.Second * time.Duration(timeout),
 		Noncediff:   *nonceDiff,
 		NoiseEnable: *noisy,
 		CPR:         *cpr,
-	})
-	key := govpn.KeyRead(*keyPath)
-	if id == nil {
-		panic("ID is not specified")
+		DSAPub:      pub,
+		DSAPriv:     priv,
 	}
+	govpn.PeersInitDummy(id, conf)
 
 	bind, err := net.ResolveUDPAddr("udp", "0.0.0.0:0")
 	if err != nil {
@@ -112,14 +116,14 @@ func main() {
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
 
 	log.Println("Starting handshake")
-	handshake := govpn.HandshakeStart(conn, remote, id, key)
+	handshake := govpn.HandshakeStart(conf, conn, remote)
 
 MainCycle:
 	for {
 		if peer != nil && (peer.BytesIn+peer.BytesOut) > govpn.MaxBytesPerKey {
 			peer.Zero()
 			peer = nil
-			handshake = govpn.HandshakeStart(conn, remote, id, key)
+			handshake = govpn.HandshakeStart(conf, conn, remote)
 			log.Println("Rehandshaking")
 		}
 		select {
@@ -155,7 +159,7 @@ MainCycle:
 					udpReady <- struct{}{}
 					continue
 				}
-				if p := handshake.Client(id, conn, key, udpPktData); p != nil {
+				if p := handshake.Client(conn, udpPktData); p != nil {
 					log.Println("Handshake completed")
 					if firstUpCall {
 						go govpn.ScriptCall(*upPath, *ifaceName)

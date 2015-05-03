@@ -2,24 +2,30 @@
 @unnumbered Developer manual
 
 @table @asis
-@item Nonce and identification encryption
+@item Nonce and identity encryption
 @url{http://143.53.36.235:8080/tea.htm, XTEA}
 @item Data encryption
 @url{http://cr.yp.to/snuffle.html, Salsa20}
 @item Message authentication
 @url{http://cr.yp.to/mac.html, Poly1305}
 @item Password authenticated key agreement
-DH-EKE powered by @url{http://cr.yp.to/ecdh.html, Curve25519}
+DH-A-EKE powered by @url{http://cr.yp.to/ecdh.html, Curve25519}
+and @url{http://ed25519.cr.yp.to/, Ed25519}
+@item Key derivation function for verifier generation
+@url{https://en.wikipedia.org/wiki/PBKDF2, PBKDF2} based on
+@url{https://en.wikipedia.org/wiki/SHA-2, SHA-512}
 @item Packet overhead
 26 bytes per packet
 @item Handshake overhead
-4 UDP (2 from client, 2 from server) packets, 200 bytes total payload
+4 UDP (2 from client, 2 from server) packets, 264 bytes total payload
 @end table
 
 @menu
+* Verifier structure::
 * Transport protocol::
 * Handshake protocol::
 @end menu
 
+@include verifierstruct.texi
 @include transport.texi
 @include handshake.texi

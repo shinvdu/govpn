@@ -1,0 +1,29 @@
+@node Verifier
+@section Verifier
+
+Verifier is created using @code{govpn-verifier} utility. But currently
+Go does not provide native instruments to read passwords without echoing
+them to stdout. You can use @code{utils/storekey.sh} script to read them
+silently.
+
+@example
+% utils/storekey.sh mypass.txt
+Enter passphrase:[hello world]
+% govpn-verifier -id 9da9bf91112d0e4483c135b12d5b48de -key mypass.txt
+210e3878542828901a3af9b4aa00b004de530410eef5c1ba2ffb6d04504371b2
+@end example
+
+Store "210...1b2" string on the server's side in corresponding
+@code{verifier} file.
+
+You can check passphrase against verifier by specifying @code{-verifier}
+option with the path to verifier file:
+
+@example
+% govpn-verifier -id 9da9bf91112d0e4483c135b12d5b48de -key mypass.txt -verifier verifier
+true
+@end example
+
+Plaintext passphrases @strong{must} be stored on volatile memory, for
+example either in memory disk, or on encrypted filesystem with
+restrictive permissions to the file.

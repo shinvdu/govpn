@@ -17,3 +17,8 @@ Also you should @strong{never} use one key for multiple clients. Salsa20
 encryption is randomized in each session, but it depends again on PRNG.
 If it fails, produces equal values at least once, then all you traffic
 related to that key could be decrypted.
+
+We use password (passphrase) authentication, so overall security fully
+depends on it's strength. So you should use long, high-entropy
+passphrases. Also remember to keep passphrase on temporary file as
+described in @ref{Verifier}.

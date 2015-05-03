@@ -30,6 +30,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/agl/ed25519"
 	"golang.org/x/crypto/xtea"
 )
 
@@ -60,6 +61,10 @@ type PeerConf struct {
 	Noncediff   int
 	NoiseEnable bool
 	CPR         int
+	// This is passphrase verifier
+	DSAPub *[ed25519.PublicKeySize]byte
+	// This field exists only in dummy configuration on client's side
+	DSAPriv *[ed25519.PrivateKeySize]byte
 }
 
 type cipherCache map[PeerId]*xtea.Cipher
@@ -84,14 +89,14 @@ func PeersInit(path string) {
 }
 
 // Initialize dummy cache for client-side usage.
-func PeersInitDummy(id *PeerId, conf PeerConf) {
+func PeersInitDummy(id *PeerId, conf *PeerConf) {
 	IDsCache = make(map[PeerId]*xtea.Cipher)
 	cipher, err := xtea.NewCipher(id[:])
 	if err != nil {
 		panic(err)
 	}
 	IDsCache[*id] = cipher
-	dummyConf = &conf
+	dummyConf = conf
 }
 
 // Refresh IDsCache: remove disappeared keys, add missing ones with
@@ -170,12 +175,30 @@ func readIntFromFile(path string) (int, error) {
 }
 
 // Get peer related configuration.
-func (id *PeerId) ConfGet() *PeerConf {
+func (id *PeerId) Conf() *PeerConf {
 	if dummyConf != nil {
 		return dummyConf
 	}
 	conf := PeerConf{Id: id, Noncediff: 1, NoiseEnable: false, CPR: 0}
 	peerPath := path.Join(PeersPath, id.String())
+
+	verPath := path.Join(peerPath, "verifier")
+	keyData, err := ioutil.ReadFile(verPath)
+	if err != nil {
+		log.Println("Unable to read verifier:", verPath)
+		return nil
+	}
+	if len(keyData) < ed25519.PublicKeySize*2 {
+		log.Println("Verifier must be 64 hex characters long:", verPath)
+		return nil
+	}
+	keyDecoded, err := hex.DecodeString(string(keyData[:ed25519.PublicKeySize*2]))
+	if err != nil {
+		log.Println("Unable to decode the key:", err.Error(), verPath)
+		return nil
+	}
+	conf.DSAPub = new([ed25519.PublicKeySize]byte)
+	copy(conf.DSAPub[:], keyDecoded)
 
 	timeout := TimeoutDefault
 	if val, err := readIntFromFile(path.Join(peerPath, "timeout")); err == nil {
