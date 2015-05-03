@@ -3,7 +3,7 @@
 
 Verifier is a derivative of the password. It is resistant to
 dictionary attacks and can not be used for authentication (only
-it's verifying).
+its verifying).
 
 @verbatim
 SOURCE = PBKDF2(SALT=PeerId, PASSWORD, 1<<16, SHA512)

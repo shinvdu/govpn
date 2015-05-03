@@ -64,9 +64,9 @@ symmetric encryption.
     @item Server decrypts @code{RS}, @code{RC}, @code{SC},
     @code{Sign(DSAPriv, K)}.
 
-    @item Compares @code{RS} with it's own one sent before. Server
+    @item Compares @code{RS} with its own one sent before. Server
     decrypts @code{RS}, @code{RC}, @code{SC} with key @code{K}, compares
-    @code{RS} with it's own one sent before.
+    @code{RS} with its own one sent before.
 
     @item Verifies @code{K} signature with verifier @code{DSAPub}.
 
@@ -80,7 +80,7 @@ symmetric encryption.
 @item
 @itemize @bullet
 @item Client decrypts @code{RC}
-@item Compares with it's own one sent before.
+@item Compares with its own one sent before.
 @item Computes final session encryption key as server did.
 @end itemize
 

@@ -23,7 +23,7 @@ packets became smaller
 
 @item
 Ability to hide underlying packets lengths by appending noise, junk
-data during transmission. Each packet can be fill up-ed to it's
+data during transmission. Each packet can be fill up-ed to its
 maximal MTU size.
 
 @item

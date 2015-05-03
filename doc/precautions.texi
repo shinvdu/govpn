@@ -3,13 +3,13 @@
 
 The very important precaution is the @strong{cryptographically good}
 pseudo random number generator. GoVPN uses native operating system PRNG
-as entropy source. You have no way to check it's quality in closed
+as entropy source. You have no way to check its quality in closed
 source code operating systems, so it is recommended not to use them if
 you really needs security. Moreover it is possible that those OS leaks
 information about possible PRNG states. And at least Apple OS X and
 Microsoft Windows are already known to have weak CSPRNGs.
 
-GoVPN could use it's own PRNG implementation like
+GoVPN could use its own PRNG implementation like
 @url{https://www.schneier.com/fortuna.html, Fortuna}, but it is
 much easier to use the right OS, to use free software.
 
@@ -19,6 +19,6 @@ If it fails, produces equal values at least once, then all you traffic
 related to that key could be decrypted.
 
 We use password (passphrase) authentication, so overall security fully
-depends on it's strength. So you should use long, high-entropy
+depends on its strength. So you should use long, high-entropy
 passphrases. Also remember to keep passphrase on temporary file as
 described in @ref{Verifier}.
