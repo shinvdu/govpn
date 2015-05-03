@@ -308,8 +308,8 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 	return true
 }
 
-type WriteToer interface {
-	WriteTo([]byte, net.Addr) (int, error)
+type WriteToUDPer interface {
+	WriteToUDP([]byte, *net.UDPAddr) (int, error)
 }
 
 // Process incoming Ethernet packet.
@@ -317,7 +317,7 @@ type WriteToer interface {
 // ready channel is TAPListen's synchronization channel used to tell him
 // that he is free to receive new packets. Encrypted and authenticated
 // packets will be sent to remote Peer side immediately.
-func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
+func (p *Peer) EthProcess(ethPkt []byte, conn WriteToUDPer, ready chan struct{}) {
 	now := time.Now()
 	size := len(ethPkt)
 	// If this heartbeat is necessary
@@ -360,7 +360,7 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 		}
 	}
 	p.LastSent = now
-	if _, err := conn.WriteTo(append(p.frame, p.tag[:]...), p.Addr); err != nil {
+	if _, err := conn.WriteToUDP(append(p.frame, p.tag[:]...), p.Addr); err != nil {
 		log.Println("Error sending UDP", err)
 	}
 }

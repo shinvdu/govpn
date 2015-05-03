@@ -40,7 +40,7 @@ func init() {
 
 type Dummy struct{}
 
-func (d *Dummy) WriteTo(b []byte, addr net.Addr) (int, error) {
+func (d *Dummy) WriteToUDP(b []byte, addr *net.UDPAddr) (int, error) {
 	ciphertext = b
 	return len(b), nil
 }
