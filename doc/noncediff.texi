@@ -1,0 +1,17 @@
+@node Nonce difference
+@section Nonce difference
+
+GoVPN prevents replay attacks by remembering the last used nonce in
+messages from the remote peer. All incoming messages must have higher
+nonce number (technically it is counter), otherwise they are dropped.
+
+Because of UDP nature that does not guarantee packet ordering during
+transmission, GoVPN will drop valid non-replayed UDP packets. That leads
+to performance decrease.
+
+In most cases there is no need in so strict nonce boundaries and
+@code{-noncediff} command line option allows to create the window of
+allowable nonce differences. This is trade-off between highest security
+and possible performance degradation. For example @code{-noncediff 128}
+works rather well (no packet drops) with 1 Gbps link with two switches.
+By default no nonce differences are allowed (highest security).

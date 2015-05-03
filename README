@@ -1,10 +1,13 @@
 GoVPN is simple secure free software virtual private network daemon,
-written on Go programming language. It uses Diffie-Hellman Encrypted Key
-Exchange (DH-EKE) for mutual zero-knowledge peers authentication and
-authenticated encrypted data transport. Other features include:
-IPv4/IPv6, rehandshake, heartbeat, pre-shared authentication keys (PSK),
-perfect forward secrecy (PFS), replay attack protection, JSON real-time
-statistics. GNU/Linux and FreeBSD support.
+aimed to be reviewable, secure, DPI-resistant, written on Go.
+
+It uses fast PAKE DH A-EKE for mutual strong zero-knowledge peers
+authentication. Data transport is encrypted, authenticated, hides
+message's length and timestamp. PFS property, resistance to dictionary
+attacks, replay attacks. Built-in heartbeating, rehandshaking, real-time
+statistics, IPv4/IPv6-compatibility. GNU/Linux and FreeBSD support.
+
+GoVPN is free software: see the file COPYING for copying conditions.
 
 Home page: http://www.cypherpunks.ru/govpn/
 also available as Tor hidden service: http://vabu56j2ep2rwv3b.onion/govpn/
@@ -18,7 +21,5 @@ subject "subscribe" to govpn-devel-request@lists.cypherpunks.ru.
 
 Development Git source code repository currently is located here:
 https://github.com/stargrave/govpn.git
-
-GoVPN is free software: see the file COPYING for copying conditions.
 
 For futher information please read either doc/govpn.info or doc/govpn.texi.

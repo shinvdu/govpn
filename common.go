@@ -19,19 +19,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
-	"encoding/hex"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"runtime"
 )
 
+const (
+	TimeoutDefault = 60
+)
+
 var (
-	MTU       int
-	Timeout   int
-	Noncediff int
-	Version   string
+	MTU     int
+	Version string
 )
 
 // Call external program/script.
@@ -50,25 +50,6 @@ func ScriptCall(path, ifaceName string) ([]byte, error) {
 		log.Println("Script error", path, err, string(out))
 	}
 	return out, err
-}
-
-// Read authentication key from the file.
-// Key is 64 hexadecimal chars long.
-func KeyRead(path string) *[KeySize]byte {
-	keyData, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic("Unable to read keyfile: " + err.Error())
-	}
-	if len(keyData) < 64 {
-		panic("Key must be 64 hex characters long")
-	}
-	keyDecoded, err := hex.DecodeString(string(keyData[0:64]))
-	if err != nil {
-		panic("Unable to decode the key: " + err.Error())
-	}
-	key := new([KeySize]byte)
-	copy(key[:], keyDecoded)
-	return key
 }
 
 // Zero each byte

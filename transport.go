@@ -19,8 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
-	"crypto/subtle"
 	"encoding/binary"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -32,12 +32,14 @@ import (
 
 const (
 	NonceSize = 8
-	KeySize   = 32
 	// S20BS is Salsa20's internal blocksize in bytes
-	S20BS         = 64
-	HeartbeatSize = 12
+	S20BS = 64
 	// Maximal amount of bytes transfered with single key (4 GiB)
 	MaxBytesPerKey int64 = 1 << 32
+	// Size of packet's size mark in bytes
+	PktSizeSize = 2
+	// Heartbeat rate, relative to Timeout
+	TimeoutHeartbeat = 4
 )
 
 type UDPPkt struct {
@@ -46,35 +48,55 @@ type UDPPkt struct {
 }
 
 type Peer struct {
-	Addr          *net.UDPAddr
-	Id            PeerId
-	Key           *[KeySize]byte `json:"-"`
-	NonceOur      uint64         `json:"-"`
-	NonceRecv     uint64         `json:"-"`
-	NonceCipher   *xtea.Cipher   `json:"-"`
+	Addr *net.UDPAddr
+	Id   *PeerId
+
+	// Traffic behaviour
+	NoiseEnable bool
+	CPR         int
+	CPRCycle    time.Duration `json:"-"`
+
+	// Cryptography related
+	Key         *[SSize]byte `json:"-"`
+	Noncediff   int
+	NonceOur    uint64       `json:"-"`
+	NonceRecv   uint64       `json:"-"`
+	NonceCipher *xtea.Cipher `json:"-"`
+
+	// Timers
+	Timeout       time.Duration `json:"-"`
+	Established   time.Time
 	LastPing      time.Time
 	LastSent      time.Time
-	buf           []byte
-	tag           *[poly1305.TagSize]byte
-	keyAuth       *[KeySize]byte
-	nonceRecv     uint64
-	frame         []byte
-	nonce         []byte
-	BytesIn       int64
-	BytesOut      int64
-	FramesIn      int
-	FramesOut     int
-	FramesUnauth  int
-	FramesDup     int
-	HeartbeatRecv int
-	HeartbeatSent int
+	willSentCycle time.Time
+
+	// This variables are initialized only once to relief GC
+	buf       []byte
+	tag       *[poly1305.TagSize]byte
+	keyAuth   *[32]byte
+	nonceRecv uint64
+	frame     []byte
+	nonce     []byte
+	pktSize   uint64
+
+	// Statistics
+	BytesIn         int64
+	BytesOut        int64
+	BytesPayloadIn  int64
+	BytesPayloadOut int64
+	FramesIn        int
+	FramesOut       int
+	FramesUnauth    int
+	FramesDup       int
+	HeartbeatRecv   int
+	HeartbeatSent   int
 }
 
 func (p *Peer) String() string {
 	return p.Id.String() + ":" + p.Addr.String()
 }
 
-// Zero peer's memory state
+// Zero peer's memory state.
 func (p *Peer) Zero() {
 	sliceZero(p.Key[:])
 	sliceZero(p.tag[:])
@@ -85,19 +107,9 @@ func (p *Peer) Zero() {
 }
 
 var (
-	HeartbeatMark   = []byte("\x00\x00\x00HEARTBEAT")
-	Emptiness       = make([]byte, KeySize)
-	taps            = make(map[string]*TAP)
-	heartbeatPeriod *time.Duration
+	Emptiness = make([]byte, 1<<14)
+	taps      = make(map[string]*TAP)
 )
-
-func heartbeatPeriodGet() time.Duration {
-	if heartbeatPeriod == nil {
-		period := time.Second * time.Duration(Timeout/4)
-		heartbeatPeriod = &period
-	}
-	return *heartbeatPeriod
-}
 
 // Create TAP listening goroutine.
 // This function takes required TAP interface name, opens it and allocates
@@ -105,7 +117,7 @@ func heartbeatPeriodGet() time.Duration {
 // about number of read bytes is sent to, synchronization channel (external
 // processes tell that read buffer can be used again) and possible channel
 // opening error.
-func TAPListen(ifaceName string) (*TAP, chan []byte, chan struct{}, chan struct{}, error) {
+func TAPListen(ifaceName string, timeout time.Duration, cpr int) (*TAP, chan []byte, chan struct{}, chan struct{}, error) {
 	var tap *TAP
 	var err error
 	tap, exists := taps[ifaceName]
@@ -122,7 +134,13 @@ func TAPListen(ifaceName string) (*TAP, chan []byte, chan struct{}, chan struct{
 	sinkSkip := make(chan struct{})
 
 	go func() {
-		heartbeat := time.Tick(heartbeatPeriodGet())
+		cprCycle := cprCycleCalculate(cpr)
+		if cprCycle != time.Duration(0) {
+			timeout = cprCycle
+		} else {
+			timeout = timeout / TimeoutHeartbeat
+		}
+		heartbeat := time.Tick(timeout)
 		var pkt []byte
 	ListenCycle:
 		for {
@@ -166,9 +184,9 @@ func TAPListen(ifaceName string) (*TAP, chan []byte, chan struct{}, chan struct{
 // all UDP packet data will be saved, channel where information about
 // remote address and number of written bytes are stored, and a channel
 // used to tell that buffer is ready to be overwritten.
-func ConnListen(conn *net.UDPConn) (chan *UDPPkt, []byte, chan struct{}) {
+func ConnListen(conn *net.UDPConn) (chan UDPPkt, []byte, chan struct{}) {
 	buf := make([]byte, MTU)
-	sink := make(chan *UDPPkt)
+	sink := make(chan UDPPkt)
 	sinkReady := make(chan struct{})
 	go func(conn *net.UDPConn) {
 		var n int
@@ -180,21 +198,21 @@ func ConnListen(conn *net.UDPConn) (chan *UDPPkt, []byte, chan struct{}) {
 			n, addr, err = conn.ReadFromUDP(buf)
 			if err != nil {
 				// This is needed for ticking the timeouts counter outside
-				sink <- nil
+				sink <- UDPPkt{nil, 0}
 				continue
 			}
-			sink <- &UDPPkt{addr, n}
+			sink <- UDPPkt{addr, n}
 		}
 	}(conn)
 	sinkReady <- struct{}{}
 	return sink, buf, sinkReady
 }
 
-func newNonceCipher(key *[KeySize]byte) *xtea.Cipher {
+func newNonceCipher(key *[32]byte) *xtea.Cipher {
 	nonceKey := make([]byte, 16)
 	salsa20.XORKeyStream(
 		nonceKey,
-		make([]byte, KeySize),
+		make([]byte, 32),
 		make([]byte, xtea.BlockSize),
 		key,
 	)
@@ -205,18 +223,41 @@ func newNonceCipher(key *[KeySize]byte) *xtea.Cipher {
 	return ciph
 }
 
-func newPeer(addr *net.UDPAddr, id PeerId, nonce int, key *[KeySize]byte) *Peer {
+func cprCycleCalculate(rate int) time.Duration {
+	if rate == 0 {
+		return time.Duration(0)
+	}
+	return time.Second / time.Duration(rate*(1<<10)/MTU)
+}
+
+func newPeer(addr *net.UDPAddr, conf *PeerConf, nonce int, key *[SSize]byte) *Peer {
+	now := time.Now()
+	timeout := conf.Timeout
+	cprCycle := cprCycleCalculate(conf.CPR)
+	noiseEnable := conf.NoiseEnable
+	if conf.CPR > 0 {
+		noiseEnable = true
+		timeout = cprCycle
+	} else {
+		timeout = timeout / TimeoutHeartbeat
+	}
 	peer := Peer{
 		Addr:        addr,
-		LastPing:    time.Now(),
-		Id:          id,
-		NonceOur:    uint64(Noncediff + nonce),
-		NonceRecv:   uint64(Noncediff + 0),
+		Timeout:     timeout,
+		Established: now,
+		LastPing:    now,
+		Id:          conf.Id,
+		NoiseEnable: noiseEnable,
+		CPR:         conf.CPR,
+		CPRCycle:    cprCycle,
+		Noncediff:   conf.Noncediff,
+		NonceOur:    uint64(conf.Noncediff + nonce),
+		NonceRecv:   uint64(conf.Noncediff + 0),
 		Key:         key,
 		NonceCipher: newNonceCipher(key),
 		buf:         make([]byte, MTU+S20BS),
 		tag:         new([poly1305.TagSize]byte),
-		keyAuth:     new([KeySize]byte),
+		keyAuth:     new([SSize]byte),
 		nonce:       make([]byte, NonceSize),
 	}
 	return &peer
@@ -227,9 +268,9 @@ func newPeer(addr *net.UDPAddr, id PeerId, nonce int, key *[KeySize]byte) *Peer 
 // ConnListen'es synchronization channel used to tell him that he is
 // free to receive new packets. Authenticated and decrypted packets
 // will be written to the interface immediately (except heartbeat ones).
-func (p *Peer) UDPProcess(udpPkt []byte, tap *TAP, ready chan struct{}) bool {
+func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) bool {
 	size := len(udpPkt)
-	copy(p.buf[:KeySize], Emptiness)
+	copy(p.buf, Emptiness)
 	copy(p.tag[:], udpPkt[size-poly1305.TagSize:])
 	copy(p.buf[S20BS:], udpPkt[NonceSize:size-poly1305.TagSize])
 	salsa20.XORKeyStream(
@@ -238,7 +279,7 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap *TAP, ready chan struct{}) bool {
 		udpPkt[:NonceSize],
 		p.Key,
 	)
-	copy(p.keyAuth[:], p.buf[:KeySize])
+	copy(p.keyAuth[:], p.buf[:SSize])
 	if !poly1305.Verify(p.tag, udpPkt[:size-poly1305.TagSize], p.keyAuth) {
 		ready <- struct{}{}
 		p.FramesUnauth++
@@ -246,23 +287,29 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap *TAP, ready chan struct{}) bool {
 	}
 	p.NonceCipher.Decrypt(p.buf, udpPkt[:NonceSize])
 	p.nonceRecv, _ = binary.Uvarint(p.buf[:NonceSize])
-	if int(p.NonceRecv)-Noncediff >= 0 && int(p.nonceRecv) < int(p.NonceRecv)-Noncediff {
+	if int(p.NonceRecv)-p.Noncediff >= 0 && int(p.nonceRecv) < int(p.NonceRecv)-p.Noncediff {
 		ready <- struct{}{}
 		p.FramesDup++
 		return false
 	}
 	ready <- struct{}{}
+	p.FramesIn++
+	p.BytesIn += int64(size)
 	p.LastPing = time.Now()
 	p.NonceRecv = p.nonceRecv
-	p.frame = p.buf[S20BS : S20BS+size-NonceSize-poly1305.TagSize]
-	p.BytesIn += int64(len(p.frame))
-	p.FramesIn++
-	if subtle.ConstantTimeCompare(p.frame[:HeartbeatSize], HeartbeatMark) == 1 {
+	p.pktSize, _ = binary.Uvarint(p.buf[S20BS : S20BS+PktSizeSize])
+	if p.pktSize == 0 {
 		p.HeartbeatRecv++
 		return true
 	}
+	p.frame = p.buf[S20BS+PktSizeSize : S20BS+PktSizeSize+p.pktSize]
+	p.BytesPayloadIn += int64(p.pktSize)
 	tap.Write(p.frame)
 	return true
+}
+
+type WriteToer interface {
+	WriteTo([]byte, net.Addr) (int, error)
 }
 
 // Process incoming Ethernet packet.
@@ -270,36 +317,48 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap *TAP, ready chan struct{}) bool {
 // ready channel is TAPListen's synchronization channel used to tell him
 // that he is free to receive new packets. Encrypted and authenticated
 // packets will be sent to remote Peer side immediately.
-func (p *Peer) EthProcess(ethPkt []byte, conn *net.UDPConn, ready chan struct{}) {
+func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 	now := time.Now()
 	size := len(ethPkt)
 	// If this heartbeat is necessary
-	if size == 0 && !p.LastSent.Add(heartbeatPeriodGet()).Before(now) {
+	if size == 0 && !p.LastSent.Add(p.Timeout).Before(now) {
 		return
 	}
-	copy(p.buf[:KeySize], Emptiness)
+	copy(p.buf, Emptiness)
 	if size > 0 {
-		copy(p.buf[S20BS:], ethPkt)
+		copy(p.buf[S20BS+PktSizeSize:], ethPkt)
 		ready <- struct{}{}
+		binary.PutUvarint(p.buf[S20BS:S20BS+PktSizeSize], uint64(size))
+		p.BytesPayloadOut += int64(size)
 	} else {
 		p.HeartbeatSent++
-		copy(p.buf[S20BS:], HeartbeatMark)
-		size = HeartbeatSize
 	}
 
-	p.NonceOur = p.NonceOur + 2
+	p.NonceOur += 2
 	copy(p.nonce, Emptiness)
 	binary.PutUvarint(p.nonce, p.NonceOur)
 	p.NonceCipher.Encrypt(p.nonce, p.nonce)
 
 	salsa20.XORKeyStream(p.buf, p.buf, p.nonce, p.Key)
 	copy(p.buf[S20BS-NonceSize:S20BS], p.nonce)
-	copy(p.keyAuth[:], p.buf[:KeySize])
-	p.frame = p.buf[S20BS-NonceSize : S20BS+size]
+	copy(p.keyAuth[:], p.buf[:SSize])
+	if p.NoiseEnable {
+		p.frame = p.buf[S20BS-NonceSize : S20BS+MTU-NonceSize-poly1305.TagSize]
+	} else {
+		p.frame = p.buf[S20BS-NonceSize : S20BS+PktSizeSize+size]
+	}
 	poly1305.Sum(p.tag, p.frame, p.keyAuth)
 
-	p.BytesOut += int64(len(p.frame))
+	p.BytesOut += int64(len(p.frame) + poly1305.TagSize)
 	p.FramesOut++
+
+	if p.CPRCycle != time.Duration(0) {
+		p.willSentCycle = p.LastSent.Add(p.CPRCycle)
+		if p.willSentCycle.After(now) {
+			time.Sleep(p.willSentCycle.Sub(now))
+			now = p.willSentCycle
+		}
+	}
 	p.LastSent = now
 	if _, err := conn.WriteTo(append(p.frame, p.tag[:]...), p.Addr); err != nil {
 		log.Println("Error sending UDP", err)

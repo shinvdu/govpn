@@ -20,9 +20,12 @@ package govpn
 
 import (
 	"io"
-	"log"
 
 	"golang.org/x/crypto/poly1305"
+)
+
+const (
+	EtherSize = 14
 )
 
 type TAP struct {
@@ -34,8 +37,14 @@ type TAP struct {
 	synced bool
 }
 
+// Return maximal acceptable TAP interface MTU. This is daemon's MTU
+// minus nonce, MAC, packet size mark and Ethernet header sizes.
+func TAPMaxMTU() int {
+	return MTU - poly1305.TagSize - NonceSize - PktSizeSize - EtherSize
+}
+
 func NewTAP(ifaceName string) (*TAP, error) {
-	maxIfacePktSize := MTU - poly1305.TagSize - NonceSize
+	maxIfacePktSize := TAPMaxMTU() + EtherSize
 	tapRaw, err := newTAPer(ifaceName)
 	if err != nil {
 		return nil, err
@@ -63,8 +72,6 @@ func NewTAP(ifaceName string) (*TAP, error) {
 	return &tap, nil
 }
 
-func (t *TAP) Write(data []byte) {
-	if _, err := t.dev.Write(data); err != nil {
-		log.Println("Error writing to iface: ", err)
-	}
+func (t *TAP) Write(data []byte) (n int, err error) {
+	return t.dev.Write(data)
 }

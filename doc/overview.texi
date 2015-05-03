@@ -1,35 +1,49 @@
 @node Overview
 @unnumbered Overview
 
-GoVPN is simple secure virtual private network daemon. It uses
-@url{https://en.wikipedia.org/wiki/Encrypted_key_exchange, Diffie-Hellman Encrypted Key Exchange}
-(DH-EKE) for mutual zero-knowledge peers authentication and
-authenticated encrypted data transport. It is written entirely on
-@url{http://golang.org/, Go programming language}.
+GoVPN is simple secure virtual private network daemon, written entirely
+on @url{http://golang.org/, Go programming language}.
 
-All packets captured on network interface are encrypted, authenticated
-and sent to remote server, that writes them to his interface, and vice
-versa. Client and server use pre-shared authentication key (PSK) and
-128-bit identification key. There are heartbeat packets used to prevent
-session termination because of peers inactivity.
+Reviewability, high 128-bit security margin and
+@url{https://en.wikipedia.org/wiki/Deep_packet_inspection, DPI}
+censorship resistance in mind in free software solution are the main
+goals for that daemon. Most modern widespread protocols and their
+implementations in software are too complex to be reviewed, analyzed and
+modified.
 
-Handshake is used to mutually authenticate peers, exchange common secret
-per-session encryption key and check UDP transport availability.
+State off art cryptography technologies includes:
+@url{http://cr.yp.to/snuffle.html, Salsa20} stream encryption,
+@url{http://143.53.36.235:8080/tea.htm, XTEA} PRP,
+@url{http://cr.yp.to/mac.html, Poly1305} message authentication,
+@url{https://en.wikipedia.org/wiki/PBKDF2} password-based key derivation
+function based on @url{https://en.wikipedia.org/wiki/SHA-2, SHA-512}
+hash function,
+@url{https://en.wikipedia.org/wiki/Encrypted_key_exchange,
+Diffie-Hellman Augmented Encrypted Key Exchange}
+(DH-A-EKE) powered by @url{http://cr.yp.to/ecdh.html, Curve25519} and
+@url{http://ed25519.cr.yp.to/, Ed25519} signatures.
+Strong
+@url{https://en.wikipedia.org/wiki/Zero-knowledge_password_proof, zero-knowledge}
+mutual authentication with key exchange stage is invulnerable
+to man-in-the-middle attacks.
+@url{https://en.wikipedia.org/wiki/Forward_secrecy, Perfect forward secrecy}
+property guarantee that compromising of long-term authentication
+pre-shared key can not lead to previously captured traffic decrypting.
+Compromising of peers password file on server side won't allow attacker
+to masquerade as the client, because of asymmetric @strong{verifiers}
+usage, resistant to dictionary attacks. Rehandshaking ensures session
+keys rotation. MAC authentication with one-time keys protects against
+@url{https://en.wikipedia.org/wiki/Replay_attack, replay attacks}.
 
-Because of UDP and authentication overhead: each packet grows in size
-during transmission, so you have to lower you maximum transmission unit
-(MTU) on virtual network interface.
+Server can work with several clients simultaneously. Each client is
+@strong{identified} by 128-bit key, that does not leak during handshake
+and each client stays @strong{anonymous} for MiTM and DPI. All settings
+are applied per-peer separately.
 
-High security is the goal for that daemon. It uses fast cryptography
-algorithms with 128bit security margin, strong mutual zero-knowledge
-authentication and perfect-forward secrecy property. An attacker can not
-know anything about payload (except it's size and time) from captured
-traffic, even if pre-shared key is compromised. Rehandshake is performed
-by client every 4 GiB of transfered data.
-
-Each client also has it's own identification key and server works with
-all of them independently. Identification key is not secret, but it is
-encrypted (obfuscated) during transmission.
+Optional ability to hide payload packets lengths by appending
+@strong{noise} to them during transmission. Ability to generate constant
+packet rate traffic (@strong{CPR}) that will hide even the fact of
+packets appearance, their timestamps.
 
 The only platform specific requirement is TAP network interface support.
 API to that kind of device is different, OS dependent and non portable.
@@ -40,7 +54,7 @@ popular Microsoft Windows or Apple OS X support.
 @itemize @bullet
 @item
 Copylefted free software: licensed under
-@url{http://www.gnu.org/licenses/gpl-3.0.html, GPLv3+}
+@url{https://www.gnu.org/licenses/gpl-3.0.html, GPLv3+}
 @item
 Works with @url{https://en.wikipedia.org/wiki/TAP_(network_driver), TAP}
 network interfaces on top of UDP entirely
@@ -48,23 +62,20 @@ network interfaces on top of UDP entirely
 @url{https://www.gnu.org/, GNU}/Linux and
 @url{http://www.freebsd.org/, FreeBSD} support
 @item IPv6 compatible
-@item Encrypted and authenticated transport
+@item Encrypted and authenticated payload transport
 @item Relatively fast handshake
-@item
-@url{https://en.wikipedia.org/wiki/Replay_attack, Replay attack} protection
-@item
-@url{https://en.wikipedia.org/wiki/Forward_secrecy, Perfect forward secrecy}
-(if long-term pre-shared keys are compromised, no captured traffic can
-be decrypted anyway)
-@item
-Mutual two-side authentication (noone will send real network interface
-data unless the other side is authenticated)
-@item
-@url{https://en.wikipedia.org/wiki/Zero-knowledge_password_proof, Zero knowledge}
-authentication (pre-shared key is not transmitted in any form between
-the peers, not even it's hash value)
+@item Password-authenticated key exchange
+@item Server-side password verifiers are secure against dictionary attacks
+@item Attacker can not masquerade a client even with password files compromising
+@item Replay attack protection
+@item Perfect forward secrecy property
+@item Mutual two-side authentication
+@item Zero knowledge authentication
 @item Built-in rehandshake and heartbeat features
 @item Several simultaneous clients support
+@item Per-client configuration options
+@item Hiding of payload packets length with noise
+@item Hiding of payload packets timestamps with constant packet rate traffic
 @item Optional built-in HTTP-server for retrieving information about
 known connected peers in @url{http://json.org/, JSON} format
 @end itemize

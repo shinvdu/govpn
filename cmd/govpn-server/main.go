@@ -36,9 +36,7 @@ var (
 	bindAddr  = flag.String("bind", "[::]:1194", "Bind to address")
 	peersPath = flag.String("peers", "peers", "Path to peers keys directory")
 	stats     = flag.String("stats", "", "Enable stats retrieving on host:port")
-	mtu       = flag.Int("mtu", 1500, "MTU")
-	nonceDiff = flag.Int("noncediff", 1, "Allow nonce difference")
-	timeoutP  = flag.Int("timeout", 60, "Timeout seconds")
+	mtu       = flag.Int("mtu", 1452, "MTU for outgoing packets")
 )
 
 type PeerReadyEvent struct {
@@ -55,7 +53,7 @@ type PeerState struct {
 }
 
 func NewPeerState(peer *govpn.Peer, iface string) *PeerState {
-	tap, sink, ready, terminate, err := govpn.TAPListen(iface)
+	tap, sink, ready, terminate, err := govpn.TAPListen(iface, peer.Timeout, peer.CPR)
 	if err != nil {
 		log.Println("Unable to create Eth", err)
 		return nil
@@ -78,13 +76,11 @@ type EthEvent struct {
 
 func main() {
 	flag.Parse()
-	timeout := time.Second * time.Duration(*timeoutP)
+	timeout := time.Second * time.Duration(govpn.TimeoutDefault)
 	var err error
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
 	govpn.MTU = *mtu
-	govpn.Timeout = *timeoutP
-	govpn.Noncediff = *nonceDiff
 	govpn.PeersInit(*peersPath)
 
 	bind, err := net.ResolveUDPAddr("udp", *bindAddr)
@@ -113,14 +109,16 @@ func main() {
 	peerReadySink := make(chan PeerReadyEvent)
 	knownPeers := govpn.KnownPeers(make(map[string]**govpn.Peer))
 	var peerReady PeerReadyEvent
-	var udpPkt *govpn.UDPPkt
+	var udpPkt govpn.UDPPkt
 	var udpPktData []byte
 	var ethEvent EthEvent
 	var peerId *govpn.PeerId
+	var peerConf *govpn.PeerConf
 	var handshakeProcessForce bool
 	ethSink := make(chan EthEvent)
 
 	log.Println(govpn.VersionGet())
+	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
 		statsPort, err := net.Listen("tcp", *stats)
@@ -196,7 +194,7 @@ MainCycle:
 			}
 			ethEvent.peer.EthProcess(ethEvent.data, conn, ethEvent.ready)
 		case udpPkt = <-udpSink:
-			if udpPkt == nil {
+			if udpPkt.Addr == nil {
 				udpReady <- struct{}{}
 				continue
 			}
@@ -211,12 +209,18 @@ MainCycle:
 					udpReady <- struct{}{}
 					continue
 				}
+				peerConf = peerId.Conf()
+				if peerConf == nil {
+					log.Println("Can not get peer configuration", peerId.String())
+					udpReady <- struct{}{}
+					continue
+				}
 				state, exists = states[addr]
 				if !exists {
-					state = govpn.HandshakeNew(udpPkt.Addr)
+					state = govpn.HandshakeNew(udpPkt.Addr, peerConf)
 					states[addr] = state
 				}
-				peer = state.Server(peerId, conn, udpPktData)
+				peer = state.Server(conn, udpPktData)
 				if peer != nil {
 					log.Println("Peer handshake finished", peer)
 					if _, exists = peers[addr]; exists {

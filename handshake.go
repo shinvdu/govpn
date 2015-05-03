@@ -24,34 +24,45 @@ import (
 	"encoding/binary"
 	"log"
 	"net"
-	"path"
 	"time"
 
+	"github.com/agl/ed25519"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/salsa20"
 	"golang.org/x/crypto/salsa20/salsa"
 	"golang.org/x/crypto/xtea"
 )
 
+const (
+	RSize = 8
+	SSize = 32
+)
+
 type Handshake struct {
 	addr     *net.UDPAddr
 	LastPing time.Time
-	Id       PeerId
-	rNonce   *[8]byte
-	dhPriv   *[32]byte      // own private DH key
-	key      *[KeySize]byte // handshake encryption key
-	rServer  *[8]byte       // random string for authentication
-	rClient  *[8]byte
-	sServer  *[32]byte // secret string for main key calculation
-	sClient  *[32]byte
+	Conf     *PeerConf
+	dsaPubH  *[ed25519.PublicKeySize]byte
+	key      *[32]byte
+	rNonce   *[RSize]byte
+	dhPriv   *[32]byte    // own private DH key
+	rServer  *[RSize]byte // random string for authentication
+	rClient  *[RSize]byte
+	sServer  *[SSize]byte // secret string for main key calculation
+	sClient  *[SSize]byte
 }
 
-func keyFromSecrets(server, client []byte) *[KeySize]byte {
-	k := new([32]byte)
-	for i := 0; i < 32; i++ {
+func keyFromSecrets(server, client []byte) *[SSize]byte {
+	k := new([SSize]byte)
+	for i := 0; i < SSize; i++ {
 		k[i] = server[i] ^ client[i]
 	}
 	return k
+}
+
+// Apply HSalsa20 function for data. Used to hash public keys.
+func HApply(data *[32]byte) {
+	salsa.HSalsa20(data, new([16]byte), data, &salsa.Sigma)
 }
 
 // Zero handshake's memory state
@@ -64,6 +75,9 @@ func (h *Handshake) Zero() {
 	}
 	if h.key != nil {
 		sliceZero(h.key[:])
+	}
+	if h.dsaPubH != nil {
+		sliceZero(h.dsaPubH[:])
 	}
 	if h.rServer != nil {
 		sliceZero(h.rServer[:])
@@ -79,10 +93,10 @@ func (h *Handshake) Zero() {
 	}
 }
 
-func (h *Handshake) rNonceNext() []byte {
-	nonce := make([]byte, 8)
+func (h *Handshake) rNonceNext(count uint64) []byte {
+	nonce := make([]byte, RSize)
 	nonceCurrent, _ := binary.Uvarint(h.rNonce[:])
-	binary.PutUvarint(nonce, nonceCurrent+1)
+	binary.PutUvarint(nonce, nonceCurrent+count)
 	return nonce
 }
 
@@ -97,16 +111,20 @@ func dhPrivGen() *[32]byte {
 func dhKeyGen(priv, pub *[32]byte) *[32]byte {
 	key := new([32]byte)
 	curve25519.ScalarMult(key, priv, pub)
-	salsa.HSalsa20(key, new([16]byte), key, &salsa.Sigma)
+	HApply(key)
 	return key
 }
 
 // Create new handshake state.
-func HandshakeNew(addr *net.UDPAddr) *Handshake {
+func HandshakeNew(addr *net.UDPAddr, conf *PeerConf) *Handshake {
 	state := Handshake{
 		addr:     addr,
 		LastPing: time.Now(),
+		Conf:     conf,
 	}
+	state.dsaPubH = new([ed25519.PublicKeySize]byte)
+	copy(state.dsaPubH[:], state.Conf.DSAPub[:])
+	HApply(state.dsaPubH)
 	return &state
 }
 
@@ -121,26 +139,25 @@ func idTag(id *PeerId, data []byte) []byte {
 	return enc
 }
 
-// Start handshake's procedure from the client.
-// It is the entry point for starting the handshake procedure.
-// You have to specify outgoing conn address, remote's addr address,
-// our own identification and an encryption key. First handshake packet
-// will be sent immediately.
-func HandshakeStart(conn *net.UDPConn, addr *net.UDPAddr, id *PeerId, key *[32]byte) *Handshake {
-	state := HandshakeNew(addr)
+// Start handshake's procedure from the client. It is the entry point
+// for starting the handshake procedure. You have to specify outgoing
+// conn address, remote's addr address, our own peer configuration.
+// First handshake packet will be sent immediately.
+func HandshakeStart(conf *PeerConf, conn *net.UDPConn, addr *net.UDPAddr) *Handshake {
+	state := HandshakeNew(addr, conf)
 
 	state.dhPriv = dhPrivGen()
 	dhPub := new([32]byte)
 	curve25519.ScalarBaseMult(dhPub, state.dhPriv)
 
-	state.rNonce = new([8]byte)
+	state.rNonce = new([RSize]byte)
 	if _, err := rand.Read(state.rNonce[:]); err != nil {
 		panic("Can not read random for handshake nonce")
 	}
 	enc := make([]byte, 32)
-	salsa20.XORKeyStream(enc, dhPub[:], state.rNonce[:], key)
+	salsa20.XORKeyStream(enc, dhPub[:], state.rNonce[:], state.dsaPubH)
 	data := append(state.rNonce[:], enc...)
-	data = append(data, idTag(id, state.rNonce[:])...)
+	data = append(data, idTag(state.Conf.Id, state.rNonce[:])...)
 	if _, err := conn.WriteTo(data, addr); err != nil {
 		panic(err)
 	}
@@ -149,72 +166,82 @@ func HandshakeStart(conn *net.UDPConn, addr *net.UDPAddr, id *PeerId, key *[32]b
 
 // Process handshake message on the server side.
 // This function is intended to be called on server's side.
-// Client identity, our outgoing conn connection and
-// received data are required.
+// Our outgoing conn connection and received data are required.
 // If this is the final handshake message, then new Peer object
 // will be created and used as a transport. If no mutually
 // authenticated Peer is ready, then return nil.
-func (h *Handshake) Server(id *PeerId, conn *net.UDPConn, data []byte) *Peer {
-	// R + ENC(PSK, dh_client_pub) + IDtag
+func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
+	// R + ENC(H(DSAPub), R, CDHPub) + IDtag
 	if len(data) == 48 && h.rNonce == nil {
-		key := KeyRead(path.Join(PeersPath, id.String(), "key"))
-		h.Id = *id
-
 		// Generate private DH key
 		h.dhPriv = dhPrivGen()
 		dhPub := new([32]byte)
 		curve25519.ScalarBaseMult(dhPub, h.dhPriv)
 
+		h.rNonce = new([RSize]byte)
+		copy(h.rNonce[:], data[:RSize])
+
 		// Decrypt remote public key and compute shared key
 		dec := new([32]byte)
-		salsa20.XORKeyStream(dec[:], data[8:8+32], data[:8], key)
+		salsa20.XORKeyStream(dec[:], data[RSize:RSize+32], h.rNonce[:], h.dsaPubH)
 		h.key = dhKeyGen(h.dhPriv, dec)
 
-		// Compute nonce and encrypt our public key
-		h.rNonce = new([8]byte)
-		copy(h.rNonce[:], data[:8])
-
 		encPub := make([]byte, 32)
-		salsa20.XORKeyStream(encPub, dhPub[:], h.rNonceNext(), key)
+		salsa20.XORKeyStream(encPub, dhPub[:], h.rNonceNext(1), h.dsaPubH)
 
 		// Generate R* and encrypt them
-		h.rServer = new([8]byte)
+		h.rServer = new([RSize]byte)
 		if _, err := rand.Read(h.rServer[:]); err != nil {
 			panic("Can not read random for handshake random key")
 		}
-		h.sServer = new([32]byte)
+		h.sServer = new([SSize]byte)
 		if _, err := rand.Read(h.sServer[:]); err != nil {
 			panic("Can not read random for handshake shared key")
 		}
-		encRs := make([]byte, 8+32)
+		encRs := make([]byte, RSize+SSize)
 		salsa20.XORKeyStream(encRs, append(h.rServer[:], h.sServer[:]...), h.rNonce[:], h.key)
 
 		// Send that to client
 		if _, err := conn.WriteTo(
-			append(encPub, append(encRs, idTag(id, encPub)...)...), h.addr); err != nil {
+			append(encPub, append(encRs, idTag(h.Conf.Id, encPub)...)...), h.addr); err != nil {
 			panic(err)
 		}
 		h.LastPing = time.Now()
 	} else
-	// ENC(K, RS + RC + SC) + IDtag
-	if len(data) == 56 && h.rClient == nil {
+	// ENC(K, R+1, RS + RC + SC + Sign(DSAPriv, K)) + IDtag
+	if len(data) == 120 && h.rClient == nil {
 		// Decrypted Rs compare rServer
-		decRs := make([]byte, 8+8+32)
-		salsa20.XORKeyStream(decRs, data[:8+8+32], h.rNonceNext(), h.key)
-		if subtle.ConstantTimeCompare(decRs[:8], h.rServer[:]) != 1 {
+		dec := make([]byte, RSize+RSize+SSize+ed25519.SignatureSize)
+		salsa20.XORKeyStream(
+			dec,
+			data[:RSize+RSize+SSize+ed25519.SignatureSize],
+			h.rNonceNext(1),
+			h.key,
+		)
+		if subtle.ConstantTimeCompare(dec[:RSize], h.rServer[:]) != 1 {
 			log.Println("Invalid server's random number with", h.addr)
+			return nil
+		}
+		sign := new([ed25519.SignatureSize]byte)
+		copy(sign[:], dec[RSize+RSize+SSize:])
+		if !ed25519.Verify(h.Conf.DSAPub, h.key[:], sign) {
+			log.Println("Invalid signature from", h.addr)
 			return nil
 		}
 
 		// Send final answer to client
-		enc := make([]byte, 8)
-		salsa20.XORKeyStream(enc, decRs[8:8+8], make([]byte, 8), h.key)
-		if _, err := conn.WriteTo(append(enc, idTag(id, enc)...), h.addr); err != nil {
+		enc := make([]byte, RSize)
+		salsa20.XORKeyStream(enc, dec[RSize:RSize+RSize], h.rNonceNext(2), h.key)
+		if _, err := conn.WriteTo(append(enc, idTag(h.Conf.Id, enc)...), h.addr); err != nil {
 			panic(err)
 		}
 
 		// Switch peer
-		peer := newPeer(h.addr, h.Id, 0, keyFromSecrets(h.sServer[:], decRs[8+8:]))
+		peer := newPeer(
+			h.addr,
+			h.Conf,
+			0,
+			keyFromSecrets(h.sServer[:], dec[RSize+RSize:RSize+RSize+SSize]))
 		h.LastPing = time.Now()
 		return peer
 	} else {
@@ -230,9 +257,9 @@ func (h *Handshake) Server(id *PeerId, conn *net.UDPConn, data []byte) *Peer {
 // If this is the final handshake message, then new Peer object
 // will be created and used as a transport. If no mutually
 // authenticated Peer is ready, then return nil.
-func (h *Handshake) Client(id *PeerId, conn *net.UDPConn, key *[KeySize]byte, data []byte) *Peer {
+func (h *Handshake) Client(conn *net.UDPConn, data []byte) *Peer {
 	switch len(data) {
-	case 80: // ENC(PSK, dh_server_pub) + ENC(K, RS + SS) + IDtag
+	case 80: // ENC(H(DSAPub), R+1, SDHPub) + ENC(K, R, RS + SS) + IDtag
 		if h.key != nil {
 			log.Println("Invalid handshake stage from", h.addr)
 			return nil
@@ -240,52 +267,55 @@ func (h *Handshake) Client(id *PeerId, conn *net.UDPConn, key *[KeySize]byte, da
 
 		// Decrypt remote public key and compute shared key
 		dec := new([32]byte)
-		salsa20.XORKeyStream(dec[:], data[:32], h.rNonceNext(), key)
+		salsa20.XORKeyStream(dec[:], data[:32], h.rNonceNext(1), h.dsaPubH)
 		h.key = dhKeyGen(h.dhPriv, dec)
 
 		// Decrypt Rs
-		decRs := make([]byte, 8+32)
-		salsa20.XORKeyStream(decRs, data[32:32+8+32], h.rNonce[:], h.key)
-		h.rServer = new([8]byte)
-		copy(h.rServer[:], decRs[:8])
-		h.sServer = new([32]byte)
-		copy(h.sServer[:], decRs[8:])
+		decRs := make([]byte, RSize+SSize)
+		salsa20.XORKeyStream(decRs, data[SSize:32+RSize+SSize], h.rNonce[:], h.key)
+		h.rServer = new([RSize]byte)
+		copy(h.rServer[:], decRs[:RSize])
+		h.sServer = new([SSize]byte)
+		copy(h.sServer[:], decRs[RSize:])
 
-		// Generate R* and encrypt them
-		h.rClient = new([8]byte)
+		// Generate R* and signature and encrypt them
+		h.rClient = new([RSize]byte)
 		if _, err := rand.Read(h.rClient[:]); err != nil {
 			panic("Can not read random for handshake random key")
 		}
-		h.sClient = new([32]byte)
+		h.sClient = new([SSize]byte)
 		if _, err := rand.Read(h.sClient[:]); err != nil {
 			panic("Can not read random for handshake shared key")
 		}
-		encRs := make([]byte, 8+8+32)
-		salsa20.XORKeyStream(encRs,
+		sign := ed25519.Sign(h.Conf.DSAPriv, h.key[:])
+
+		enc := make([]byte, RSize+RSize+SSize+ed25519.SignatureSize)
+		salsa20.XORKeyStream(enc,
 			append(h.rServer[:],
-				append(h.rClient[:], h.sClient[:]...)...), h.rNonceNext(), h.key)
+				append(h.rClient[:],
+					append(h.sClient[:], sign[:]...)...)...), h.rNonceNext(1), h.key)
 
 		// Send that to server
-		if _, err := conn.WriteTo(append(encRs, idTag(id, encRs)...), h.addr); err != nil {
+		if _, err := conn.WriteTo(append(enc, idTag(h.Conf.Id, enc)...), h.addr); err != nil {
 			panic(err)
 		}
 		h.LastPing = time.Now()
-	case 16: // ENC(K, RC) + IDtag
+	case 16: // ENC(K, R+2, RC) + IDtag
 		if h.key == nil {
 			log.Println("Invalid handshake stage from", h.addr)
 			return nil
 		}
 
 		// Decrypt rClient
-		dec := make([]byte, 8)
-		salsa20.XORKeyStream(dec, data[:8], make([]byte, 8), h.key)
+		dec := make([]byte, RSize)
+		salsa20.XORKeyStream(dec, data[:RSize], h.rNonceNext(2), h.key)
 		if subtle.ConstantTimeCompare(dec, h.rClient[:]) != 1 {
 			log.Println("Invalid client's random number with", h.addr)
 			return nil
 		}
 
 		// Switch peer
-		peer := newPeer(h.addr, h.Id, 1, keyFromSecrets(h.sServer[:], h.sClient[:]))
+		peer := newPeer(h.addr, h.Conf, 1, keyFromSecrets(h.sServer[:], h.sClient[:]))
 		h.LastPing = time.Now()
 		return peer
 	default:

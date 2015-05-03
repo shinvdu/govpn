@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Simple secure free software virtual private network daemon.
+// Simple secure free software virtual private network daemon client.
 package main
 
 import (
@@ -25,6 +25,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"time"
 
 	"govpn"
 )
@@ -33,13 +34,15 @@ var (
 	remoteAddr = flag.String("remote", "", "Remote server address")
 	ifaceName  = flag.String("iface", "tap0", "TAP network interface")
 	IDRaw      = flag.String("id", "", "Client identification")
-	keyPath    = flag.String("key", "", "Path to authentication key file")
+	keyPath    = flag.String("key", "", "Path to passphrase file")
 	upPath     = flag.String("up", "", "Path to up-script")
 	downPath   = flag.String("down", "", "Path to down-script")
 	stats      = flag.String("stats", "", "Enable stats retrieving on host:port")
-	mtu        = flag.Int("mtu", 1500, "MTU")
+	mtu        = flag.Int("mtu", 1452, "MTU for outgoing packets")
 	nonceDiff  = flag.Int("noncediff", 1, "Allow nonce difference")
 	timeoutP   = flag.Int("timeout", 60, "Timeout seconds")
+	noisy      = flag.Bool("noise", false, "Enable noise appending")
+	cpr        = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
 )
 
 func main() {
@@ -49,15 +52,23 @@ func main() {
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
 	govpn.MTU = *mtu
-	govpn.Timeout = timeout
-	govpn.Noncediff = *nonceDiff
 
 	id := govpn.IDDecode(*IDRaw)
-	govpn.PeersInitDummy(id)
-	key := govpn.KeyRead(*keyPath)
 	if id == nil {
 		panic("ID is not specified")
 	}
+
+	pub, priv := govpn.NewVerifier(id, govpn.StringFromFile(*keyPath))
+	conf := &govpn.PeerConf{
+		Id:          id,
+		Timeout:     time.Second * time.Duration(timeout),
+		Noncediff:   *nonceDiff,
+		NoiseEnable: *noisy,
+		CPR:         *cpr,
+		DSAPub:      pub,
+		DSAPriv:     priv,
+	}
+	govpn.PeersInitDummy(id, conf)
 
 	bind, err := net.ResolveUDPAddr("udp", "0.0.0.0:0")
 	if err != nil {
@@ -72,7 +83,11 @@ func main() {
 		panic(err)
 	}
 
-	tap, ethSink, ethReady, _, err := govpn.TAPListen(*ifaceName)
+	tap, ethSink, ethReady, _, err := govpn.TAPListen(
+		*ifaceName,
+		time.Second*time.Duration(timeout),
+		*cpr,
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -82,11 +97,12 @@ func main() {
 	firstUpCall := true
 	var peer *govpn.Peer
 	var ethPkt []byte
-	var udpPkt *govpn.UDPPkt
+	var udpPkt govpn.UDPPkt
 	var udpPktData []byte
 	knownPeers := govpn.KnownPeers(map[string]**govpn.Peer{remote.String(): &peer})
 
 	log.Println(govpn.VersionGet())
+	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
 		statsPort, err := net.Listen("tcp", *stats)
@@ -100,14 +116,14 @@ func main() {
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
 
 	log.Println("Starting handshake")
-	handshake := govpn.HandshakeStart(conn, remote, id, key)
+	handshake := govpn.HandshakeStart(conf, conn, remote)
 
 MainCycle:
 	for {
 		if peer != nil && (peer.BytesIn+peer.BytesOut) > govpn.MaxBytesPerKey {
 			peer.Zero()
 			peer = nil
-			handshake = govpn.HandshakeStart(conn, remote, id, key)
+			handshake = govpn.HandshakeStart(conf, conn, remote)
 			log.Println("Rehandshaking")
 		}
 		select {
@@ -126,7 +142,7 @@ MainCycle:
 			if timeouts >= timeout {
 				break MainCycle
 			}
-			if udpPkt == nil {
+			if udpPkt.Addr == nil {
 				udpReady <- struct{}{}
 				continue
 			}
@@ -143,7 +159,7 @@ MainCycle:
 					udpReady <- struct{}{}
 					continue
 				}
-				if p := handshake.Client(id, conn, key, udpPktData); p != nil {
+				if p := handshake.Client(conn, udpPktData); p != nil {
 					log.Println("Handshake completed")
 					if firstUpCall {
 						go govpn.ScriptCall(*upPath, *ifaceName)
