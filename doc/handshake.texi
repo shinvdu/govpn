@@ -23,19 +23,20 @@ Client computes verifier which produces @code{DSAPriv} and
 @item
 Client generates DH keypair: @code{CDHPub} and @code{CDHPriv}.
 Also it generates random 64-bit @code{R} that is used as a nonce for
-symmetric encryption.
+symmetric encryption. @code{El()} is Elligator point encoding algorithm.
 @end enumerate
 
 @strong{Interaction stage}:
 
 @enumerate
 @item
-@verb{|R + enc(H(DSAPub), R, CDHPub) + IDtag -> Server|} [48 bytes]
+@verb{|R + enc(H(DSAPub), R, El(CDHPub)) + IDtag -> Server|} [48 bytes]
 
 @item
 @itemize @bullet
 @item Server remembers client address.
-@item Decrypts @code{CDHPub}.
+@item Decrypts @code{El(CDHPub)}.
+@item Inverts @code{El()} encoding and gets @code{CDHPub}.
 @item Generates DH keypair: @code{SDHPriv}/@code{SDHPub}.
 @item Computes common shared key @code{K = H(DH(SDHPriv, CDHPub))}.
 @item Generates 64-bit random number @code{RS}.
@@ -43,11 +44,12 @@ symmetric encryption.
 @end itemize
 
 @item
-@verb{|enc(H(DSAPub), R+1, SDHPub) + enc(K, R, RS + SS) + IDtag -> Client|} [80 bytes]
+@verb{|enc(H(DSAPub), R+1, El(SDHPub)) + enc(K, R, RS + SS) + IDtag -> Client|} [80 bytes]
 
 @item
 @itemize @bullet
-@item Client decrypts @code{SDHPub}.
+@item Client decrypts @code{El(SDHPub)}.
+@item Inverts @code{El()} encoding and gets @code{SDHPub}.
 @item Computes @code{K}.
 @item Decrypts @code{RS} and @code{SS}.
 @item Remembers @code{SS}.

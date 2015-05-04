@@ -4,16 +4,18 @@
 @itemize @bullet
 @item
 @url{https://www.schneier.com/books/applied_cryptography/, Applied Cryptography}
-@copyright{} 1996 Bruce Schneier
+@copyright{} 1996 Bruce Schneier.
 @item
 @url{http://tnlandforms.us/cns05/speke.pdf, Strong Password-Only Authenticated Key Exchange}
-@copyright{} 1996 David P. Jablon
+@copyright{} 1996 David P. Jablon.
 @item
 @url{https://www.cs.columbia.edu/~smb/papers/aeke.pdf, Augmented Encrypted Key Exchange}:
 a Password-Based Protocol Secure Against Dictionary Attacks and Password
-File Compromise @copyright{} Steven M. Belloving, Michael Merrit
-@item @url{http://cr.yp.to/ecdh.html, A state-of-the-art Diffie-Hellman function}
-@item @url{http://cr.yp.to/snuffle.html, Snuffle 2005: the Salsa20 encryption function}
-@item @url{http://cr.yp.to/mac.html, A state-of-the-art message-authentication code}
-@item @url{http://ed25519.cr.yp.to/, Ed25519: high-speed high-security signatures}
+File Compromise @copyright{} Steven M. Belloving, Michael Merrit.
+@item @url{http://cr.yp.to/ecdh.html, A state-of-the-art Diffie-Hellman function}.
+@item @url{http://cr.yp.to/snuffle.html, Snuffle 2005: the Salsa20 encryption function}.
+@item @url{http://cr.yp.to/mac.html, A state-of-the-art message-authentication code}.
+@item @url{http://ed25519.cr.yp.to/, Ed25519: high-speed high-security signatures}.
+@item @email{watsonbladd@@gmail.com, Watson Ladd} for suggestion of
+    @url{http://elligator.cr.yp.to/, Elligator} encoding.
 @end itemize

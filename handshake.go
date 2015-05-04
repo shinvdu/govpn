@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/agl/ed25519"
+	"github.com/agl/ed25519/extra25519"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/salsa20"
 	"golang.org/x/crypto/salsa20/salsa"
@@ -100,12 +101,18 @@ func (h *Handshake) rNonceNext(count uint64) []byte {
 	return nonce
 }
 
-func dhPrivGen() *[32]byte {
-	dh := new([32]byte)
-	if _, err := rand.Read(dh[:]); err != nil {
-		panic("Can not read random for DH private key")
+func dhKeypairGen() (*[32]byte, *[32]byte) {
+	priv := new([32]byte)
+	pub := new([32]byte)
+	repr := new([32]byte)
+	reprFound := false
+	for !reprFound {
+		if _, err := rand.Read(priv[:]); err != nil {
+			panic("Can not read random for DH private key")
+		}
+		reprFound = extra25519.ScalarBaseMult(pub, repr, priv)
 	}
-	return dh
+	return priv, repr
 }
 
 func dhKeyGen(priv, pub *[32]byte) *[32]byte {
@@ -146,16 +153,15 @@ func idTag(id *PeerId, data []byte) []byte {
 func HandshakeStart(conf *PeerConf, conn *net.UDPConn, addr *net.UDPAddr) *Handshake {
 	state := HandshakeNew(addr, conf)
 
-	state.dhPriv = dhPrivGen()
-	dhPub := new([32]byte)
-	curve25519.ScalarBaseMult(dhPub, state.dhPriv)
+	var dhPubRepr *[32]byte
+	state.dhPriv, dhPubRepr = dhKeypairGen()
 
 	state.rNonce = new([RSize]byte)
 	if _, err := rand.Read(state.rNonce[:]); err != nil {
 		panic("Can not read random for handshake nonce")
 	}
 	enc := make([]byte, 32)
-	salsa20.XORKeyStream(enc, dhPub[:], state.rNonce[:], state.dsaPubH)
+	salsa20.XORKeyStream(enc, dhPubRepr[:], state.rNonce[:], state.dsaPubH)
 	data := append(state.rNonce[:], enc...)
 	data = append(data, idTag(state.Conf.Id, state.rNonce[:])...)
 	if _, err := conn.WriteTo(data, addr); err != nil {
@@ -171,23 +177,29 @@ func HandshakeStart(conf *PeerConf, conn *net.UDPConn, addr *net.UDPAddr) *Hands
 // will be created and used as a transport. If no mutually
 // authenticated Peer is ready, then return nil.
 func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
-	// R + ENC(H(DSAPub), R, CDHPub) + IDtag
+	// R + ENC(H(DSAPub), R, El(CDHPub)) + IDtag
 	if len(data) == 48 && h.rNonce == nil {
-		// Generate private DH key
-		h.dhPriv = dhPrivGen()
-		dhPub := new([32]byte)
-		curve25519.ScalarBaseMult(dhPub, h.dhPriv)
+		// Generate DH keypair
+		var dhPubRepr *[32]byte
+		h.dhPriv, dhPubRepr = dhKeypairGen()
 
 		h.rNonce = new([RSize]byte)
 		copy(h.rNonce[:], data[:RSize])
 
 		// Decrypt remote public key and compute shared key
-		dec := new([32]byte)
-		salsa20.XORKeyStream(dec[:], data[RSize:RSize+32], h.rNonce[:], h.dsaPubH)
-		h.key = dhKeyGen(h.dhPriv, dec)
+		cDHRepr := new([32]byte)
+		salsa20.XORKeyStream(
+			cDHRepr[:],
+			data[RSize:RSize+32],
+			h.rNonce[:],
+			h.dsaPubH,
+		)
+		cDH := new([32]byte)
+		extra25519.RepresentativeToPublicKey(cDH, cDHRepr)
+		h.key = dhKeyGen(h.dhPriv, cDH)
 
 		encPub := make([]byte, 32)
-		salsa20.XORKeyStream(encPub, dhPub[:], h.rNonceNext(1), h.dsaPubH)
+		salsa20.XORKeyStream(encPub, dhPubRepr[:], h.rNonceNext(1), h.dsaPubH)
 
 		// Generate R* and encrypt them
 		h.rServer = new([RSize]byte)
@@ -259,16 +271,18 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 // authenticated Peer is ready, then return nil.
 func (h *Handshake) Client(conn *net.UDPConn, data []byte) *Peer {
 	switch len(data) {
-	case 80: // ENC(H(DSAPub), R+1, SDHPub) + ENC(K, R, RS + SS) + IDtag
+	case 80: // ENC(H(DSAPub), R+1, El(SDHPub)) + ENC(K, R, RS + SS) + IDtag
 		if h.key != nil {
 			log.Println("Invalid handshake stage from", h.addr)
 			return nil
 		}
 
 		// Decrypt remote public key and compute shared key
-		dec := new([32]byte)
-		salsa20.XORKeyStream(dec[:], data[:32], h.rNonceNext(1), h.dsaPubH)
-		h.key = dhKeyGen(h.dhPriv, dec)
+		sDHRepr := new([32]byte)
+		salsa20.XORKeyStream(sDHRepr[:], data[:32], h.rNonceNext(1), h.dsaPubH)
+		sDH := new([32]byte)
+		extra25519.RepresentativeToPublicKey(sDH, sDHRepr)
+		h.key = dhKeyGen(h.dhPriv, sDH)
 
 		// Decrypt Rs
 		decRs := make([]byte, RSize+SSize)

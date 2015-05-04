@@ -2,7 +2,7 @@ Some keywords describing this project: encryption, authentication, key
 exchange, EKE, Diffie-Hellman, DH, DH-EKE, Augmented EKE, A-EKE,
 security, encrypted key exchange, 128-bit margin, DPI, censorship,
 resistance, free software, GPLv3+, reviewability, easy, simple,
-Curve25519, Ed25519, SHA-512, Salsa20, Poly1305, AEAD, XTEA, PBKDF2,
+Curve25519, Ed25519, Elligator, SHA-512, Salsa20, Poly1305, AEAD, XTEA, PBKDF2,
 PRP, signatures, asymmetric cryptography, zero-knowledge password proof,
 PAKE, password, passphrase, password authenticated key exchange, perfect
 forward secrecy, PFS, MAC, nonce, verifier, rehandshake, heartbeat,

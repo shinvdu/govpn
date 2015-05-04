@@ -20,8 +20,9 @@ function based on @url{https://en.wikipedia.org/wiki/SHA-2, SHA-512}
 hash function,
 @url{https://en.wikipedia.org/wiki/Encrypted_key_exchange,
 Diffie-Hellman Augmented Encrypted Key Exchange}
-(DH-A-EKE) powered by @url{http://cr.yp.to/ecdh.html, Curve25519} and
-@url{http://ed25519.cr.yp.to/, Ed25519} signatures.
+(DH-A-EKE) powered by @url{http://cr.yp.to/ecdh.html, Curve25519},
+@url{http://ed25519.cr.yp.to/, Ed25519} signatures and
+@url{http://elligator.cr.yp.to/, Elligator} curve-point encoding.
 Strong
 @url{https://en.wikipedia.org/wiki/Zero-knowledge_password_proof, zero-knowledge}
 mutual authentication with key exchange stage is invulnerable
