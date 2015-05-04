@@ -2,6 +2,16 @@
 @unnumbered News
 
 @table @strong
+@item Release 3.1
+@itemize @bullet
+@item
+Diffie-Hellman public keys are encoded with Elligator algorithm when
+sending over the wire, making them indistinguishable from the random
+strings, preventing detection of successful decryption try when guessing
+passwords (that are used to create DSA public keys). But this will
+consume twice entropy for DH key generation in average.
+@end itemize
+
 @item Release 3.0
 @itemize @bullet
 @item
