@@ -1,3 +1,6 @@
+@node Prepared tarballs
+@section Prepared tarballs
+
 You can obtain releases source code prepared tarballs from the links below:
 
 @multitable {XXXXX} {XXXX KiB} {link sign} {xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
@@ -32,8 +35,3 @@ You can obtain releases source code prepared tarballs from the links below:
 Also you can try its @ref{Contacts, .onion} version.
 Sourceforge.net also provides mirror for the files above:
 @url{http://sourceforge.net/projects/govpn/files/}.
-
-You can obtain its development source code by cloning
-Git repository: @code{git clone https://github.com/stargrave/govpn.git}.
-Pay attention that it does not contain compiled documentation and is not
-recommended for porters because of that.

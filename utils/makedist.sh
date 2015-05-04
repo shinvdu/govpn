@@ -9,7 +9,12 @@ cd $tmp/govpn-$release
 git checkout $release
 rm -fr .git
 find . -name .gitignore -delete
-echo > doc/download.texi
+cat > doc/download.texi <<EOF
+@node Prepared tarballs
+@section Prepared tarballs
+You can obtain releases source code prepared tarballs on
+@url{http://www.cypherpunks.ru/govpn/}.
+EOF
 rm utils/makedist.sh
 make -C doc
 cd $tmp
