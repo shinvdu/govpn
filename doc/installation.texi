@@ -19,20 +19,7 @@ using @emph{Make}):
 @item @code{github.com/bigeagle/water} @tab GNU/Linux @tab BSD 3-Clause
 @end multitable
 
-@include download.texi
-
-You @strong{have to} verify downloaded archives integrity and check
-their signature to be sure that you have got trusted, untampered
-software. For integrity and authentication of downloaded binaries
-@url{https://www.gnupg.org/, The GNU Privacy Guard} is used. You must
-download signature provided with the tarball.
-
-For the very first time you have to import signing public keys. They
-are provided below, but be sure that you are reading them from the
-trusted source. Alternatively check this page from
-@ref{Contacts, other sources} and look for the mailing list announcements.
-
-For example you can get tarball, set proper @code{$GOPATH} and run
+You can get tarball, set proper @code{$GOPATH} and run
 @code{make} (that will install all necessary libraries and build
 @emph{govpn-client}, @emph{govpn-server}, @emph{govpn-verifier} binaries:
 
@@ -48,4 +35,12 @@ For example you can get tarball, set proper @code{$GOPATH} and run
 % gmake -C govpn/src/govpn all
 @end example
 
-@include pubkey.texi
+@menu
+* Prepared tarballs::
+* Development source code::
+* Tarballs integrity check::
+@end menu
+
+@include download.texi
+@include sources.texi
+@include integrity.texi

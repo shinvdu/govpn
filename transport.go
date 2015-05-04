@@ -21,7 +21,6 @@ package govpn
 import (
 	"encoding/binary"
 	"io"
-	"log"
 	"net"
 	"time"
 
@@ -78,6 +77,8 @@ type Peer struct {
 	frame     []byte
 	nonce     []byte
 	pktSize   uint64
+	size      int
+	now       time.Time
 
 	// Statistics
 	BytesIn         int64
@@ -269,18 +270,18 @@ func newPeer(addr *net.UDPAddr, conf *PeerConf, nonce int, key *[SSize]byte) *Pe
 // free to receive new packets. Authenticated and decrypted packets
 // will be written to the interface immediately (except heartbeat ones).
 func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) bool {
-	size := len(udpPkt)
+	p.size = len(udpPkt)
 	copy(p.buf, Emptiness)
-	copy(p.tag[:], udpPkt[size-poly1305.TagSize:])
-	copy(p.buf[S20BS:], udpPkt[NonceSize:size-poly1305.TagSize])
+	copy(p.tag[:], udpPkt[p.size-poly1305.TagSize:])
+	copy(p.buf[S20BS:], udpPkt[NonceSize:p.size-poly1305.TagSize])
 	salsa20.XORKeyStream(
-		p.buf[:S20BS+size-poly1305.TagSize],
-		p.buf[:S20BS+size-poly1305.TagSize],
+		p.buf[:S20BS+p.size-poly1305.TagSize],
+		p.buf[:S20BS+p.size-poly1305.TagSize],
 		udpPkt[:NonceSize],
 		p.Key,
 	)
 	copy(p.keyAuth[:], p.buf[:SSize])
-	if !poly1305.Verify(p.tag, udpPkt[:size-poly1305.TagSize], p.keyAuth) {
+	if !poly1305.Verify(p.tag, udpPkt[:p.size-poly1305.TagSize], p.keyAuth) {
 		ready <- struct{}{}
 		p.FramesUnauth++
 		return false
@@ -294,7 +295,7 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 	}
 	ready <- struct{}{}
 	p.FramesIn++
-	p.BytesIn += int64(size)
+	p.BytesIn += int64(p.size)
 	p.LastPing = time.Now()
 	p.NonceRecv = p.nonceRecv
 	p.pktSize, _ = binary.Uvarint(p.buf[S20BS : S20BS+PktSizeSize])
@@ -308,8 +309,8 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 	return true
 }
 
-type WriteToer interface {
-	WriteTo([]byte, net.Addr) (int, error)
+type WriteToUDPer interface {
+	WriteToUDP([]byte, *net.UDPAddr) (int, error)
 }
 
 // Process incoming Ethernet packet.
@@ -317,19 +318,19 @@ type WriteToer interface {
 // ready channel is TAPListen's synchronization channel used to tell him
 // that he is free to receive new packets. Encrypted and authenticated
 // packets will be sent to remote Peer side immediately.
-func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
-	now := time.Now()
-	size := len(ethPkt)
+func (p *Peer) EthProcess(ethPkt []byte, conn WriteToUDPer, ready chan struct{}) {
+	p.now = time.Now()
+	p.size = len(ethPkt)
 	// If this heartbeat is necessary
-	if size == 0 && !p.LastSent.Add(p.Timeout).Before(now) {
+	if p.size == 0 && !p.LastSent.Add(p.Timeout).Before(p.now) {
 		return
 	}
 	copy(p.buf, Emptiness)
-	if size > 0 {
+	if p.size > 0 {
 		copy(p.buf[S20BS+PktSizeSize:], ethPkt)
 		ready <- struct{}{}
-		binary.PutUvarint(p.buf[S20BS:S20BS+PktSizeSize], uint64(size))
-		p.BytesPayloadOut += int64(size)
+		binary.PutUvarint(p.buf[S20BS:S20BS+PktSizeSize], uint64(p.size))
+		p.BytesPayloadOut += int64(p.size)
 	} else {
 		p.HeartbeatSent++
 	}
@@ -345,7 +346,7 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 	if p.NoiseEnable {
 		p.frame = p.buf[S20BS-NonceSize : S20BS+MTU-NonceSize-poly1305.TagSize]
 	} else {
-		p.frame = p.buf[S20BS-NonceSize : S20BS+PktSizeSize+size]
+		p.frame = p.buf[S20BS-NonceSize : S20BS+PktSizeSize+p.size]
 	}
 	poly1305.Sum(p.tag, p.frame, p.keyAuth)
 
@@ -354,13 +355,11 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToer, ready chan struct{}) {
 
 	if p.CPRCycle != time.Duration(0) {
 		p.willSentCycle = p.LastSent.Add(p.CPRCycle)
-		if p.willSentCycle.After(now) {
-			time.Sleep(p.willSentCycle.Sub(now))
-			now = p.willSentCycle
+		if p.willSentCycle.After(p.now) {
+			time.Sleep(p.willSentCycle.Sub(p.now))
+			p.now = p.willSentCycle
 		}
 	}
-	p.LastSent = now
-	if _, err := conn.WriteTo(append(p.frame, p.tag[:]...), p.Addr); err != nil {
-		log.Println("Error sending UDP", err)
-	}
+	p.LastSent = p.now
+	conn.WriteToUDP(append(p.frame, p.tag[:]...), p.Addr)
 }
