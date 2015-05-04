@@ -21,7 +21,8 @@ using @emph{Make}):
 
 You can get tarball, set proper @code{$GOPATH} and run
 @code{make} (that will install all necessary libraries and build
-@emph{govpn-client}, @emph{govpn-server}, @emph{govpn-verifier} binaries:
+@emph{govpn-client}, @emph{govpn-server}, @emph{govpn-verifier}
+binaries):
 
 @example
 % mkdir -p govpn/src
