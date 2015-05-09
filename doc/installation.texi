@@ -11,6 +11,7 @@ using @emph{Make}):
 
 @multitable @columnfractions .40 .20 .40
 @headitem Library @tab Platform @tab Licence
+@item @code{golang.org/x/crypto/curve25519} @tab All @tab BSD 3-Clause
 @item @code{golang.org/x/crypto/poly1305} @tab All @tab BSD 3-Clause
 @item @code{golang.org/x/crypto/salsa20} @tab All @tab BSD 3-Clause
 @item @code{golang.org/x/crypto/xtea} @tab All @tab BSD 3-Clause

@@ -14,6 +14,7 @@ repositories will be unavailable (they are seldom updated):
 @multitable @columnfractions .50 .50
 @headitem Software/library @tab Mirror
 @item @code{govpn} @tab @url{git://git.cypherpunks.ru/govpn.git}
+@item @code{golang.org/x/crypto/curve25519} @tab @url{git://git.cypherpunks.ru/crypto.git}
 @item @code{golang.org/x/crypto/poly1305} @tab @url{git://git.cypherpunks.ru/crypto.git}
 @item @code{golang.org/x/crypto/salsa20} @tab @url{git://git.cypherpunks.ru/crypto.git}
 @item @code{golang.org/x/crypto/xtea} @tab @url{git://git.cypherpunks.ru/crypto.git}
