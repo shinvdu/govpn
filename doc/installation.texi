@@ -27,6 +27,9 @@ binaries will be build in the current directory.
 % make -C govpn-2.3 all
 @end example
 
+There is @code{install} target respecting @code{DESTDIR}. It will
+install binaries, info-documentation and utilities.
+
 @menu
 * Prepared tarballs::
 * Development source code::
