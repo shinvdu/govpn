@@ -13,5 +13,3 @@ send email with the subject @code{subscribe} to
 Official website is @url{http://www.cypherpunks.ru/govpn/}, also available
 as @url{https://www.torproject.org/, Tor} hidden service:
 @url{http://vabu56j2ep2rwv3b.onion/govpn/}.
-Development Git source code repository currently is located here:
-@url{https://github.com/stargrave/govpn.git}.

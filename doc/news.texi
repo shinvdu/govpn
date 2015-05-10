@@ -2,6 +2,18 @@
 @unnumbered News
 
 @table @strong
+@item Release 3.2
+@itemize @bullet
+@item
+Deterministic building: dependent libraries source code commits are
+fixed in our makefiles.
+@item
+No Internet connection is needed for building the source code: all
+required libraries are included in release tarballs.
+@item
+FreeBSD Make compatibility. GNU Make is not necessary anymore.
+@end itemize
+
 @item Release 3.1
 @itemize @bullet
 @item

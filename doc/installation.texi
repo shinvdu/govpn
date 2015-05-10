@@ -2,38 +2,33 @@
 @unnumbered Installation
 
 GoVPN is written on @url{http://golang.org/, Go programming language},
-@url{https://www.gnu.org/software/make/, GNU Make} is recommended for
-convenient building. @url{https://www.gnu.org/software/texinfo/, Texinfo}
+@emph{Make} is recommended for convenient building.
+@url{https://www.gnu.org/software/texinfo/, Texinfo}
 is used for building documentation.
 
-Required libraries, dependencies (they are installed automatically when
-using @emph{Make}):
+Included required libraries:
 
 @multitable @columnfractions .40 .20 .40
 @headitem Library @tab Platform @tab Licence
-@item @code{golang.org/x/crypto/poly1305} @tab All @tab BSD 3-Clause
-@item @code{golang.org/x/crypto/salsa20} @tab All @tab BSD 3-Clause
-@item @code{golang.org/x/crypto/xtea} @tab All @tab BSD 3-Clause
-@item @code{golang.org/x/crypto/pbkdf2} @tab All @tab BSD 3-Clause
+@item @code{golang.org/x/crypto} @tab All @tab BSD 3-Clause
 @item @code{github.com/agl/ed25519} @tab All @tab BSD 3-Clause
 @item @code{github.com/bigeagle/water} @tab GNU/Linux @tab BSD 3-Clause
 @end multitable
 
-You can get tarball, set proper @code{$GOPATH} and run
-@code{make} (that will install all necessary libraries and build
-@emph{govpn-client}, @emph{govpn-server}, @emph{govpn-verifier} binaries:
+Get the tarball and run @code{make}.
+@emph{govpn-client}, @emph{govpn-server}, @emph{govpn-verifier}
+binaries will be build in the current directory.
 
 @example
-% mkdir -p govpn/src
-% set -e
 % wget http://www.cypherpunks.ru/govpn/download/govpn-2.3.tar.xz
 % wget http://www.cypherpunks.ru/govpn/download/govpn-2.3.tar.xz.sig
 % gpg --verify govpn-2.3.tar.xz.sig govpn-2.3.tar.xz
-% tar xfC govpn-2.3.tar.xz govpn/src
-% mv govpn/src/govpn-2.3 govpn/src/govpn
-% export GOPATH=$(pwd)/govpn:$GOPATH
-% gmake -C govpn/src/govpn all
+% tar xf govpn-2.3.tar.xz
+% make -C govpn-2.3 all
 @end example
+
+There is @code{install} target respecting @code{DESTDIR}. It will
+install binaries, info-documentation and utilities.
 
 @menu
 * Prepared tarballs::
