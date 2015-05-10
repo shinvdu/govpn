@@ -2,8 +2,8 @@
 @unnumbered Installation
 
 GoVPN is written on @url{http://golang.org/, Go programming language},
-@url{https://www.gnu.org/software/make/, GNU Make} is recommended for
-convenient building. @url{https://www.gnu.org/software/texinfo/, Texinfo}
+@emph{Make} is recommended for convenient building.
+@url{https://www.gnu.org/software/texinfo/, Texinfo}
 is used for building documentation.
 
 Included required libraries:
@@ -24,7 +24,7 @@ binaries will be build in the current directory.
 % wget http://www.cypherpunks.ru/govpn/download/govpn-2.3.tar.xz.sig
 % gpg --verify govpn-2.3.tar.xz.sig govpn-2.3.tar.xz
 % tar xf govpn-2.3.tar.xz
-% gmake -C govpn-2.3 all
+% make -C govpn-2.3 all
 @end example
 
 @menu

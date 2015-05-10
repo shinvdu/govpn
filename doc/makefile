@@ -1,5 +1,7 @@
 all: govpn.info govpn.html
 
+MAKEINFO ?= makeinfo
+
 govpn.info: *.texi handshake.utxt
 	makeinfo govpn.texi
 
