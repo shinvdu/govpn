@@ -19,6 +19,15 @@ Get the tarball and run @code{make}.
 @emph{govpn-client}, @emph{govpn-server}, @emph{govpn-verifier}
 binaries will be build in the current directory.
 
+As a prerequisite you must install Go compiler and possibly TUN/TAP
+interfaces utilities:
+
+@itemize @bullet
+@item @code{lang/go} port in FreeBSD.
+@item @code{golang} and @code{uml-utilities} packages in GNU/Linux
+distributions.
+@end itemize
+
 @example
 % wget http://www.cypherpunks.ru/govpn/download/govpn-2.3.tar.xz
 % wget http://www.cypherpunks.ru/govpn/download/govpn-2.3.tar.xz.sig
