@@ -164,9 +164,7 @@ func HandshakeStart(conf *PeerConf, conn *net.UDPConn, addr *net.UDPAddr) *Hands
 	salsa20.XORKeyStream(enc, dhPubRepr[:], state.rNonce[:], state.dsaPubH)
 	data := append(state.rNonce[:], enc...)
 	data = append(data, idTag(state.Conf.Id, state.rNonce[:])...)
-	if _, err := conn.WriteTo(data, addr); err != nil {
-		panic(err)
-	}
+	conn.WriteToUDP(data, addr)
 	return state
 }
 
@@ -214,10 +212,7 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 		salsa20.XORKeyStream(encRs, append(h.rServer[:], h.sServer[:]...), h.rNonce[:], h.key)
 
 		// Send that to client
-		if _, err := conn.WriteTo(
-			append(encPub, append(encRs, idTag(h.Conf.Id, encPub)...)...), h.addr); err != nil {
-			panic(err)
-		}
+		conn.WriteToUDP(append(encPub, append(encRs, idTag(h.Conf.Id, encPub)...)...), h.addr)
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+1, RS + RC + SC + Sign(DSAPriv, K)) + IDtag
@@ -244,9 +239,7 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 		// Send final answer to client
 		enc := make([]byte, RSize)
 		salsa20.XORKeyStream(enc, dec[RSize:RSize+RSize], h.rNonceNext(2), h.key)
-		if _, err := conn.WriteTo(append(enc, idTag(h.Conf.Id, enc)...), h.addr); err != nil {
-			panic(err)
-		}
+		conn.WriteToUDP(append(enc, idTag(h.Conf.Id, enc)...), h.addr)
 
 		// Switch peer
 		peer := newPeer(
@@ -310,9 +303,7 @@ func (h *Handshake) Client(conn *net.UDPConn, data []byte) *Peer {
 					append(h.sClient[:], sign[:]...)...)...), h.rNonceNext(1), h.key)
 
 		// Send that to server
-		if _, err := conn.WriteTo(append(enc, idTag(h.Conf.Id, enc)...), h.addr); err != nil {
-			panic(err)
-		}
+		conn.WriteToUDP(append(enc, idTag(h.Conf.Id, enc)...), h.addr)
 		h.LastPing = time.Now()
 	case 16: // ENC(K, R+2, RC) + IDtag
 		if h.key == nil {
