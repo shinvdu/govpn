@@ -20,7 +20,7 @@ var (
 func init() {
 	MTU = 1500
 	addr, _ = net.ResolveUDPAddr("udp", "[::1]:1")
-	peerId = IDDecode("ffffffffffffffffffffffffffffffff")
+	peerId, _ = IDDecode("ffffffffffffffffffffffffffffffff")
 	conf = &PeerConf{
 		Id:          peerId,
 		Timeout:     time.Second * time.Duration(TimeoutDefault),

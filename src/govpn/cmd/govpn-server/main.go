@@ -85,11 +85,11 @@ func main() {
 
 	bind, err := net.ResolveUDPAddr("udp", *bindAddr)
 	if err != nil {
-		panic(err)
+		log.Fatalln("Can not resolve bind address:", err)
 	}
 	conn, err := net.ListenUDP("udp", bind)
 	if err != nil {
-		panic(err)
+		log.Fatalln("Can listen on UDP:", err)
 	}
 	udpSink, udpBuf, udpReady := govpn.ConnListen(conn)
 
@@ -123,7 +123,7 @@ func main() {
 		log.Println("Stats are going to listen on", *stats)
 		statsPort, err := net.Listen("tcp", *stats)
 		if err != nil {
-			panic(err)
+			log.Fatalln("Can not listen on stats port:", err)
 		}
 		go govpn.StatsProcessor(statsPort, &knownPeers)
 	}

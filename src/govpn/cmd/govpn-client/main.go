@@ -53,9 +53,9 @@ func main() {
 
 	govpn.MTU = *mtu
 
-	id := govpn.IDDecode(*IDRaw)
-	if id == nil {
-		panic("ID is not specified")
+	id, err := govpn.IDDecode(*IDRaw)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	pub, priv := govpn.NewVerifier(id, govpn.StringFromFile(*keyPath))
@@ -72,15 +72,15 @@ func main() {
 
 	bind, err := net.ResolveUDPAddr("udp", "0.0.0.0:0")
 	if err != nil {
-		panic(err)
+		log.Fatalln("Can not resolve address:", err)
 	}
 	conn, err := net.ListenUDP("udp", bind)
 	if err != nil {
-		panic(err)
+		log.Fatalln("Can not listen on UDP:", err)
 	}
 	remote, err := net.ResolveUDPAddr("udp", *remoteAddr)
 	if err != nil {
-		panic(err)
+		log.Fatalln("Can not resolve remote address:", err)
 	}
 
 	tap, ethSink, ethReady, _, err := govpn.TAPListen(
@@ -89,7 +89,7 @@ func main() {
 		*cpr,
 	)
 	if err != nil {
-		panic(err)
+		log.Fatalln("Can not listen on TAP interface:", err)
 	}
 	udpSink, udpBuf, udpReady := govpn.ConnListen(conn)
 
@@ -107,7 +107,7 @@ func main() {
 		log.Println("Stats are going to listen on", *stats)
 		statsPort, err := net.Listen("tcp", *stats)
 		if err != nil {
-			panic(err)
+			log.Fatalln("Can not listen on stats port:", err)
 		}
 		go govpn.StatsProcessor(statsPort, &knownPeers)
 	}

@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"log"
 
 	"govpn"
 )
@@ -36,9 +37,9 @@ var (
 
 func main() {
 	flag.Parse()
-	id := govpn.IDDecode(*IDRaw)
-	if id == nil {
-		panic("ID is not specified")
+	id, err := govpn.IDDecode(*IDRaw)
+	if err != nil {
+		log.Fatalln(err)
 	}
 	pub, _ := govpn.NewVerifier(id, govpn.StringFromFile(*keyPath))
 	if *verifierPath == "" {
@@ -46,7 +47,7 @@ func main() {
 	} else {
 		verifier, err := hex.DecodeString(govpn.StringFromFile(*verifierPath))
 		if err != nil {
-			panic("Can not decode verifier")
+			log.Fatalln("Can not decode verifier:", err)
 		}
 		fmt.Println(subtle.ConstantTimeCompare(verifier[:], pub[:]) == 1)
 	}

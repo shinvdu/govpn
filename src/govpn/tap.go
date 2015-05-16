@@ -64,7 +64,7 @@ func NewTAP(ifaceName string) (*TAP, error) {
 			<-tap.ready
 			n, err = tap.dev.Read(tap.buf)
 			if err != nil {
-				panic(err)
+				panic("Reading TAP:" + err.Error())
 			}
 			tap.sink <- tap.buf[:n]
 		}
