@@ -1,6 +1,3 @@
-GOPATH != pwd
-VERSION != cat VERSION
-
 LDFLAGS = -X govpn.Version $(VERSION)
 PREFIX ?= /usr/local
 BINDIR = $(DESTDIR)$(PREFIX)/bin

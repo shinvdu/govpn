@@ -14,25 +14,66 @@ GoVPN is 1500 - 20 - 8 = 1472.
 is 1432.
 @end itemize
 
+@strong{Install}. At first you must @ref{Installation, install} this
+software: download, check the signature, compile.
+
 Do not forget about setting @code{GOMAXPROC} environment variable for
-using more than one CPU.
-
-As a preparation you have to generate peer directory (register new
-client) on the server side using @code{utils/newsclient.sh}, generate
-@ref{Verifier} on client side and place it on the server. Assume that
-you made those steps.
-
-GNU/Linux IPv4 client-server example:
+using more than one CPU on both sides:
 
 @example
-server% echo "echo tap10" >> peers/CLIENTID/up.sh
+% export GOMAXPROC=4
+@end example
+
+@strong{Prepare the server}. Create the new client, named (for example)
+"Alice":
+
+@example
+% ./utils/newclient.sh Alice
+Place verifier to peers/6d4ac605ce8dc37c2f0bf21cb542a713/verifier
+@end example
+
+"6d4ac605ce8dc37c2f0bf21cb542a713" -- is the new client's identity.
+
+@strong{Prepare the client}. Generate @ref{Verifier} for known client
+identity:
+
+@example
+% ./utils/storekey.sh /tmp/passphrase
+Enter passphrase:[my secure passphrase is here]
+% govpn-verifier -id 6d4ac605ce8dc37c2f0bf21cb542a713 -key /tmp/passphrase
+562556cc9ecf0019b4cf45bcdf42706944ae9b3ac7c73ad299d83f2d5a169c55
+% rm /tmp/passphrase
+@end example
+
+"562556cc9ecf0019b4cf45bcdf42706944ae9b3ac7c73ad299d83f2d5a169c55" --
+this is verifier itself.
+
+@strong{Save verifier on server}.
+
+@example
+% cat > peers/6d4ac605ce8dc37c2f0bf21cb542a713/verifier <<EOF
+562556cc9ecf0019b4cf45bcdf42706944ae9b3ac7c73ad299d83f2d5a169c55
+EOF
+@end example
+
+@strong{Prepare network on GNU/Linux IPv4 server}:
+
+@example
+server% echo "echo tap10" >> peers/6d4ac605ce8dc37c2f0bf21cb542a713/up.sh
 server% ip addr add 192.168.0.1/24 dev wlan0
 server% tunctl -t tap10
 server% ip link set mtu 1432 dev tap10
 server% ip addr add 172.16.0.1/24 dev tap10
 server% ip link set up dev tap10
-server% GOMAXPROC=4 govpn-server -bind 192.168.0.1:1194 -mtu 1472
 @end example
+
+@strong{Run server daemon itself}:
+
+@example
+server% govpn-server -bind 192.168.0.1:1194 -mtu 1472
+@end example
+
+@strong{Prepare network on GNU/Linux IPv4 client}:
 
 @example
 client% umask 066
@@ -43,18 +84,23 @@ client% ip link set mtu 1432 dev tap10
 client% ip addr add 172.16.0.2/24 dev tap10
 client% ip link set up dev tap10
 client% ip route add default via 172.16.0.1
-client% export GOMAXPROC=4
-client% while :; do
-    govpn-client -key key.txt -id CLIENTID -iface tap10 \
-        -remote 192.168.0.1:1194 -mtu 1472
-done
 @end example
 
-FreeBSD IPv6 client-server example:
+@strong{Run client daemon itself}:
+@example
+client% govpn-client \
+    -key key.txt \
+    -id 6d4ac605ce8dc37c2f0bf21cb542a713 \
+    -iface tap10 \
+    -remote 192.168.0.1:1194 \
+    -mtu 1472
+@end example
+
+@strong{FreeBSD IPv6 similar client-server example}:
 
 @example
 server% ifconfig em0 inet6 fe80::1/64
-server% GOMAXPROC=4 govpn-server -bind "fe80::1%em0"
+server% govpn-server -bind "fe80::1%em0"
 @end example
 
 @example
@@ -62,9 +108,9 @@ client% ifconfig me0 inet6 -ifdisabled auto_linklocal
 client% ifconfig tap10
 client% ifconfig tap10 inet6 fc00::2/96 mtu 1412 up
 client% route -6 add default fc00::1
-client% export GOMAXPROC=4
-client% while :; do
-    govpn-client -key key.txt -id CLIENTID -iface tap10 \
-        -remote [fe80::1%me0]:1194
-done
+client% govpn-client \
+    -key key.txt \
+    -id 6d4ac605ce8dc37c2f0bf21cb542a713 \
+    -iface tap10 \
+    -remote "[fe80::1%me0]":1194
 @end example

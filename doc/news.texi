@@ -2,6 +2,17 @@
 @unnumbered News
 
 @table @strong
+
+@item Release 3.3
+@itemize @bullet
+@item Compatibility with an old GNU Make 3.x. Previously only BSD Make
+and GNU Make 4.x were supported.
+@item /dev/urandom is used for correct client identity generation under
+GNU/Linux systems. Previously /dev/random can produce less than required
+128-bits of random.
+@item Updated user manual examples.
+@end itemize
+
 @item Release 3.2
 @itemize @bullet
 @item
@@ -125,4 +136,5 @@ consuming and resource heavy computations.
 @itemize @bullet
 @item Initial stable release.
 @end itemize
+
 @end table

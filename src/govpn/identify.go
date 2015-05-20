@@ -21,6 +21,7 @@ package govpn
 import (
 	"crypto/subtle"
 	"encoding/hex"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -112,8 +113,8 @@ func (cc cipherCache) refresh() {
 	}
 	available := make(map[PeerId]bool)
 	for _, peerId := range peerIds {
-		id := IDDecode(peerId)
-		if id == nil {
+		id, err := IDDecode(peerId)
+		if err != nil {
 			continue
 		}
 		available[*id] = true
@@ -220,17 +221,16 @@ func (id *PeerId) Conf() *PeerConf {
 
 // Decode identification string.
 // It must be 32 hexadecimal characters long.
-// If it is not the valid one, then return nil.
-func IDDecode(raw string) *PeerId {
+func IDDecode(raw string) (*PeerId, error) {
 	if len(raw) != IDSize*2 {
-		return nil
+		return nil, errors.New("ID must be 32 characters long")
 	}
 	idDecoded, err := hex.DecodeString(raw)
 	if err != nil {
-		return nil
+		return nil, errors.New("ID must contain hexadecimal characters only")
 	}
 	idP := new([IDSize]byte)
 	copy(idP[:], idDecoded)
 	id := PeerId(*idP)
-	return &id
+	return &id, nil
 }

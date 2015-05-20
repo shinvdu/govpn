@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"crypto/sha512"
 	"io/ioutil"
+	"log"
 	"strings"
 
 	"github.com/agl/ed25519"
@@ -45,16 +46,16 @@ func NewVerifier(id *PeerId, password string) (*[ed25519.PublicKeySize]byte, *[e
 	src := bytes.NewBuffer(r)
 	pub, priv, err := ed25519.GenerateKey(src)
 	if err != nil {
-		panic("Unable to generate Ed25519 keypair" + err.Error())
+		log.Fatalln("Unable to generate Ed25519 keypair", err)
 	}
 	return pub, priv
 }
 
-// Read string from the file, trimming newline. Panics if error occured.
+// Read string from the file, trimming newline.
 func StringFromFile(path string) string {
 	s, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic("Can not read string from" + path)
+		log.Fatalln("Can not read string from", path, err)
 	}
 	return strings.TrimRight(string(s), "\n")
 }

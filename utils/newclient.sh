@@ -3,7 +3,7 @@
 getrand()
 {
     local size=$1
-    dd if=/dev/random bs=$size count=1 2>/dev/null | hexdump -ve '"%02x"'
+    dd if=/dev/urandom bs=$size count=1 2>/dev/null | hexdump -ve '"%02x"'
 }
 
 [ -n "$1" ] || {
