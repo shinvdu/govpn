@@ -1,0 +1,12 @@
+@node TODO
+@unnumbered TODO
+
+@itemize
+@item Ability to use EGD.
+@item Replace -noncediff with in-memory storage of previously seen nonces.
+@item Ability to tunnel only specified TCP connections, without full
+  featured VPN solution. Similar to ssh -R.
+@item Ability to work over HTTP, WebSockets and something similar.
+@item Increase performance.
+@item Randomize ports usage.
+@end itemize
