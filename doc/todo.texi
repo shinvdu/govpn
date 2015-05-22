@@ -2,7 +2,6 @@
 @unnumbered TODO
 
 @itemize
-@item Ability to use EGD.
 @item Replace -noncediff with in-memory storage of previously seen nonces.
 @item Ability to tunnel only specified TCP connections, without full
   featured VPN solution. Similar to ssh -R.

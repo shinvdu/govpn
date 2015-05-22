@@ -3,6 +3,13 @@
 
 @table @strong
 
+@item Release 3.4
+@itemize @bullet
+@item Ability to use external @ref{EGD}-compatible PRNGs. Now you are
+able to use GoVPN even on systems with the bad @code{/dev/random},
+providing higher quality entropy from external sources.
+@end itemize
+
 @item Release 3.3
 @itemize @bullet
 @item Compatibility with an old GNU Make 3.x. Previously only BSD Make

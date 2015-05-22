@@ -1,0 +1,18 @@
+@node EGD
+@section EGD
+
+Overall security mainly depends on client side:
+@ref{PAKE, good passphrase} and cryprographically good pseudo random
+number generator.
+
+Some operating systems do not have good enough quality PRNG, bad
+@code{/dev/urandom}. You should use separate PRNG with them. GoVPN
+communicates with them using Entropy Gathering Daemon protocol.
+
+To switch using EGD-compatible daemons instead of @code{crypto/rand}
+library you provide @code{-egd PATH} command line option, where
+@code{PATH} is either host:port or path to the domain socket.
+
+@example
+% ./govpn-server [...] -egd /var/run/egd.sock
+@end example

@@ -101,13 +101,23 @@ func (h *Handshake) rNonceNext(count uint64) []byte {
 	return nonce
 }
 
+func randRead(b []byte) error {
+	var err error
+	if egdPath == "" {
+		_, err = rand.Read(b)
+	} else {
+		err = EGDRead(b)
+	}
+	return err
+}
+
 func dhKeypairGen() (*[32]byte, *[32]byte) {
 	priv := new([32]byte)
 	pub := new([32]byte)
 	repr := new([32]byte)
 	reprFound := false
 	for !reprFound {
-		if _, err := rand.Read(priv[:]); err != nil {
+		if err := randRead(priv[:]); err != nil {
 			log.Fatalln("Error reading random for DH private key:", err)
 		}
 		reprFound = extra25519.ScalarBaseMult(pub, repr, priv)
@@ -157,7 +167,7 @@ func HandshakeStart(conf *PeerConf, conn *net.UDPConn, addr *net.UDPAddr) *Hands
 	state.dhPriv, dhPubRepr = dhKeypairGen()
 
 	state.rNonce = new([RSize]byte)
-	if _, err := rand.Read(state.rNonce[:]); err != nil {
+	if err := randRead(state.rNonce[:]); err != nil {
 		log.Fatalln("Error reading random for nonce:", err)
 	}
 	enc := make([]byte, 32)
@@ -201,11 +211,11 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 
 		// Generate R* and encrypt them
 		h.rServer = new([RSize]byte)
-		if _, err := rand.Read(h.rServer[:]); err != nil {
+		if err := randRead(h.rServer[:]); err != nil {
 			log.Fatalln("Error reading random for R:", err)
 		}
 		h.sServer = new([SSize]byte)
-		if _, err := rand.Read(h.sServer[:]); err != nil {
+		if err := randRead(h.sServer[:]); err != nil {
 			log.Fatalln("Error reading random for S:", err)
 		}
 		encRs := make([]byte, RSize+SSize)
@@ -287,11 +297,11 @@ func (h *Handshake) Client(conn *net.UDPConn, data []byte) *Peer {
 
 		// Generate R* and signature and encrypt them
 		h.rClient = new([RSize]byte)
-		if _, err := rand.Read(h.rClient[:]); err != nil {
+		if err := randRead(h.rClient[:]); err != nil {
 			log.Fatalln("Error reading random for R:", err)
 		}
 		h.sClient = new([SSize]byte)
-		if _, err := rand.Read(h.sClient[:]); err != nil {
+		if err := randRead(h.sClient[:]); err != nil {
 			log.Fatalln("Error reading random for S:", err)
 		}
 		sign := ed25519.Sign(h.Conf.DSAPriv, h.key[:])

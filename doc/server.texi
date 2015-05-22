@@ -1,8 +1,8 @@
 @node Server part
 @section Server part
 
-Except for common @code{-mtu}, @code{-stats} options server has the
-following ones:
+Except for common @code{-mtu}, @code{-stats}, @code{-egd} options server
+has the following ones:
 
 @table @code
 @item -bind

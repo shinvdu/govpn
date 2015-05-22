@@ -1,8 +1,8 @@
 @node Client part
 @section Client part
 
-Except for common @code{-mtu}, @code{-stats} options client has the
-following ones:
+Except for common @code{-mtu}, @code{-stats}, @code{-egd} options client
+has the following ones:
 
 @table @code
 

@@ -1,24 +1,22 @@
 @node Precautions
 @unnumbered Precautions
 
-The very important precaution is the @strong{cryptographically good}
-pseudo random number generator. GoVPN uses native operating system PRNG
-as entropy source. You have no way to check its quality in closed
-source code operating systems, so it is recommended not to use them if
-you really needs security. Moreover it is possible that those OS leaks
-information about possible PRNG states. And at least Apple OS X and
-Microsoft Windows are already known to have weak CSPRNGs.
-
-GoVPN could use its own PRNG implementation like
-@url{https://www.schneier.com/fortuna.html, Fortuna}, but it is
-much easier to use the right OS, to use free software.
-
-Also you should @strong{never} use one key for multiple clients. Salsa20
-encryption is randomized in each session, but it depends again on PRNG.
-If it fails, produces equal values at least once, then all you traffic
-related to that key could be decrypted.
-
+@enumerate
+@item
 We use password (passphrase) authentication, so overall security fully
 depends on its strength. So you should use long, high-entropy
-passphrases. Also remember to keep passphrase on temporary file as
-described in @ref{Verifier}.
+passphrases. Also remember to keep passphrase on temporary file and read
+it securely as described in @ref{Verifier}.
+
+@item
+You must @strong{never} use one key for multiple clients.
+If so, then all security is ruined and transmitted data can
+be decrypted.
+
+@item
+You must use @strong{cryptographically good} pseudo random number
+generator. By default we use default @code{crypto/rand} library that
+reads @code{/dev/urandom} source. Some GNU/Linux and FreeBSD systems
+are rather good with this entropy source. Closed proprietary ones are
+always not and you must use optional @ref{EGD} feature with them.
+@end enumerate
