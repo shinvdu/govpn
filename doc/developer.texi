@@ -20,6 +20,8 @@ and @url{http://ed25519.cr.yp.to/, Ed25519}.
 26 bytes per packet.
 @item Handshake overhead
 4 UDP (2 from client, 2 from server) packets, 264 bytes total payload.
+@item Entropy required
+832 bits on client side, 832 bits on server side per handshake.
 @end table
 
 @menu
