@@ -22,9 +22,6 @@ how to enter passphrase from stdin silently and store it in the file.
 @item -timeout
 @ref{Timeout} setting in seconds.
 
-@item -noncediff
-Allowable @ref{Nonce difference}.
-
 @item -noise
 Enable @ref{Noise}.
 

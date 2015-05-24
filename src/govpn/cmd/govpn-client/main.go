@@ -39,7 +39,6 @@ var (
 	downPath   = flag.String("down", "", "Path to down-script")
 	stats      = flag.String("stats", "", "Enable stats retrieving on host:port")
 	mtu        = flag.Int("mtu", 1452, "MTU for outgoing packets")
-	nonceDiff  = flag.Int("noncediff", 1, "Allow nonce difference")
 	timeoutP   = flag.Int("timeout", 60, "Timeout seconds")
 	noisy      = flag.Bool("noise", false, "Enable noise appending")
 	cpr        = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
@@ -68,7 +67,6 @@ func main() {
 	conf := &govpn.PeerConf{
 		Id:          id,
 		Timeout:     time.Second * time.Duration(timeout),
-		Noncediff:   *nonceDiff,
 		NoiseEnable: *noisy,
 		CPR:         *cpr,
 		DSAPub:      pub,

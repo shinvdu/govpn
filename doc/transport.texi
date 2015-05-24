@@ -34,12 +34,9 @@ Salsa20 output are used as a one-time key for @code{AUTH}. Next 256 bits
 of Salsa20 are ignored. All remaining output is XORed with the data,
 encrypting it.
 
-To prevent replay attacks we remember latest @code{SERIAL} from the
-remote peer. If received message's @code{SERIAL} is not greater that the
-saved one, then drop it. Optionally, because some UDP packets can be
-reordered during transmission, we can allow some window for valid
-serials with the @code{-noncediff} option. @code{-noncediff 10} with
-current saved serial state equals to 78 allows messages with 68…78
-serials. That time window can be used by attacker to replay packets, so
-by default it equals to 1. However it can improve performance because of
-rearranged UDP packets.
+To prevent replay attacks we must remember received @code{SERIAL}s and
+if meet one, then drop it. Basically we could just store latest number
+and check if received one is greater, but because of UDP packets
+reordering this can lead to valid packets dropping and overall
+performance degradation. We store 256 seen nonces in hash structure, in
+two swapping buckets.

@@ -14,7 +14,6 @@ automate it using up and down shell scripts.
 * Identity::
 * PAKE:: Password Authenticated Key Agreement
 * Timeout::
-* Nonce difference::
 * MTU:: Maximum Transmission Unit
 * Stats::
 * Noise::
@@ -29,7 +28,6 @@ automate it using up and down shell scripts.
 @include identity.texi
 @include pake.texi
 @include timeout.texi
-@include noncediff.texi
 @include mtu.texi
 @include stats.texi
 @include noise.texi

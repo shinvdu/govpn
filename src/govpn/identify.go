@@ -59,7 +59,6 @@ func (id PeerId) MarshalJSON() ([]byte, error) {
 type PeerConf struct {
 	Id          *PeerId
 	Timeout     time.Duration
-	Noncediff   int
 	NoiseEnable bool
 	CPR         int
 	// This is passphrase verifier
@@ -180,7 +179,7 @@ func (id *PeerId) Conf() *PeerConf {
 	if dummyConf != nil {
 		return dummyConf
 	}
-	conf := PeerConf{Id: id, Noncediff: 1, NoiseEnable: false, CPR: 0}
+	conf := PeerConf{Id: id, NoiseEnable: false, CPR: 0}
 	peerPath := path.Join(PeersPath, id.String())
 
 	verPath := path.Join(peerPath, "verifier")
@@ -207,9 +206,6 @@ func (id *PeerId) Conf() *PeerConf {
 	}
 	conf.Timeout = time.Second * time.Duration(timeout)
 
-	if val, err := readIntFromFile(path.Join(peerPath, "noncediff")); err == nil {
-		conf.Noncediff = val
-	}
 	if val, err := readIntFromFile(path.Join(peerPath, "noise")); err == nil && val == 1 {
 		conf.NoiseEnable = true
 	}

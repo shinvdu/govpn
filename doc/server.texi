@@ -46,10 +46,6 @@ Optional. Contains human readable username. Used to beauty output of
 Optional. Contains @ref{Timeout} setting (decimal notation) in seconds.
 Otherwise default minute timeout will be used.
 
-@item noncediff
-Optional. Contains allowable @ref{Nonce difference} setting (decimal
-notation).
-
 @item noise
 Optional. Contains either "1" (enable @ref{Noise} adding), or "0".
 
