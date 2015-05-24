@@ -42,6 +42,10 @@ You can obtain releases source code prepared tarballs from the links below:
 @tab @url{download/govpn-3.3.tar.xz, link} @url{download/govpn-3.3.tar.xz.sig, sign}
 @tab @code{1834a057215324f49d6272b2beb89f1532105156f7e853eae855659992ac0c84}
 
+@item 3.4 @tab 175 KiB
+@tab @url{download/govpn-3.4.tar.xz, link} @url{download/govpn-3.4.tar.xz.sig, sign}
+@tab @code{266612a7f8faa6ceb2955ed611c0c21872776306f4eaad5b785145bbb0390c82}
+
 @end multitable
 
 Also you can try its @ref{Contacts, .onion} version.
