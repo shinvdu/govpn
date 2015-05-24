@@ -38,5 +38,5 @@ To prevent replay attacks we must remember received @code{SERIAL}s and
 if meet one, then drop it. Basically we could just store latest number
 and check if received one is greater, but because of UDP packets
 reordering this can lead to valid packets dropping and overall
-performance degradation. We store 256 seen nonces in hash structure, in
-two swapping buckets.
+performance degradation. We store up to 256 seen nonces in hash
+structure, in two swapping buckets.

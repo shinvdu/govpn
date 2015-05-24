@@ -4,14 +4,12 @@
 @enumerate
 @item
 We use password (passphrase) authentication, so overall security fully
-depends on its strength. So you should use long, high-entropy
-passphrases. Also remember to keep passphrase on temporary file and read
+depends on its strength. You @strong{should} use long, high-entropy
+passphrases. Also remember to keep passphrase in temporary file and read
 it securely as described in @ref{Verifier}.
 
 @item
 You must @strong{never} use one key for multiple clients.
-If so, then all security is ruined and transmitted data can
-be decrypted.
 
 @item
 You must use @strong{cryptographically good} pseudo random number
