@@ -10,7 +10,7 @@ SOURCE = PBKDF2(SALT=PeerId, PASSWORD, 1<<16, SHA512)
 PUB, PRIV = Ed25519.Generate(SOURCE)
 @end verbatim
 
-Verifier is public key of Ed25519 generated from the PBKDF2 of the
-passphrase in hexadecimal encoding. @code{PeerId} is used as a 128-bit
-salt. Server stores and knows only verifier. Client can compute the
-whole keypair every time he makes handshake.
+Verifier is @code{PUB} public key of Ed25519 generated from the PBKDF2
+of the passphrase in hexadecimal encoding. @code{PeerId} is used as a
+128-bit salt. Server stores and knows only verifier. Client can compute
+the whole keypair every time he makes handshake.

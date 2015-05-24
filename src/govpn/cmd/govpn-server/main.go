@@ -37,6 +37,7 @@ var (
 	peersPath = flag.String("peers", "peers", "Path to peers keys directory")
 	stats     = flag.String("stats", "", "Enable stats retrieving on host:port")
 	mtu       = flag.Int("mtu", 1452, "MTU for outgoing packets")
+	egdPath   = flag.String("egd", "", "Optional path to EGD socket")
 )
 
 type PeerReadyEvent struct {
@@ -82,6 +83,11 @@ func main() {
 
 	govpn.MTU = *mtu
 	govpn.PeersInit(*peersPath)
+
+	if *egdPath != "" {
+		log.Println("Using", *egdPath, "EGD")
+		govpn.EGDInit(*egdPath)
+	}
 
 	bind, err := net.ResolveUDPAddr("udp", *bindAddr)
 	if err != nil {

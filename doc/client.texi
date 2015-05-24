@@ -1,8 +1,8 @@
 @node Client part
 @section Client part
 
-Except for common @code{-mtu}, @code{-stats} options client has the
-following ones:
+Except for common @code{-mtu}, @code{-stats}, @code{-egd} options client
+has the following ones:
 
 @table @code
 
@@ -21,9 +21,6 @@ how to enter passphrase from stdin silently and store it in the file.
 
 @item -timeout
 @ref{Timeout} setting in seconds.
-
-@item -noncediff
-Allowable @ref{Nonce difference}.
 
 @item -noise
 Enable @ref{Noise}.

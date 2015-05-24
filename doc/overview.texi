@@ -11,29 +11,16 @@ goals for that daemon. Most modern widespread protocols and their
 implementations in software are too complex to be reviewed, analyzed and
 modified.
 
-State off art cryptography technologies includes:
-@url{http://cr.yp.to/snuffle.html, Salsa20} stream encryption,
-@url{http://143.53.36.235:8080/tea.htm, XTEA} PRP,
-@url{http://cr.yp.to/mac.html, Poly1305} message authentication,
-@url{https://en.wikipedia.org/wiki/PBKDF2} password-based key derivation
-function based on @url{https://en.wikipedia.org/wiki/SHA-2, SHA-512}
-hash function,
-@url{https://en.wikipedia.org/wiki/Encrypted_key_exchange,
-Diffie-Hellman Augmented Encrypted Key Exchange}
-(DH-A-EKE) powered by @url{http://cr.yp.to/ecdh.html, Curve25519},
-@url{http://ed25519.cr.yp.to/, Ed25519} signatures and
-@url{http://elligator.cr.yp.to/, Elligator} curve-point encoding.
-Strong
-@url{https://en.wikipedia.org/wiki/Zero-knowledge_password_proof, zero-knowledge}
-mutual authentication with key exchange stage is invulnerable
-to man-in-the-middle attacks.
+@ref{Developer manual, State off art cryptography technologies}. Strong
+mutual authenticated key exchange is invulnerable to man-in-the middle
+attachs.
 @url{https://en.wikipedia.org/wiki/Forward_secrecy, Perfect forward secrecy}
-property guarantee that compromising of long-term authentication
-pre-shared key can not lead to previously captured traffic decrypting.
-Compromising of peers password file on server side won't allow attacker
+property guarantees that compromising of long-term authentication keys
+does not lead to previously captured traffic decrypting.
+Compromising of peers password files on server side won't allow attacker
 to masquerade as the client, because of asymmetric @strong{verifiers}
 usage, resistant to dictionary attacks. Rehandshaking ensures session
-keys rotation. MAC authentication with one-time keys protects against
+keys rotation. One-time keys MAC authentication protects against
 @url{https://en.wikipedia.org/wiki/Replay_attack, replay attacks}.
 
 Server can work with several clients simultaneously. Each client is
@@ -61,22 +48,26 @@ Works with @url{https://en.wikipedia.org/wiki/TAP_(network_driver), TAP}
 network interfaces on top of UDP entirely
 @item
 @url{https://www.gnu.org/, GNU}/Linux and
-@url{http://www.freebsd.org/, FreeBSD} support
-@item IPv6 compatible
-@item Encrypted and authenticated payload transport
-@item Relatively fast handshake
-@item Password-authenticated key exchange
-@item Server-side password verifiers are secure against dictionary attacks
-@item Attacker can not masquerade a client even with password files compromising
-@item Replay attack protection
-@item Perfect forward secrecy property
-@item Mutual two-side authentication
-@item Zero knowledge authentication
-@item Built-in rehandshake and heartbeat features
-@item Several simultaneous clients support
-@item Per-client configuration options
-@item Hiding of payload packets length with noise
-@item Hiding of payload packets timestamps with constant packet rate traffic
+@url{http://www.freebsd.org/, FreeBSD} support.
+@item IPv6 compatible.
+@item Encrypted and authenticated payload transport.
+@item Relatively fast handshake.
+@item Password-authenticated key exchange.
+@item Server-side password verifiers are secure against dictionary
+attacks.
+@item Attacker can not masquerade a client even with password files
+compromising.
+@item Replay attack protection.
+@item Perfect forward secrecy property.
+@item Mutual two-side authentication.
+@item Zero knowledge authentication.
+@item Built-in rehandshake and heartbeat features.
+@item Several simultaneous clients support.
+@item Per-client configuration options.
+@item Hiding of payload packets length with noise.
+@item Hiding of payload packets timestamps with constant packet rate
+traffic.
 @item Optional built-in HTTP-server for retrieving information about
-known connected peers in @url{http://json.org/, JSON} format
+known connected peers in @url{http://json.org/, JSON} format.
+@item Compatibility with @url{http://egd.sourceforge.net/, EGD} PRNGs.
 @end itemize

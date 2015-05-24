@@ -39,10 +39,10 @@ var (
 	downPath   = flag.String("down", "", "Path to down-script")
 	stats      = flag.String("stats", "", "Enable stats retrieving on host:port")
 	mtu        = flag.Int("mtu", 1452, "MTU for outgoing packets")
-	nonceDiff  = flag.Int("noncediff", 1, "Allow nonce difference")
 	timeoutP   = flag.Int("timeout", 60, "Timeout seconds")
 	noisy      = flag.Bool("noise", false, "Enable noise appending")
 	cpr        = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
+	egdPath    = flag.String("egd", "", "Optional path to EGD socket")
 )
 
 func main() {
@@ -58,11 +58,15 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	if *egdPath != "" {
+		log.Println("Using", *egdPath, "EGD")
+		govpn.EGDInit(*egdPath)
+	}
+
 	pub, priv := govpn.NewVerifier(id, govpn.StringFromFile(*keyPath))
 	conf := &govpn.PeerConf{
 		Id:          id,
 		Timeout:     time.Second * time.Duration(timeout),
-		Noncediff:   *nonceDiff,
 		NoiseEnable: *noisy,
 		CPR:         *cpr,
 		DSAPub:      pub,

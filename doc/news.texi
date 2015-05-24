@@ -3,6 +3,16 @@
 
 @table @strong
 
+@item Release 3.4
+@itemize @bullet
+@item Ability to use external @ref{EGD}-compatible PRNGs. Now you are
+able to use GoVPN even on systems with the bad @code{/dev/random},
+providing higher quality entropy from external sources.
+@item Removed @code{-noncediff} option. It is replaced with in-memory
+storage of seen nonces, thus eliminating possible replay attacks at all
+without performance degradation related to inbound packets reordering.
+@end itemize
+
 @item Release 3.3
 @itemize @bullet
 @item Compatibility with an old GNU Make 3.x. Previously only BSD Make

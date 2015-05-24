@@ -3,23 +3,26 @@
 
 @table @asis
 @item Nonce and identity encryption
-@url{http://143.53.36.235:8080/tea.htm, XTEA}
+@url{http://143.53.36.235:8080/tea.htm, XTEA}.
 @item Data encryption
-@url{http://cr.yp.to/snuffle.html, Salsa20}
+@url{http://cr.yp.to/snuffle.html, Salsa20}.
 @item Message authentication
-@url{http://cr.yp.to/mac.html, Poly1305}
+@url{http://cr.yp.to/mac.html, Poly1305}.
 @item Password authenticated key agreement
 DH-A-EKE powered by @url{http://cr.yp.to/ecdh.html, Curve25519}
-and @url{http://ed25519.cr.yp.to/, Ed25519}
+and @url{http://ed25519.cr.yp.to/, Ed25519}.
 @item DH elliptic-curve point encoding for public keys
-@url{http://elligator.cr.yp.to/, Elligator}
+@url{http://elligator.cr.yp.to/, Elligator}.
 @item Key derivation function for verifier generation
 @url{https://en.wikipedia.org/wiki/PBKDF2, PBKDF2} based on
-@url{https://en.wikipedia.org/wiki/SHA-2, SHA-512}
+@url{https://en.wikipedia.org/wiki/SHA-2, SHA-512}.
 @item Packet overhead
-26 bytes per packet
+26 bytes per packet.
 @item Handshake overhead
-4 UDP (2 from client, 2 from server) packets, 264 bytes total payload
+4 UDP (2 from client, 2 from server) packets, 264 bytes total payload.
+@item Entropy required
+832 bits in average on client, 832 bits in average on server side per
+handshake.
 @end table
 
 @menu

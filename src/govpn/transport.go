@@ -30,7 +30,8 @@ import (
 )
 
 const (
-	NonceSize = 8
+	NonceSize       = 8
+	NonceBucketSize = 128
 	// S20BS is Salsa20's internal blocksize in bytes
 	S20BS = 64
 	// Maximal amount of bytes transfered with single key (4 GiB)
@@ -56,11 +57,14 @@ type Peer struct {
 	CPRCycle    time.Duration `json:"-"`
 
 	// Cryptography related
-	Key         *[SSize]byte `json:"-"`
-	Noncediff   int
-	NonceOur    uint64       `json:"-"`
-	NonceRecv   uint64       `json:"-"`
-	NonceCipher *xtea.Cipher `json:"-"`
+	Key          *[SSize]byte `json:"-"`
+	NonceOur     uint64       `json:"-"`
+	NonceRecv    uint64       `json:"-"`
+	NonceCipher  *xtea.Cipher `json:"-"`
+	nonceBucket0 map[uint64]struct{}
+	nonceBucket1 map[uint64]struct{}
+	nonceFound   bool
+	nonceBucketN int32
 
 	// Timers
 	Timeout       time.Duration `json:"-"`
@@ -243,23 +247,24 @@ func newPeer(addr *net.UDPAddr, conf *PeerConf, nonce int, key *[SSize]byte) *Pe
 		timeout = timeout / TimeoutHeartbeat
 	}
 	peer := Peer{
-		Addr:        addr,
-		Timeout:     timeout,
-		Established: now,
-		LastPing:    now,
-		Id:          conf.Id,
-		NoiseEnable: noiseEnable,
-		CPR:         conf.CPR,
-		CPRCycle:    cprCycle,
-		Noncediff:   conf.Noncediff,
-		NonceOur:    uint64(conf.Noncediff + nonce),
-		NonceRecv:   uint64(conf.Noncediff + 0),
-		Key:         key,
-		NonceCipher: newNonceCipher(key),
-		buf:         make([]byte, MTU+S20BS),
-		tag:         new([poly1305.TagSize]byte),
-		keyAuth:     new([SSize]byte),
-		nonce:       make([]byte, NonceSize),
+		Addr:         addr,
+		Timeout:      timeout,
+		Established:  now,
+		LastPing:     now,
+		Id:           conf.Id,
+		NoiseEnable:  noiseEnable,
+		CPR:          conf.CPR,
+		CPRCycle:     cprCycle,
+		NonceOur:     uint64(nonce),
+		NonceRecv:    uint64(0),
+		nonceBucket0: make(map[uint64]struct{}, NonceBucketSize),
+		nonceBucket1: make(map[uint64]struct{}, NonceBucketSize),
+		Key:          key,
+		NonceCipher:  newNonceCipher(key),
+		buf:          make([]byte, MTU+S20BS),
+		tag:          new([poly1305.TagSize]byte),
+		keyAuth:      new([SSize]byte),
+		nonce:        make([]byte, NonceSize),
 	}
 	return &peer
 }
@@ -286,14 +291,31 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 		p.FramesUnauth++
 		return false
 	}
+
+	// Check if received nonce is known to us in either of two buckets.
+	// If yes, then this is ignored duplicate.
+	// Check from the oldest bucket, as in most cases this will result
+	// in constant time check.
+	// If Bucket0 is filled, then it becomes Bucket1.
 	p.NonceCipher.Decrypt(p.buf, udpPkt[:NonceSize])
+	ready <- struct{}{}
 	p.nonceRecv, _ = binary.Uvarint(p.buf[:NonceSize])
-	if int(p.NonceRecv)-p.Noncediff >= 0 && int(p.nonceRecv) < int(p.NonceRecv)-p.Noncediff {
-		ready <- struct{}{}
+	if _, p.nonceFound = p.nonceBucket1[p.NonceRecv]; p.nonceFound {
 		p.FramesDup++
 		return false
 	}
-	ready <- struct{}{}
+	if _, p.nonceFound = p.nonceBucket0[p.NonceRecv]; p.nonceFound {
+		p.FramesDup++
+		return false
+	}
+	p.nonceBucket0[p.NonceRecv] = struct{}{}
+	p.nonceBucketN++
+	if p.nonceBucketN == NonceBucketSize {
+		p.nonceBucket1 = p.nonceBucket0
+		p.nonceBucket0 = make(map[uint64]struct{}, NonceBucketSize)
+		p.nonceBucketN = 0
+	}
+
 	p.FramesIn++
 	p.BytesIn += int64(p.size)
 	p.LastPing = time.Now()

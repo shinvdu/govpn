@@ -42,6 +42,7 @@ statistics, IPv4/IPv6-compatibility. GNU/Linux and FreeBSD support.
 * Contacts::
 * Copying conditions::
 * Thanks::
+* TODO::
 @end menu
 
 @include overview.texi
@@ -59,4 +60,5 @@ statistics, IPv4/IPv6-compatibility. GNU/Linux and FreeBSD support.
 @verbatiminclude fdl.txt
 
 @include thanks.texi
+@include todo.texi
 @bye

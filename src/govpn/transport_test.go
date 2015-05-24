@@ -24,7 +24,6 @@ func init() {
 	conf = &PeerConf{
 		Id:          peerId,
 		Timeout:     time.Second * time.Duration(TimeoutDefault),
-		Noncediff:   1,
 		NoiseEnable: false,
 		CPR:         0,
 	}
@@ -62,6 +61,8 @@ func BenchmarkDec(b *testing.B) {
 	peer = newPeer(addr, conf, 128, new([SSize]byte))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		peer.nonceBucket0 = make(map[uint64]struct{}, 1)
+		peer.nonceBucket1 = make(map[uint64]struct{}, 1)
 		if !peer.UDPProcess(ciphertext, dummy, ready) {
 			b.Fail()
 		}
