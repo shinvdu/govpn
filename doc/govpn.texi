@@ -32,6 +32,8 @@ statistics, IPv4/IPv6-compatibility. GNU/Linux and FreeBSD support.
 
 @include keywords.texi
 
+@include media.texi
+
 @menu
 * Overview::
 * News::
