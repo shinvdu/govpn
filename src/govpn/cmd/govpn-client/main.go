@@ -95,14 +95,13 @@ func main() {
 	if err != nil {
 		log.Fatalln("Can not listen on TAP interface:", err)
 	}
-	udpSink, udpBuf, udpReady := govpn.ConnListen(conn)
+	udpSink, udpReady := govpn.ConnListenUDP(conn)
 
 	timeouts := 0
 	firstUpCall := true
 	var peer *govpn.Peer
 	var ethPkt []byte
 	var udpPkt govpn.UDPPkt
-	var udpPktData []byte
 	knownPeers := govpn.KnownPeers(map[string]**govpn.Peer{remote.String(): &peer})
 
 	log.Println(govpn.VersionGet())
@@ -151,19 +150,18 @@ MainCycle:
 				continue
 			}
 
-			udpPktData = udpBuf[:udpPkt.Size]
 			if peer == nil {
 				if udpPkt.Addr.String() != remote.String() {
 					udpReady <- struct{}{}
 					log.Println("Unknown handshake message")
 					continue
 				}
-				if govpn.IDsCache.Find(udpPktData) == nil {
+				if govpn.IDsCache.Find(udpPkt.Data) == nil {
 					log.Println("Invalid identity in handshake packet")
 					udpReady <- struct{}{}
 					continue
 				}
-				if p := handshake.Client(conn, udpPktData); p != nil {
+				if p := handshake.Client(conn, udpPkt.Data); p != nil {
 					log.Println("Handshake completed")
 					if firstUpCall {
 						go govpn.ScriptCall(*upPath, *ifaceName)
@@ -180,7 +178,7 @@ MainCycle:
 				udpReady <- struct{}{}
 				continue
 			}
-			if peer.UDPProcess(udpPktData, tap, udpReady) {
+			if peer.UDPProcess(udpPkt.Data, tap, udpReady) {
 				timeouts = 0
 			}
 		}

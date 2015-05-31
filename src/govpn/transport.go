@@ -42,11 +42,6 @@ const (
 	TimeoutHeartbeat = 4
 )
 
-type UDPPkt struct {
-	Addr *net.UDPAddr
-	Size int
-}
-
 type Peer struct {
 	Addr *net.UDPAddr
 	Id   *PeerId
@@ -182,35 +177,6 @@ func TAPListen(ifaceName string, timeout time.Duration, cpr int) (*TAP, chan []b
 		sinkReady <- struct{}{}
 	}
 	return tap, sink, sinkReady, sinkTerminate, nil
-}
-
-// Create UDP listening goroutine.
-// This function takes already listening UDP socket and a buffer where
-// all UDP packet data will be saved, channel where information about
-// remote address and number of written bytes are stored, and a channel
-// used to tell that buffer is ready to be overwritten.
-func ConnListen(conn *net.UDPConn) (chan UDPPkt, []byte, chan struct{}) {
-	buf := make([]byte, MTU)
-	sink := make(chan UDPPkt)
-	sinkReady := make(chan struct{})
-	go func(conn *net.UDPConn) {
-		var n int
-		var addr *net.UDPAddr
-		var err error
-		for {
-			<-sinkReady
-			conn.SetReadDeadline(time.Now().Add(time.Second))
-			n, addr, err = conn.ReadFromUDP(buf)
-			if err != nil {
-				// This is needed for ticking the timeouts counter outside
-				sink <- UDPPkt{nil, 0}
-				continue
-			}
-			sink <- UDPPkt{addr, n}
-		}
-	}(conn)
-	sinkReady <- struct{}{}
-	return sink, buf, sinkReady
 }
 
 func newNonceCipher(key *[32]byte) *xtea.Cipher {

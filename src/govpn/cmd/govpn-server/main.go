@@ -97,7 +97,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Can listen on UDP:", err)
 	}
-	udpSink, udpBuf, udpReady := govpn.ConnListen(conn)
+	udpSink, udpReady := govpn.ConnListenUDP(conn)
 
 	termSignal := make(chan os.Signal, 1)
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
@@ -116,7 +116,6 @@ func main() {
 	knownPeers := govpn.KnownPeers(make(map[string]**govpn.Peer))
 	var peerReady PeerReadyEvent
 	var udpPkt govpn.UDPPkt
-	var udpPktData []byte
 	var ethEvent EthEvent
 	var peerId *govpn.PeerId
 	var peerConf *govpn.PeerConf
@@ -204,12 +203,11 @@ MainCycle:
 				udpReady <- struct{}{}
 				continue
 			}
-			udpPktData = udpBuf[:udpPkt.Size]
 			addr = udpPkt.Addr.String()
 			handshakeProcessForce = false
 		HandshakeProcess:
 			if _, exists = peers[addr]; handshakeProcessForce || !exists {
-				peerId = govpn.IDsCache.Find(udpPktData)
+				peerId = govpn.IDsCache.Find(udpPkt.Data)
 				if peerId == nil {
 					log.Println("Unknown identity from", addr)
 					udpReady <- struct{}{}
@@ -226,7 +224,7 @@ MainCycle:
 					state = govpn.HandshakeNew(udpPkt.Addr, peerConf)
 					states[addr] = state
 				}
-				peer = state.Server(conn, udpPktData)
+				peer = state.Server(conn, udpPkt.Data)
 				if peer != nil {
 					log.Println("Peer handshake finished", peer)
 					if _, exists = peers[addr]; exists {
@@ -261,7 +259,7 @@ MainCycle:
 			}
 			// If it fails during processing, then try to work with it
 			// as with handshake packet
-			if !peerState.peer.UDPProcess(udpPktData, peerState.tap, udpReady) {
+			if !peerState.peer.UDPProcess(udpPkt.Data, peerState.tap, udpReady) {
 				handshakeProcessForce = true
 				goto HandshakeProcess
 			}
