@@ -1,5 +1,5 @@
 @node PAKE
-@section PAKE
+@section Password Authenticated Key Agreement
 
 Previously we used pre-shared high-entropy long-term static key for
 client-server authentication. Is is secure, but not convenient for some

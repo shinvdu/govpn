@@ -1,5 +1,5 @@
 @node EGD
-@section EGD
+@section Entropy Gathering Daemon
 
 Overall security mainly depends on client side:
 @ref{PAKE, good passphrase} and cryprographically good pseudo random
