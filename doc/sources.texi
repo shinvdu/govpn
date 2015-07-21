@@ -6,7 +6,7 @@ buggy. It does not contain compiled documentation and dependent
 libraries source code. Because of that it is not recommended for porters.
 
 You can obtain it by cloning Git repository:
-@code{git clone https://github.com/stargrave/govpn.git}.
+@code{git clone git://git.cypherpunks.ru/govpn.git}.
 @code{src} directory has makefile that will download necessary dependent
 library versions.
 
@@ -15,7 +15,7 @@ repositories will be unavailable (they are seldom updated):
 
 @multitable @columnfractions .50 .50
 @headitem Software/library @tab Mirror
-@item @code{govpn} @tab @url{git://git.cypherpunks.ru/govpn.git}
+@item @code{govpn} @tab @url{https://github.com/stargrave/govpn.git}
 @item @code{golang.org/x/crypto} @tab @url{git://git.cypherpunks.ru/crypto.git}
 @item @code{github.com/agl/ed25519} @tab @url{git://git.cypherpunks.ru/ed25519.git}
 @end multitable
