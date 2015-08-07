@@ -7,16 +7,13 @@ DOCDIR = $(DESTDIR)$(PREFIX)/share/doc/govpn
 
 all: govpn-client govpn-server govpn-verifier
 
-depends:
-	$(MAKE) -C src
-
-govpn-client: depends
+govpn-client:
 	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-client
 
-govpn-server: depends
+govpn-server:
 	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-server
 
-govpn-verifier: depends
+govpn-verifier:
 	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-verifier
 
 bench:
