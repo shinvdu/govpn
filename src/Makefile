@@ -15,4 +15,4 @@ github.com/agl/ed25519:
 golang.org/x/crypto:
 	mkdir -p golang.org/x
 	$(GIT) clone https://go.googlesource.com/crypto golang.org/x/crypto
-	cd golang.org/x/crypto && $(GIT) checkout --force 24ffb5feb3312a39054178a4b0a4554fc2201248
+	cd golang.org/x/crypto && $(GIT) checkout --force 2f3083f6163ef51179ad42ed523a18c9a1141467
