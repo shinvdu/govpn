@@ -12,6 +12,7 @@ libraries source code as git submodules:
 @example
 % git clone git://git.cypherpunks.ru/govpn.git govpn
 % cd govpn
+% git checkout develop
 % git submodule update --init
 @end example
 
