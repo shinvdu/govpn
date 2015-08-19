@@ -49,5 +49,3 @@ You can obtain releases source code prepared tarballs from the links below:
 @end multitable
 
 Also you can try its @ref{Contacts, .onion} version.
-Sourceforge.net also provides mirror for the files above:
-@url{http://sourceforge.net/projects/govpn/files/}.
