@@ -19,8 +19,8 @@ Get the tarball and run @code{make}.
 @emph{govpn-client}, @emph{govpn-server}, @emph{govpn-verifier}
 binaries will be build in the current directory.
 
-As a prerequisite you must install Go compiler and possibly TUN/TAP
-interfaces utilities:
+As a prerequisite you must install Go compiler (version 1.5 is highly
+recommended) and possibly TUN/TAP interfaces utilities:
 
 @itemize @bullet
 @item @code{lang/go} port in FreeBSD.
