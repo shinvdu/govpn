@@ -17,13 +17,6 @@ is 1432.
 @strong{Install}. At first you must @ref{Installation, install} this
 software: download, check the signature, compile.
 
-Do not forget about setting @code{GOMAXPROC} environment variable for
-using more than one CPU on both sides:
-
-@example
-% export GOMAXPROC=4
-@end example
-
 @strong{Prepare the server}. Create the new client, named (for example)
 "Alice":
 
