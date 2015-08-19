@@ -9,6 +9,10 @@ tunnelling of Ethernet frames, nothing less, nothing more. All you
 IP-related network management is not touched by VPN at all. You can
 automate it using up and down shell scripts.
 
+What network performance can user expect? For example single
+@emph{Intel i5-2450M 2.5 GHz} core on @emph{FreeBSD 10.2 amd64}
+with @emph{Go 1.5} gives 435 Mbps TCP throughput.
+
 @menu
 * EGD:: Entropy gathering daemon
 * Identity::
