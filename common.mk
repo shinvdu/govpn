@@ -1,4 +1,4 @@
-LDFLAGS = -X govpn.Version $(VERSION)
+LDFLAGS = -X govpn.Version=$(VERSION)
 PREFIX ?= /usr/local
 BINDIR = $(DESTDIR)$(PREFIX)/bin
 INFODIR = $(DESTDIR)$(PREFIX)/info
