@@ -8,6 +8,6 @@ password proof, PAKE, password, passphrase, password authenticated key
 exchange, perfect forward secrecy, PFS, MAC, nonce, verifier,
 rehandshake, heartbeat, replay attack, MiTM, length hiding, timestamps
 hiding, noise, constant traffic, constant packet rate, CPR, EGD,
-entropy, TAP, TAP, VPN, GNU, Linux, FreeBSD, IPv6, dictionary attack,
-mutual authentication, simultaneous clients, JSON, HTTP-server,
+entropy, UDP, TCP, TAP, TAP, VPN, GNU, Linux, FreeBSD, IPv6, dictionary
+attack, mutual authentication, simultaneous clients, JSON, HTTP-server,
 statistics, PRNG, traffic analysis, Go, golang.

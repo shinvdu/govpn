@@ -21,6 +21,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -32,6 +33,7 @@ import (
 
 var (
 	remoteAddr = flag.String("remote", "", "Remote server address")
+	proto      = flag.String("proto", "udp", "Protocol to use: udp or tcp")
 	ifaceName  = flag.String("iface", "tap0", "TAP network interface")
 	IDRaw      = flag.String("id", "", "Client identification")
 	keyPath    = flag.String("key", "", "Path to passphrase file")
@@ -74,38 +76,17 @@ func main() {
 	}
 	govpn.PeersInitDummy(id, conf)
 
-	bind, err := net.ResolveUDPAddr("udp", "0.0.0.0:0")
-	if err != nil {
-		log.Fatalln("Can not resolve address:", err)
+	var conn io.Writer
+	var sink chan []byte
+	var ready chan struct{}
+	switch *proto {
+	case "udp":
+		conn, sink, ready = startUDP()
+	case "tcp":
+		conn, sink, ready = startTCP()
+	default:
+		log.Fatalln("Unknown protocol specified")
 	}
-	conn, err := net.DialUDP("udp", bind, remote)
-	if err != nil {
-		log.Fatalln("Can not listen on UDP:", err)
-	}
-	remote, err := net.ResolveUDPAddr("udp", *remoteAddr)
-	if err != nil {
-		log.Fatalln("Can not resolve remote address:", err)
-	}
-
-	sink := make(chan []byte)
-	ready := make(chan struct{})
-	go func() {
-		buf := make([]byte, govpn.MTU)
-		var n int
-		var err error
-		for {
-			<-ready
-			conn.SetReadDeadline(time.Now().Add(time.Second))
-			n, err = conn.Read(buf)
-			if err != nil {
-				// This is needed for ticking the timeouts counter outside
-				sink <- nil
-				continue
-			}
-			sink <- buf[:n]
-		}
-	}()
-	ready <- struct{}{}
 
 	tap, ethSink, ethReady, _, err := govpn.TAPListen(
 		*ifaceName,
@@ -121,9 +102,10 @@ func main() {
 	var peer *govpn.Peer
 	var ethPkt []byte
 	var pkt []byte
-	knownPeers := govpn.KnownPeers(map[string]**govpn.Peer{remote.String(): &peer})
+	knownPeers := govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
 
 	log.Println(govpn.VersionGet())
+	log.Println("Connected to", *proto, *remoteAddr)
 	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
@@ -138,14 +120,14 @@ func main() {
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
 
 	log.Println("Starting handshake")
-	handshake := govpn.HandshakeStart(remote.String(), conn, conf)
+	handshake := govpn.HandshakeStart(*remoteAddr, conn, conf)
 
 MainCycle:
 	for {
 		if peer != nil && (peer.BytesIn+peer.BytesOut) > govpn.MaxBytesPerKey {
 			peer.Zero()
 			peer = nil
-			handshake = govpn.HandshakeStart(remote.String(), conn, conf)
+			handshake = govpn.HandshakeStart(*remoteAddr, conn, conf)
 			log.Println("Rehandshaking")
 		}
 		select {

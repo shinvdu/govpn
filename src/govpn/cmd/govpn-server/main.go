@@ -35,6 +35,7 @@ import (
 
 var (
 	bindAddr  = flag.String("bind", "[::]:1194", "Bind to address")
+	proto     = flag.String("proto", "udp", "Protocol to use: udp or tcp")
 	peersPath = flag.String("peers", "peers", "Path to peers keys directory")
 	stats     = flag.String("stats", "", "Enable stats retrieving on host:port")
 	mtu       = flag.Int("mtu", 1452, "MTU for outgoing packets")
@@ -42,18 +43,10 @@ var (
 )
 
 type Pkt struct {
-	addr string
-	conn io.Writer
-	data []byte
-}
-
-type UDPSender struct {
-	conn *net.UDPConn
-	addr *net.UDPAddr
-}
-
-func (c UDPSender) Write(data []byte) (int, error) {
-	return c.conn.WriteToUDP(data, c.addr)
+	addr  string
+	conn  io.Writer
+	data  []byte
+	ready chan struct{}
 }
 
 type PeerReadyEvent struct {
@@ -94,7 +87,6 @@ type EthEvent struct {
 func main() {
 	flag.Parse()
 	timeout := time.Second * time.Duration(govpn.TimeoutDefault)
-	var err error
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
 	govpn.MTU = *mtu
@@ -105,35 +97,15 @@ func main() {
 		govpn.EGDInit(*egdPath)
 	}
 
-	bind, err := net.ResolveUDPAddr("udp", *bindAddr)
-	if err != nil {
-		log.Fatalln("Can not resolve bind address:", err)
+	var sink chan Pkt
+	switch *proto {
+	case "udp":
+		sink = startUDP()
+	case "tcp":
+		sink = startTCP()
+	default:
+		log.Fatalln("Unknown protocol specified")
 	}
-	lconn, err := net.ListenUDP("udp", bind)
-	if err != nil {
-		log.Fatalln("Can listen on UDP:", err)
-	}
-
-	sink := make(chan Pkt)
-	ready := make(chan struct{})
-	go func() {
-		buf := make([]byte, govpn.MTU)
-		var n int
-		var raddr *net.UDPAddr
-		var err error
-		for {
-			<-ready
-			lconn.SetReadDeadline(time.Now().Add(time.Second))
-			n, raddr, err = lconn.ReadFromUDP(buf)
-			if err != nil {
-				// This is needed for ticking the timeouts counter outside
-				sink <- Pkt{}
-				continue
-			}
-			sink <- Pkt{raddr.String(), UDPSender{lconn, raddr}, buf[:n]}
-		}
-	}()
-	ready <- struct{}{}
 
 	termSignal := make(chan os.Signal, 1)
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
@@ -158,6 +130,7 @@ func main() {
 	ethSink := make(chan EthEvent)
 
 	log.Println(govpn.VersionGet())
+	log.Println("Listening on", *proto, *bindAddr)
 	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
@@ -234,7 +207,7 @@ MainCycle:
 			ethEvent.peer.EthProcess(ethEvent.data, ethEvent.ready)
 		case pkt = <-sink:
 			if pkt.data == nil {
-				ready <- struct{}{}
+				pkt.ready <- struct{}{}
 				continue
 			}
 			handshakeProcessForce = false
@@ -243,13 +216,13 @@ MainCycle:
 				peerId = govpn.IDsCache.Find(pkt.data)
 				if peerId == nil {
 					log.Println("Unknown identity from", pkt.addr)
-					ready <- struct{}{}
+					pkt.ready <- struct{}{}
 					continue
 				}
 				peerConf = peerId.Conf()
 				if peerConf == nil {
 					log.Println("Can not get peer configuration", peerId.String())
-					ready <- struct{}{}
+					pkt.ready <- struct{}{}
 					continue
 				}
 				state, exists = states[pkt.addr]
@@ -283,18 +256,18 @@ MainCycle:
 					}
 				}
 				if !handshakeProcessForce {
-					ready <- struct{}{}
+					pkt.ready <- struct{}{}
 				}
 				continue
 			}
 			peerState, exists = peers[pkt.addr]
 			if !exists {
-				ready <- struct{}{}
+				pkt.ready <- struct{}{}
 				continue
 			}
 			// If it fails during processing, then try to work with it
 			// as with handshake packet
-			if !peerState.peer.PktProcess(pkt.data, peerState.tap, ready) {
+			if !peerState.peer.PktProcess(pkt.data, peerState.tap, pkt.ready) {
 				handshakeProcessForce = true
 				goto HandshakeProcess
 			}
