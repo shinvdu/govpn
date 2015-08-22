@@ -1,7 +1,6 @@
 package govpn
 
 import (
-	"net"
 	"testing"
 	"time"
 )
@@ -10,16 +9,24 @@ var (
 	peer       *Peer
 	plaintext  []byte
 	ready      chan struct{}
-	dummy      = &Dummy{}
 	ciphertext []byte
-	addr       *net.UDPAddr
 	peerId     *PeerId
 	conf       *PeerConf
 )
 
+type Dummy struct{
+	dst *[]byte
+}
+
+func (d Dummy) Write(b []byte) (int, error) {
+	if d.dst != nil {
+		*d.dst = b
+	}
+	return len(b), nil
+}
+
 func init() {
 	MTU = 1500
-	addr, _ = net.ResolveUDPAddr("udp", "[::1]:1")
 	peerId, _ = IDDecode("ffffffffffffffffffffffffffffffff")
 	conf = &PeerConf{
 		Id:          peerId,
@@ -27,7 +34,7 @@ func init() {
 		NoiseEnable: false,
 		CPR:         0,
 	}
-	peer = newPeer(addr, conf, 128, new([SSize]byte))
+	peer = newPeer("foo", Dummy{&ciphertext}, conf, 128, new([SSize]byte))
 	plaintext = make([]byte, 789)
 	ready = make(chan struct{})
 	go func() {
@@ -37,33 +44,22 @@ func init() {
 	}()
 }
 
-type Dummy struct{}
-
-func (d *Dummy) WriteToUDP(b []byte, addr *net.UDPAddr) (int, error) {
-	ciphertext = b
-	return len(b), nil
-}
-
-func (d *Dummy) Write(p []byte) (n int, err error) {
-	return len(p), nil
-}
-
 func BenchmarkEnc(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		peer.NonceOur = 128
-		peer.EthProcess(plaintext, dummy, ready)
+		peer.EthProcess(plaintext, ready)
 	}
 }
 
 func BenchmarkDec(b *testing.B) {
-	peer.EthProcess(plaintext, dummy, ready)
-	peer = newPeer(addr, conf, 128, new([SSize]byte))
+	peer.EthProcess(plaintext, ready)
+	peer = newPeer("foo", Dummy{nil}, conf, 128, new([SSize]byte))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		peer.nonceBucket0 = make(map[uint64]struct{}, 1)
 		peer.nonceBucket1 = make(map[uint64]struct{}, 1)
-		if !peer.UDPProcess(ciphertext, dummy, ready) {
+		if !peer.PktProcess(ciphertext, Dummy{nil}, ready) {
 			b.Fail()
 		}
 	}

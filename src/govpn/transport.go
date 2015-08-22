@@ -21,7 +21,6 @@ package govpn
 import (
 	"encoding/binary"
 	"io"
-	"net"
 	"time"
 
 	"golang.org/x/crypto/poly1305"
@@ -43,8 +42,9 @@ const (
 )
 
 type Peer struct {
-	Addr *net.UDPAddr
+	Addr string
 	Id   *PeerId
+	Conn io.Writer
 
 	// Traffic behaviour
 	NoiseEnable bool
@@ -93,7 +93,7 @@ type Peer struct {
 }
 
 func (p *Peer) String() string {
-	return p.Id.String() + ":" + p.Addr.String()
+	return p.Id.String() + ":" + p.Addr
 }
 
 // Zero peer's memory state.
@@ -201,7 +201,7 @@ func cprCycleCalculate(rate int) time.Duration {
 	return time.Second / time.Duration(rate*(1<<10)/MTU)
 }
 
-func newPeer(addr *net.UDPAddr, conf *PeerConf, nonce int, key *[SSize]byte) *Peer {
+func newPeer(addr string, conn io.Writer, conf *PeerConf, nonce int, key *[SSize]byte) *Peer {
 	now := time.Now()
 	timeout := conf.Timeout
 	cprCycle := cprCycleCalculate(conf.CPR)
@@ -214,6 +214,7 @@ func newPeer(addr *net.UDPAddr, conf *PeerConf, nonce int, key *[SSize]byte) *Pe
 	}
 	peer := Peer{
 		Addr:         addr,
+		Conn:         conn,
 		Timeout:      timeout,
 		Established:  now,
 		LastPing:     now,
@@ -236,23 +237,22 @@ func newPeer(addr *net.UDPAddr, conf *PeerConf, nonce int, key *[SSize]byte) *Pe
 }
 
 // Process incoming UDP packet.
-// udpPkt is received data, related to the peer tap interface and
 // ConnListen'es synchronization channel used to tell him that he is
 // free to receive new packets. Authenticated and decrypted packets
 // will be written to the interface immediately (except heartbeat ones).
-func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) bool {
-	p.size = len(udpPkt)
+func (p *Peer) PktProcess(data []byte, tap io.Writer, ready chan struct{}) bool {
+	p.size = len(data)
 	copy(p.buf, Emptiness)
-	copy(p.tag[:], udpPkt[p.size-poly1305.TagSize:])
-	copy(p.buf[S20BS:], udpPkt[NonceSize:p.size-poly1305.TagSize])
+	copy(p.tag[:], data[p.size-poly1305.TagSize:])
+	copy(p.buf[S20BS:], data[NonceSize:p.size-poly1305.TagSize])
 	salsa20.XORKeyStream(
 		p.buf[:S20BS+p.size-poly1305.TagSize],
 		p.buf[:S20BS+p.size-poly1305.TagSize],
-		udpPkt[:NonceSize],
+		data[:NonceSize],
 		p.Key,
 	)
 	copy(p.keyAuth[:], p.buf[:SSize])
-	if !poly1305.Verify(p.tag, udpPkt[:p.size-poly1305.TagSize], p.keyAuth) {
+	if !poly1305.Verify(p.tag, data[:p.size-poly1305.TagSize], p.keyAuth) {
 		ready <- struct{}{}
 		p.FramesUnauth++
 		return false
@@ -263,7 +263,7 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 	// Check from the oldest bucket, as in most cases this will result
 	// in constant time check.
 	// If Bucket0 is filled, then it becomes Bucket1.
-	p.NonceCipher.Decrypt(p.buf, udpPkt[:NonceSize])
+	p.NonceCipher.Decrypt(p.buf, data[:NonceSize])
 	ready <- struct{}{}
 	p.nonceRecv, _ = binary.Uvarint(p.buf[:NonceSize])
 	if _, p.nonceFound = p.nonceBucket1[p.NonceRecv]; p.nonceFound {
@@ -297,25 +297,20 @@ func (p *Peer) UDPProcess(udpPkt []byte, tap io.Writer, ready chan struct{}) boo
 	return true
 }
 
-type WriteToUDPer interface {
-	WriteToUDP([]byte, *net.UDPAddr) (int, error)
-}
-
 // Process incoming Ethernet packet.
-// ethPkt is received data, conn is our outgoing connection.
 // ready channel is TAPListen's synchronization channel used to tell him
 // that he is free to receive new packets. Encrypted and authenticated
 // packets will be sent to remote Peer side immediately.
-func (p *Peer) EthProcess(ethPkt []byte, conn WriteToUDPer, ready chan struct{}) {
+func (p *Peer) EthProcess(data []byte, ready chan struct{}) {
 	p.now = time.Now()
-	p.size = len(ethPkt)
+	p.size = len(data)
 	// If this heartbeat is necessary
 	if p.size == 0 && !p.LastSent.Add(p.Timeout).Before(p.now) {
 		return
 	}
 	copy(p.buf, Emptiness)
 	if p.size > 0 {
-		copy(p.buf[S20BS+PktSizeSize:], ethPkt)
+		copy(p.buf[S20BS+PktSizeSize:], data)
 		ready <- struct{}{}
 		binary.PutUvarint(p.buf[S20BS:S20BS+PktSizeSize], uint64(p.size))
 		p.BytesPayloadOut += int64(p.size)
@@ -349,5 +344,5 @@ func (p *Peer) EthProcess(ethPkt []byte, conn WriteToUDPer, ready chan struct{})
 		}
 	}
 	p.LastSent = p.now
-	conn.WriteToUDP(append(p.frame, p.tag[:]...), p.Addr)
+	p.Conn.Write(append(p.frame, p.tag[:]...))
 }
