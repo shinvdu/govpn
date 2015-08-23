@@ -1,10 +1,15 @@
 @node Installation
 @unnumbered Installation
 
-GoVPN is written on @url{http://golang.org/, Go programming language},
+GoVPN is written on Go programming language and you have to install Go
+compiler (1.5+ version is highly recommended): @code{lang/go} port in
+FreeBSD and @code{golang} package in most GNU/Linux distributions.
 @emph{Make} is recommended for convenient building.
-@url{https://www.gnu.org/software/texinfo/, Texinfo}
-is used for building documentation.
+@url{https://www.gnu.org/software/texinfo/, Texinfo} is used for
+building documentation.
+Possibly you also need to install TUN/TAP interface utilities (depending
+on your operating system): @code{uml-utilities} package in most
+GNU/Linux distributions.
 
 Included required libraries:
 
@@ -15,18 +20,10 @@ Included required libraries:
 @item @code{github.com/bigeagle/water} @tab GNU/Linux @tab BSD 3-Clause
 @end multitable
 
-Get the tarball and run @code{make}.
+Get @ref{Prepared tarballs, the tarball}, check its
+@ref{Tarballs integrity check, authenticity} and run @code{make}.
 @emph{govpn-client}, @emph{govpn-server}, @emph{govpn-verifier}
-binaries will be build in the current directory.
-
-As a prerequisite you must install Go compiler (version 1.5 is highly
-recommended) and possibly TUN/TAP interfaces utilities:
-
-@itemize @bullet
-@item @code{lang/go} port in FreeBSD.
-@item @code{golang} and @code{uml-utilities} packages in GNU/Linux
-distributions.
-@end itemize
+binaries will be built in the current directory:
 
 @example
 % wget http://www.cypherpunks.ru/govpn/download/govpn-2.3.tar.xz

@@ -10,7 +10,7 @@ All transport and handshake messages are indistinguishable from
 pseudo random noise, except when using TCP connections.
 
 @code{PktLen} is used only with TCP connections. It is big-endian
-@emph{uin16} length of the whole packet (except PktLen itself).
+@emph{uint16} length of the whole packet (except @code{PktLen} itself).
 
 @code{SERIAL} is message's serial number. Odds are reserved for
 client(->server) messages, evens for server(->client) messages.

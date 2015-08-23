@@ -14,3 +14,10 @@ any external HTTP proxy server can be used.
 Client has @emph{-proxy} option forcing it to connect to proxy and send
 CONNECT method. Optionally it can be authenticated on it using
 @emph{-proxy-auth} HTTP Basic method.
+
+@example
+% govpn-client [...] -proto tcp \
+    -remote "$REMOTE_ADDR":1194 \
+    -proxy 192.168.55.1:8888 \
+    -proxy-auth mylogin:password
+@end example
