@@ -36,7 +36,7 @@ func (c TCPSender) Write(data []byte) (int, error) {
 	return c.conn.Write(append(size, data...))
 }
 
-func startTCP() chan Pkt {
+func startTCP(sink *chan Pkt) {
 	bind, err := net.ResolveTCPAddr("tcp", *bindAddr)
 	if err != nil {
 		log.Fatalln("Can not resolve bind address:", err)
@@ -45,7 +45,7 @@ func startTCP() chan Pkt {
 	if err != nil {
 		log.Fatalln("Can not listen on TCP:", err)
 	}
-	sink := make(chan Pkt)
+	log.Println("Listening on TCP", *bindAddr)
 	go func() {
 		for {
 			conn, _ := listener.AcceptTCP()
@@ -72,7 +72,7 @@ func startTCP() chan Pkt {
 							if sizeNeed > uint16(govpn.MTU)-2 {
 								log.Println("Invalid TCP size, skipping")
 								sizeNbuf = 0
-								sink <- Pkt{ready: ready}
+								*sink <- Pkt{ready: ready}
 								continue
 							}
 							bufN = 0
@@ -88,7 +88,7 @@ func startTCP() chan Pkt {
 						goto ReadMore
 					}
 					sizeNbuf = 0
-					sink <- Pkt{
+					*sink <- Pkt{
 						addr,
 						TCPSender{conn},
 						buf[:sizeNeed],
@@ -99,5 +99,4 @@ func startTCP() chan Pkt {
 			ready <- struct{}{}
 		}
 	}()
-	return sink
 }

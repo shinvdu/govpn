@@ -35,7 +35,7 @@ import (
 
 var (
 	bindAddr  = flag.String("bind", "[::]:1194", "Bind to address")
-	proto     = flag.String("proto", "udp", "Protocol to use: udp or tcp")
+	proto     = flag.String("proto", "udp", "Protocol to use: udp, tcp or all")
 	peersPath = flag.String("peers", "peers", "Path to peers keys directory")
 	stats     = flag.String("stats", "", "Enable stats retrieving on host:port")
 	mtu       = flag.Int("mtu", 1452, "MTU for outgoing packets")
@@ -88,6 +88,7 @@ func main() {
 	flag.Parse()
 	timeout := time.Second * time.Duration(govpn.TimeoutDefault)
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
+	log.Println(govpn.VersionGet())
 
 	govpn.MTU = *mtu
 	govpn.PeersInit(*peersPath)
@@ -97,12 +98,15 @@ func main() {
 		govpn.EGDInit(*egdPath)
 	}
 
-	var sink chan Pkt
+	sink := make(chan Pkt)
 	switch *proto {
 	case "udp":
-		sink = startUDP()
+		startUDP(&sink)
 	case "tcp":
-		sink = startTCP()
+		startTCP(&sink)
+	case "all":
+		startUDP(&sink)
+		startTCP(&sink)
 	default:
 		log.Fatalln("Unknown protocol specified")
 	}
@@ -129,8 +133,6 @@ func main() {
 	var handshakeProcessForce bool
 	ethSink := make(chan EthEvent)
 
-	log.Println(govpn.VersionGet())
-	log.Println("Listening on", *proto, *bindAddr)
 	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)

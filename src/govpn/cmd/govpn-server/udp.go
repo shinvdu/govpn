@@ -35,7 +35,7 @@ func (c UDPSender) Write(data []byte) (int, error) {
 	return c.conn.WriteToUDP(data, c.addr)
 }
 
-func startUDP() chan Pkt {
+func startUDP(sink *chan Pkt) {
 	bind, err := net.ResolveUDPAddr("udp", *bindAddr)
 	ready := make(chan struct{})
 	if err != nil {
@@ -45,7 +45,7 @@ func startUDP() chan Pkt {
 	if err != nil {
 		log.Fatalln("Can not listen on UDP:", err)
 	}
-	sink := make(chan Pkt)
+	log.Println("Listening on UDP", *bindAddr)
 	go func() {
 		buf := make([]byte, govpn.MTU)
 		var n int
@@ -56,10 +56,10 @@ func startUDP() chan Pkt {
 			lconn.SetReadDeadline(time.Now().Add(time.Second))
 			n, raddr, err = lconn.ReadFromUDP(buf)
 			if err != nil {
-				sink <- Pkt{ready: ready}
+				*sink <- Pkt{ready: ready}
 				continue
 			}
-			sink <- Pkt{
+			*sink <- Pkt{
 				raddr.String(),
 				UDPSender{lconn, raddr},
 				buf[:n],
@@ -68,5 +68,4 @@ func startUDP() chan Pkt {
 		}
 	}()
 	ready <- struct{}{}
-	return sink
 }
