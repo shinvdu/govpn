@@ -1,0 +1,9 @@
+[submodule "src/github.com/bigeagle/water"]
+	path = src/github.com/bigeagle/water
+	url = https://github.com/bigeagle/water.git
+[submodule "src/github.com/agl/ed25519"]
+	path = src/github.com/agl/ed25519
+	url = https://github.com/agl/ed25519.git
+[submodule "src/golang.org/x/crypto"]
+	path = src/golang.org/x/crypto
+	url = https://go.googlesource.com/crypto

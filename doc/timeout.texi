@@ -12,3 +12,7 @@ the time, even if there is no traffic in corresponding TAP interfaces.
 @strong{Beware}: this consumes traffic.
 
 Stale peers and handshake states are cleaned up every timeout period.
+
+This applies to TCP connections too: relatively much time can pass until
+we understand that remote TCP peer is suddenly died and did not
+normally terminate connection.

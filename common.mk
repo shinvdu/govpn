@@ -1,4 +1,4 @@
-LDFLAGS = -X govpn.Version $(VERSION)
+LDFLAGS = -X govpn.Version=$(VERSION)
 PREFIX ?= /usr/local
 BINDIR = $(DESTDIR)$(PREFIX)/bin
 INFODIR = $(DESTDIR)$(PREFIX)/info
@@ -7,20 +7,17 @@ DOCDIR = $(DESTDIR)$(PREFIX)/share/doc/govpn
 
 all: govpn-client govpn-server govpn-verifier
 
-depends:
-	$(MAKE) -C src
-
-govpn-client: depends
+govpn-client:
 	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-client
 
-govpn-server: depends
+govpn-server:
 	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-server
 
-govpn-verifier: depends
+govpn-verifier:
 	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-verifier
 
 bench:
-	cd src/govpn ; GOPATH=$(GOPATH) GOMAXPROC=2 go test -bench .
+	cd src/govpn ; GOPATH=$(GOPATH) go test -bench .
 
 clean:
 	rm -f govpn-client govpn-server govpn-verifier

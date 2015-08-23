@@ -22,6 +22,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -34,11 +35,20 @@ import (
 
 var (
 	bindAddr  = flag.String("bind", "[::]:1194", "Bind to address")
+	proto     = flag.String("proto", "udp", "Protocol to use: udp, tcp or all")
 	peersPath = flag.String("peers", "peers", "Path to peers keys directory")
 	stats     = flag.String("stats", "", "Enable stats retrieving on host:port")
+	proxy     = flag.String("proxy", "", "Enable HTTP proxy on host:port")
 	mtu       = flag.Int("mtu", 1452, "MTU for outgoing packets")
 	egdPath   = flag.String("egd", "", "Optional path to EGD socket")
 )
+
+type Pkt struct {
+	addr  string
+	conn  io.Writer
+	data  []byte
+	ready chan struct{}
+}
 
 type PeerReadyEvent struct {
 	peer  *govpn.Peer
@@ -78,8 +88,8 @@ type EthEvent struct {
 func main() {
 	flag.Parse()
 	timeout := time.Second * time.Duration(govpn.TimeoutDefault)
-	var err error
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
+	log.Println(govpn.VersionGet())
 
 	govpn.MTU = *mtu
 	govpn.PeersInit(*peersPath)
@@ -89,15 +99,18 @@ func main() {
 		govpn.EGDInit(*egdPath)
 	}
 
-	bind, err := net.ResolveUDPAddr("udp", *bindAddr)
-	if err != nil {
-		log.Fatalln("Can not resolve bind address:", err)
+	sink := make(chan Pkt)
+	switch *proto {
+	case "udp":
+		startUDP(sink)
+	case "tcp":
+		startTCP(sink)
+	case "all":
+		startUDP(sink)
+		startTCP(sink)
+	default:
+		log.Fatalln("Unknown protocol specified")
 	}
-	conn, err := net.ListenUDP("udp", bind)
-	if err != nil {
-		log.Fatalln("Can listen on UDP:", err)
-	}
-	udpSink, udpBuf, udpReady := govpn.ConnListen(conn)
 
 	termSignal := make(chan os.Signal, 1)
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
@@ -105,7 +118,6 @@ func main() {
 	hsHeartbeat := time.Tick(timeout)
 	go func() { <-hsHeartbeat }()
 
-	var addr string
 	var state *govpn.Handshake
 	var peerState *PeerState
 	var peer *govpn.Peer
@@ -115,15 +127,13 @@ func main() {
 	peerReadySink := make(chan PeerReadyEvent)
 	knownPeers := govpn.KnownPeers(make(map[string]**govpn.Peer))
 	var peerReady PeerReadyEvent
-	var udpPkt govpn.UDPPkt
-	var udpPktData []byte
+	var pkt Pkt
 	var ethEvent EthEvent
 	var peerId *govpn.PeerId
 	var peerConf *govpn.PeerConf
 	var handshakeProcessForce bool
 	ethSink := make(chan EthEvent)
 
-	log.Println(govpn.VersionGet())
 	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
@@ -132,6 +142,9 @@ func main() {
 			log.Fatalln("Can not listen on stats port:", err)
 		}
 		go govpn.StatsProcessor(statsPort, &knownPeers)
+	}
+	if *proxy != "" {
+		go proxyStart(sink)
 	}
 	log.Println("Server started")
 
@@ -175,15 +188,14 @@ MainCycle:
 				state.peer.Zero()
 				break
 			}
-			addr = peerReady.peer.Addr.String()
 			state := NewPeerState(peerReady.peer, peerReady.iface)
 			if state == nil {
 				continue
 			}
-			peers[addr] = state
-			knownPeers[addr] = &peerReady.peer
-			states[addr].Zero()
-			delete(states, addr)
+			peers[peerReady.peer.Addr] = state
+			knownPeers[peerReady.peer.Addr] = &peerReady.peer
+			states[peerReady.peer.Addr].Zero()
+			delete(states, peerReady.peer.Addr)
 			log.Println("Registered interface", peerReady.iface, "with peer", peer)
 			go func(state *PeerState) {
 				for data := range state.sink {
@@ -195,43 +207,43 @@ MainCycle:
 				}
 			}(state)
 		case ethEvent = <-ethSink:
-			if s, exists := peers[ethEvent.peer.Addr.String()]; !exists || s.peer != ethEvent.peer {
+			if s, exists := peers[ethEvent.peer.Addr]; !exists || s.peer != ethEvent.peer {
 				continue
 			}
-			ethEvent.peer.EthProcess(ethEvent.data, conn, ethEvent.ready)
-		case udpPkt = <-udpSink:
-			if udpPkt.Addr == nil {
-				udpReady <- struct{}{}
+			ethEvent.peer.EthProcess(ethEvent.data, ethEvent.ready)
+		case pkt = <-sink:
+			if pkt.data == nil {
+				pkt.ready <- struct{}{}
 				continue
 			}
-			udpPktData = udpBuf[:udpPkt.Size]
-			addr = udpPkt.Addr.String()
 			handshakeProcessForce = false
 		HandshakeProcess:
-			if _, exists = peers[addr]; handshakeProcessForce || !exists {
-				peerId = govpn.IDsCache.Find(udpPktData)
+			if _, exists = peers[pkt.addr]; handshakeProcessForce || !exists {
+				peerId = govpn.IDsCache.Find(pkt.data)
 				if peerId == nil {
-					log.Println("Unknown identity from", addr)
-					udpReady <- struct{}{}
+					log.Println("Unknown identity from", pkt.addr)
+					pkt.ready <- struct{}{}
 					continue
 				}
 				peerConf = peerId.Conf()
 				if peerConf == nil {
 					log.Println("Can not get peer configuration", peerId.String())
-					udpReady <- struct{}{}
+					pkt.ready <- struct{}{}
 					continue
 				}
-				state, exists = states[addr]
+				state, exists = states[pkt.addr]
 				if !exists {
-					state = govpn.HandshakeNew(udpPkt.Addr, peerConf)
-					states[addr] = state
+					state = govpn.HandshakeNew(pkt.addr, pkt.conn, peerConf)
+					states[pkt.addr] = state
 				}
-				peer = state.Server(conn, udpPktData)
+				peer = state.Server(pkt.data)
 				if peer != nil {
 					log.Println("Peer handshake finished", peer)
-					if _, exists = peers[addr]; exists {
+					if _, exists = peers[pkt.addr]; exists {
 						go func() {
-							peerReadySink <- PeerReadyEvent{peer, peers[addr].tap.Name}
+							peerReadySink <- PeerReadyEvent{
+								peer, peers[pkt.addr].tap.Name,
+							}
 						}()
 					} else {
 						go func() {
@@ -250,18 +262,18 @@ MainCycle:
 					}
 				}
 				if !handshakeProcessForce {
-					udpReady <- struct{}{}
+					pkt.ready <- struct{}{}
 				}
 				continue
 			}
-			peerState, exists = peers[addr]
+			peerState, exists = peers[pkt.addr]
 			if !exists {
-				udpReady <- struct{}{}
+				pkt.ready <- struct{}{}
 				continue
 			}
 			// If it fails during processing, then try to work with it
 			// as with handshake packet
-			if !peerState.peer.UDPProcess(udpPktData, peerState.tap, udpReady) {
+			if !peerState.peer.PktProcess(pkt.data, peerState.tap, pkt.ready) {
 				handshakeProcessForce = true
 				goto HandshakeProcess
 			}

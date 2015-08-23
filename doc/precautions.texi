@@ -9,7 +9,7 @@ passphrases. Also remember to keep passphrase in temporary file and read
 it securely as described in @ref{Verifier}.
 
 @item
-You must @strong{never} use one key for multiple clients.
+You must @strong{never} use the same key for multiple clients.
 
 @item
 You must use @strong{cryptographically good} pseudo random number

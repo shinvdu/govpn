@@ -1,5 +1,5 @@
 @node CPR
-@section CPR
+@section Constant Packet Rate
 
 Constant Packet Rate is used to hide fact of underlying payload packets
 appearance. In this mode daemon inserts necessary dummy packets and

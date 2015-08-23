@@ -21,6 +21,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -32,12 +33,15 @@ import (
 
 var (
 	remoteAddr = flag.String("remote", "", "Remote server address")
+	proto      = flag.String("proto", "udp", "Protocol to use: udp or tcp")
 	ifaceName  = flag.String("iface", "tap0", "TAP network interface")
 	IDRaw      = flag.String("id", "", "Client identification")
 	keyPath    = flag.String("key", "", "Path to passphrase file")
 	upPath     = flag.String("up", "", "Path to up-script")
 	downPath   = flag.String("down", "", "Path to down-script")
 	stats      = flag.String("stats", "", "Enable stats retrieving on host:port")
+	proxyAddr  = flag.String("proxy", "", "Use HTTP proxy on host:port")
+	proxyAuth  = flag.String("proxy-auth", "", "user:password Basic proxy auth")
 	mtu        = flag.Int("mtu", 1452, "MTU for outgoing packets")
 	timeoutP   = flag.Int("timeout", 60, "Timeout seconds")
 	noisy      = flag.Bool("noise", false, "Enable noise appending")
@@ -74,17 +78,20 @@ func main() {
 	}
 	govpn.PeersInitDummy(id, conf)
 
-	bind, err := net.ResolveUDPAddr("udp", "0.0.0.0:0")
-	if err != nil {
-		log.Fatalln("Can not resolve address:", err)
-	}
-	conn, err := net.ListenUDP("udp", bind)
-	if err != nil {
-		log.Fatalln("Can not listen on UDP:", err)
-	}
-	remote, err := net.ResolveUDPAddr("udp", *remoteAddr)
-	if err != nil {
-		log.Fatalln("Can not resolve remote address:", err)
+	var conn io.Writer
+	var sink chan []byte
+	var ready chan struct{}
+	switch *proto {
+	case "udp":
+		conn, sink, ready = startUDP()
+	case "tcp":
+		if *proxyAddr != "" {
+			conn, sink, ready = proxyTCP()
+		} else {
+			conn, sink, ready = startTCP()
+		}
+	default:
+		log.Fatalln("Unknown protocol specified")
 	}
 
 	tap, ethSink, ethReady, _, err := govpn.TAPListen(
@@ -95,17 +102,16 @@ func main() {
 	if err != nil {
 		log.Fatalln("Can not listen on TAP interface:", err)
 	}
-	udpSink, udpBuf, udpReady := govpn.ConnListen(conn)
 
 	timeouts := 0
 	firstUpCall := true
 	var peer *govpn.Peer
 	var ethPkt []byte
-	var udpPkt govpn.UDPPkt
-	var udpPktData []byte
-	knownPeers := govpn.KnownPeers(map[string]**govpn.Peer{remote.String(): &peer})
+	var pkt []byte
+	knownPeers := govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
 
 	log.Println(govpn.VersionGet())
+	log.Println("Connected to", *proto, *remoteAddr)
 	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
@@ -120,14 +126,14 @@ func main() {
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
 
 	log.Println("Starting handshake")
-	handshake := govpn.HandshakeStart(conf, conn, remote)
+	handshake := govpn.HandshakeStart(*remoteAddr, conn, conf)
 
 MainCycle:
 	for {
 		if peer != nil && (peer.BytesIn+peer.BytesOut) > govpn.MaxBytesPerKey {
 			peer.Zero()
 			peer = nil
-			handshake = govpn.HandshakeStart(conf, conn, remote)
+			handshake = govpn.HandshakeStart(*remoteAddr, conn, conf)
 			log.Println("Rehandshaking")
 		}
 		select {
@@ -140,30 +146,24 @@ MainCycle:
 				}
 				continue
 			}
-			peer.EthProcess(ethPkt, conn, ethReady)
-		case udpPkt = <-udpSink:
+			peer.EthProcess(ethPkt, ethReady)
+		case pkt = <-sink:
 			timeouts++
 			if timeouts >= timeout {
 				break MainCycle
 			}
-			if udpPkt.Addr == nil {
-				udpReady <- struct{}{}
+			if pkt == nil {
+				ready <- struct{}{}
 				continue
 			}
 
-			udpPktData = udpBuf[:udpPkt.Size]
 			if peer == nil {
-				if udpPkt.Addr.String() != remote.String() {
-					udpReady <- struct{}{}
-					log.Println("Unknown handshake message")
-					continue
-				}
-				if govpn.IDsCache.Find(udpPktData) == nil {
+				if govpn.IDsCache.Find(pkt) == nil {
 					log.Println("Invalid identity in handshake packet")
-					udpReady <- struct{}{}
+					ready <- struct{}{}
 					continue
 				}
-				if p := handshake.Client(conn, udpPktData); p != nil {
+				if p := handshake.Client(pkt); p != nil {
 					log.Println("Handshake completed")
 					if firstUpCall {
 						go govpn.ScriptCall(*upPath, *ifaceName)
@@ -173,14 +173,14 @@ MainCycle:
 					handshake.Zero()
 					handshake = nil
 				}
-				udpReady <- struct{}{}
+				ready <- struct{}{}
 				continue
 			}
 			if peer == nil {
-				udpReady <- struct{}{}
+				ready <- struct{}{}
 				continue
 			}
-			if peer.UDPProcess(udpPktData, tap, udpReady) {
+			if peer.PktProcess(pkt, tap, ready) {
 				timeouts = 0
 			}
 		}

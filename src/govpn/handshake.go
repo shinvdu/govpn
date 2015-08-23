@@ -22,8 +22,8 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/binary"
+	"io"
 	"log"
-	"net"
 	"time"
 
 	"github.com/agl/ed25519"
@@ -40,7 +40,8 @@ const (
 )
 
 type Handshake struct {
-	addr     *net.UDPAddr
+	addr     string
+	conn     io.Writer
 	LastPing time.Time
 	Conf     *PeerConf
 	dsaPubH  *[ed25519.PublicKeySize]byte
@@ -133,9 +134,10 @@ func dhKeyGen(priv, pub *[32]byte) *[32]byte {
 }
 
 // Create new handshake state.
-func HandshakeNew(addr *net.UDPAddr, conf *PeerConf) *Handshake {
+func HandshakeNew(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 	state := Handshake{
 		addr:     addr,
+		conn:     conn,
 		LastPing: time.Now(),
 		Conf:     conf,
 	}
@@ -157,11 +159,10 @@ func idTag(id *PeerId, data []byte) []byte {
 }
 
 // Start handshake's procedure from the client. It is the entry point
-// for starting the handshake procedure. You have to specify outgoing
-// conn address, remote's addr address, our own peer configuration.
-// First handshake packet will be sent immediately.
-func HandshakeStart(conf *PeerConf, conn *net.UDPConn, addr *net.UDPAddr) *Handshake {
-	state := HandshakeNew(addr, conf)
+// for starting the handshake procedure. // First handshake packet
+// will be sent immediately.
+func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
+	state := HandshakeNew(addr, conn, conf)
 
 	var dhPubRepr *[32]byte
 	state.dhPriv, dhPubRepr = dhKeypairGen()
@@ -174,17 +175,16 @@ func HandshakeStart(conf *PeerConf, conn *net.UDPConn, addr *net.UDPAddr) *Hands
 	salsa20.XORKeyStream(enc, dhPubRepr[:], state.rNonce[:], state.dsaPubH)
 	data := append(state.rNonce[:], enc...)
 	data = append(data, idTag(state.Conf.Id, state.rNonce[:])...)
-	conn.WriteToUDP(data, addr)
+	state.conn.Write(data)
 	return state
 }
 
 // Process handshake message on the server side.
 // This function is intended to be called on server's side.
-// Our outgoing conn connection and received data are required.
 // If this is the final handshake message, then new Peer object
 // will be created and used as a transport. If no mutually
 // authenticated Peer is ready, then return nil.
-func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
+func (h *Handshake) Server(data []byte) *Peer {
 	// R + ENC(H(DSAPub), R, El(CDHPub)) + IDtag
 	if len(data) == 48 && h.rNonce == nil {
 		// Generate DH keypair
@@ -222,7 +222,7 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 		salsa20.XORKeyStream(encRs, append(h.rServer[:], h.sServer[:]...), h.rNonce[:], h.key)
 
 		// Send that to client
-		conn.WriteToUDP(append(encPub, append(encRs, idTag(h.Conf.Id, encPub)...)...), h.addr)
+		h.conn.Write(append(encPub, append(encRs, idTag(h.Conf.Id, encPub)...)...))
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+1, RS + RC + SC + Sign(DSAPriv, K)) + IDtag
@@ -249,11 +249,12 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 		// Send final answer to client
 		enc := make([]byte, RSize)
 		salsa20.XORKeyStream(enc, dec[RSize:RSize+RSize], h.rNonceNext(2), h.key)
-		conn.WriteToUDP(append(enc, idTag(h.Conf.Id, enc)...), h.addr)
+		h.conn.Write(append(enc, idTag(h.Conf.Id, enc)...))
 
 		// Switch peer
 		peer := newPeer(
 			h.addr,
+			h.conn,
 			h.Conf,
 			0,
 			keyFromSecrets(h.sServer[:], dec[RSize+RSize:RSize+RSize+SSize]))
@@ -267,12 +268,10 @@ func (h *Handshake) Server(conn *net.UDPConn, data []byte) *Peer {
 
 // Process handshake message on the client side.
 // This function is intended to be called on client's side.
-// Our outgoing conn connection, authentication
-// key and received data are required.
 // If this is the final handshake message, then new Peer object
 // will be created and used as a transport. If no mutually
 // authenticated Peer is ready, then return nil.
-func (h *Handshake) Client(conn *net.UDPConn, data []byte) *Peer {
+func (h *Handshake) Client(data []byte) *Peer {
 	switch len(data) {
 	case 80: // ENC(H(DSAPub), R+1, El(SDHPub)) + ENC(K, R, RS + SS) + IDtag
 		if h.key != nil {
@@ -313,7 +312,7 @@ func (h *Handshake) Client(conn *net.UDPConn, data []byte) *Peer {
 					append(h.sClient[:], sign[:]...)...)...), h.rNonceNext(1), h.key)
 
 		// Send that to server
-		conn.WriteToUDP(append(enc, idTag(h.Conf.Id, enc)...), h.addr)
+		h.conn.Write(append(enc, idTag(h.Conf.Id, enc)...))
 		h.LastPing = time.Now()
 	case 16: // ENC(K, R+2, RC) + IDtag
 		if h.key == nil {
@@ -330,7 +329,7 @@ func (h *Handshake) Client(conn *net.UDPConn, data []byte) *Peer {
 		}
 
 		// Switch peer
-		peer := newPeer(h.addr, h.Conf, 1, keyFromSecrets(h.sServer[:], h.sClient[:]))
+		peer := newPeer(h.addr, h.conn, h.Conf, 1, keyFromSecrets(h.sServer[:], h.sClient[:]))
 		h.LastPing = time.Now()
 		return peer
 	default:

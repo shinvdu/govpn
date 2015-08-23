@@ -4,16 +4,22 @@
 Announcements about updates and new releases can be found in @ref{Contacts}.
 
 GoVPN is split into two pieces: client and server. Each of them work on
-top of UDP and TAP virtual network interfaces. GoVPN is just a
+top of UDP/TCP and TAP virtual network interfaces. GoVPN is just a
 tunnelling of Ethernet frames, nothing less, nothing more. All you
 IP-related network management is not touched by VPN at all. You can
 automate it using up and down shell scripts.
+
+What network performance can user expect? For example single
+@emph{Intel i5-2450M 2.5 GHz} core on @emph{FreeBSD 10.2 amd64}
+with @emph{Go 1.5} gives 435 Mbps TCP (over UDP) throughput.
 
 @menu
 * EGD:: Entropy gathering daemon
 * Identity::
 * PAKE:: Password Authenticated Key Agreement
 * Timeout::
+* Network transport::
+* Proxy::
 * MTU:: Maximum Transmission Unit
 * Stats::
 * Noise::
@@ -28,6 +34,8 @@ automate it using up and down shell scripts.
 @include identity.texi
 @include pake.texi
 @include timeout.texi
+@include netproto.texi
+@include proxy.texi
 @include mtu.texi
 @include stats.texi
 @include noise.texi

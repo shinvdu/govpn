@@ -1,5 +1,5 @@
 @node MTU
-@section MTU
+@section Maximum Transmission Unit
 
 MTU command line argument is maximum allowable size of outgoing GoVPN's
 packets. It varies and depends on your environment, so probably has to

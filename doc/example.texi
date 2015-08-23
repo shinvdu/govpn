@@ -17,18 +17,11 @@ is 1432.
 @strong{Install}. At first you must @ref{Installation, install} this
 software: download, check the signature, compile.
 
-Do not forget about setting @code{GOMAXPROC} environment variable for
-using more than one CPU on both sides:
-
-@example
-% export GOMAXPROC=4
-@end example
-
 @strong{Prepare the server}. Create the new client, named (for example)
 "Alice":
 
 @example
-% ./utils/newclient.sh Alice
+server% ./utils/newclient.sh Alice
 Place verifier to peers/6d4ac605ce8dc37c2f0bf21cb542a713/verifier
 @end example
 
@@ -38,11 +31,11 @@ Place verifier to peers/6d4ac605ce8dc37c2f0bf21cb542a713/verifier
 identity:
 
 @example
-% ./utils/storekey.sh /tmp/passphrase
+client% ./utils/storekey.sh /tmp/passphrase
 Enter passphrase:[my secure passphrase is here]
-% govpn-verifier -id 6d4ac605ce8dc37c2f0bf21cb542a713 -key /tmp/passphrase
+client% govpn-verifier -id 6d4ac605ce8dc37c2f0bf21cb542a713 -key /tmp/passphrase
 562556cc9ecf0019b4cf45bcdf42706944ae9b3ac7c73ad299d83f2d5a169c55
-% rm /tmp/passphrase
+client% rm /tmp/passphrase
 @end example
 
 "562556cc9ecf0019b4cf45bcdf42706944ae9b3ac7c73ad299d83f2d5a169c55" --
@@ -51,7 +44,7 @@ this is verifier itself.
 @strong{Save verifier on server}.
 
 @example
-% cat > peers/6d4ac605ce8dc37c2f0bf21cb542a713/verifier <<EOF
+server% cat > peers/6d4ac605ce8dc37c2f0bf21cb542a713/verifier <<EOF
 562556cc9ecf0019b4cf45bcdf42706944ae9b3ac7c73ad299d83f2d5a169c55
 EOF
 @end example

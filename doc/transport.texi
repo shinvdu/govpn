@@ -2,37 +2,41 @@
 @section Transport protocol
 
 @verbatim
-ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE) +
+[PktLen] + ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE) +
     AUTH(ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE))
 @end verbatim
 
 All transport and handshake messages are indistinguishable from
-pseudo random noise.
+pseudo random noise, except when using TCP connections.
+
+@code{PktLen} is used only with TCP connections. It is big-endian
+@emph{uint16} length of the whole packet (except @code{PktLen} itself).
 
 @code{SERIAL} is message's serial number. Odds are reserved for
-client(→server) messages, evens for server(→client) messages.
+client(->server) messages, evens for server(->client) messages.
 
 @code{ENCn} is XTEA block cipher algorithm used here as PRP (pseudo
-random permutation) to randomize, obfuscate @code{SERIAL}. Plaintext
+random permutation function) to obfuscate @code{SERIAL}. Plaintext
 @code{SERIAL} state is kept in peers internal state, but encrypted
 before transmission. XTEA is compact and fast enough. Salsa20 is PRF
-function and requires much more code to create PRP from it. XTEA's
-encryption key is the first 128-bit of Salsa20's output with established
-common key and zero nonce (message nonces start from 1).
+function and requires much more code to create PRP from it.
 
-Encrypted @code{SERIAL} is used as a nonce for @code{DATA} encryption:
-encryption key is different during each handshake, so (key, nonce) pair
-is always used only once. @code{ENC} is Salsa20 cipher, with established
-session @code{KEY} and encrypted @code{SERIAL} used as a nonce.
-@code{DATA_SIZE} is @emph{uint16} storing length of the @code{DATA}.
+XTEA's encryption key is the first 128-bit of Salsa20's output with
+established common key and zero nonce (message nonces start from 1).
+
+@code{ENC} is Salsa20 stream cipher, with established session @code{KEY}
+and obfuscated @code{SERIAL} used as a nonce. First 256 bits of
+Salsa20's output is used as Poly1305 authentication key, next 256 bits
+are ignored. All remaining output is XORed with the data, encrypting it.
+
+@code{DATA_SIZE} is big-endian @emph{uint16} storing length of the
+@code{DATA}.
 
 @code{NOISE} is optional. It is just some junk data, intended to fill up
 packet to MTU size. This is useful for concealing payload packets length.
 
 @code{AUTH} is Poly1305 authentication function. First 256 bits of
-Salsa20 output are used as a one-time key for @code{AUTH}. Next 256 bits
-of Salsa20 are ignored. All remaining output is XORed with the data,
-encrypting it.
+Salsa20 output are used as a one-time key for @code{AUTH}.
 
 To prevent replay attacks we must remember received @code{SERIAL}s and
 if meet one, then drop it. Basically we could just store latest number

@@ -1,6 +1,8 @@
 @node Developer manual
 @unnumbered Developer manual
 
+Pay attention how to get @ref{Development source code}.
+
 @table @asis
 @item Nonce and identity encryption
 @url{http://143.53.36.235:8080/tea.htm, XTEA}.
@@ -17,9 +19,10 @@ and @url{http://ed25519.cr.yp.to/, Ed25519}.
 @url{https://en.wikipedia.org/wiki/PBKDF2, PBKDF2} based on
 @url{https://en.wikipedia.org/wiki/SHA-2, SHA-512}.
 @item Packet overhead
-26 bytes per packet.
+26 bytes per packet. Two more bytes in TCP mode.
 @item Handshake overhead
-4 UDP (2 from client, 2 from server) packets, 264 bytes total payload.
+4 UDP (2 from client, 2 from server) packets (round-trips for TCP),
+264 bytes total payload (8 bytes more in TCP mode).
 @item Entropy required
 832 bits in average on client, 832 bits in average on server side per
 handshake.
