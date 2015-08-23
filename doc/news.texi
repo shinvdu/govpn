@@ -3,6 +3,17 @@
 
 @table @strong
 
+@item Release 3.5
+@itemize @bullet
+@item Ability to use @ref{Network transport, TCP} network transport.
+Server can listen on both UDP and TCP sockets.
+@item Ability to use @ref{Proxy, HTTP proxies} (through CONNECT method)
+for accessing the server. Server can also emulate HTTP proxy behaviour.
+@item Updated Poly1305 library with ARM-related bugfixes.
+@item Go 1.5+ version is highly recommended because of performance
+reasons.
+@end itemize
+
 @item Release 3.4
 @itemize @bullet
 @item Ability to use external @ref{EGD}-compatible PRNGs. Now you are
