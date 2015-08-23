@@ -38,6 +38,7 @@ var (
 	proto     = flag.String("proto", "udp", "Protocol to use: udp, tcp or all")
 	peersPath = flag.String("peers", "peers", "Path to peers keys directory")
 	stats     = flag.String("stats", "", "Enable stats retrieving on host:port")
+	proxy     = flag.String("proxy", "", "Enable HTTP proxy on host:port")
 	mtu       = flag.Int("mtu", 1452, "MTU for outgoing packets")
 	egdPath   = flag.String("egd", "", "Optional path to EGD socket")
 )
@@ -101,12 +102,12 @@ func main() {
 	sink := make(chan Pkt)
 	switch *proto {
 	case "udp":
-		startUDP(&sink)
+		startUDP(sink)
 	case "tcp":
-		startTCP(&sink)
+		startTCP(sink)
 	case "all":
-		startUDP(&sink)
-		startTCP(&sink)
+		startUDP(sink)
+		startTCP(sink)
 	default:
 		log.Fatalln("Unknown protocol specified")
 	}
@@ -141,6 +142,9 @@ func main() {
 			log.Fatalln("Can not listen on stats port:", err)
 		}
 		go govpn.StatsProcessor(statsPort, &knownPeers)
+	}
+	if *proxy != "" {
+		go proxyStart(sink)
 	}
 	log.Println("Server started")
 

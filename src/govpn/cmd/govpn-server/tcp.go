@@ -27,7 +27,7 @@ import (
 )
 
 type TCPSender struct {
-	conn *net.TCPConn
+	conn net.Conn
 }
 
 func (c TCPSender) Write(data []byte) (int, error) {
@@ -36,7 +36,7 @@ func (c TCPSender) Write(data []byte) (int, error) {
 	return c.conn.Write(append(size, data...))
 }
 
-func startTCP(sink *chan Pkt) {
+func startTCP(sink chan Pkt) {
 	bind, err := net.ResolveTCPAddr("tcp", *bindAddr)
 	if err != nil {
 		log.Fatalln("Can not resolve bind address:", err)
@@ -50,53 +50,57 @@ func startTCP(sink *chan Pkt) {
 		for {
 			conn, _ := listener.AcceptTCP()
 			ready := make(chan struct{}, 1)
-			go func(conn *net.TCPConn, ready chan struct{}) {
-				addr := conn.RemoteAddr().String()
-				var err error
-				var n int
-				var sizeNbuf int
-				sizeBuf := make([]byte, 2)
-				var sizeNeed uint16
-				var bufN uint16
-				buf := make([]byte, govpn.MTU)
-				for {
-					<-ready
-					if sizeNbuf != 2 {
-						n, err = conn.Read(sizeBuf[sizeNbuf:2])
-						if err != nil {
-							break
-						}
-						sizeNbuf += n
-						if sizeNbuf == 2 {
-							sizeNeed = binary.BigEndian.Uint16(sizeBuf)
-							if sizeNeed > uint16(govpn.MTU)-2 {
-								log.Println("Invalid TCP size, skipping")
-								sizeNbuf = 0
-								*sink <- Pkt{ready: ready}
-								continue
-							}
-							bufN = 0
-						}
-					}
-				ReadMore:
-					if sizeNeed != bufN {
-						n, err = conn.Read(buf[bufN:sizeNeed])
-						if err != nil {
-							break
-						}
-						bufN += uint16(n)
-						goto ReadMore
-					}
-					sizeNbuf = 0
-					*sink <- Pkt{
-						addr,
-						TCPSender{conn},
-						buf[:sizeNeed],
-						ready,
-					}
-				}
-			}(conn, ready)
+			go handleTCP(conn, sink, ready)
 			ready <- struct{}{}
 		}
 	}()
+}
+
+func handleTCP(conn net.Conn, sink chan Pkt, ready chan struct{}) {
+	addr := conn.RemoteAddr().String()
+	var err error
+	var n int
+	var sizeNbuf int
+	sizeBuf := make([]byte, 2)
+	var sizeNeed uint16
+	var bufN uint16
+	buf := make([]byte, govpn.MTU)
+	for {
+		<-ready
+		if sizeNbuf != 2 {
+			n, err = conn.Read(sizeBuf[sizeNbuf:2])
+			if err != nil {
+				break
+			}
+			sizeNbuf += n
+			if sizeNbuf != 2 {
+				sink <- Pkt{ready: ready}
+				continue
+			}
+			sizeNeed = binary.BigEndian.Uint16(sizeBuf)
+			if int(sizeNeed) > govpn.MTU-2 {
+				log.Println("Invalid TCP size, skipping")
+				sizeNbuf = 0
+				sink <- Pkt{ready: ready}
+				continue
+			}
+			bufN = 0
+		}
+	ReadMore:
+		if sizeNeed != bufN {
+			n, err = conn.Read(buf[bufN:sizeNeed])
+			if err != nil {
+				break
+			}
+			bufN += uint16(n)
+			goto ReadMore
+		}
+		sizeNbuf = 0
+		sink <- Pkt{
+			addr,
+			TCPSender{conn},
+			buf[:sizeNeed],
+			ready,
+		}
+	}
 }

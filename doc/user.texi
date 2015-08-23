@@ -19,6 +19,7 @@ with @emph{Go 1.5} gives 435 Mbps TCP throughput.
 * PAKE:: Password Authenticated Key Agreement
 * Timeout::
 * Network transport::
+* Proxy::
 * MTU:: Maximum Transmission Unit
 * Stats::
 * Noise::
@@ -34,6 +35,7 @@ with @emph{Go 1.5} gives 435 Mbps TCP throughput.
 @include pake.texi
 @include timeout.texi
 @include netproto.texi
+@include proxy.texi
 @include mtu.texi
 @include stats.texi
 @include noise.texi

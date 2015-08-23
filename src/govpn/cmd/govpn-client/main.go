@@ -40,6 +40,8 @@ var (
 	upPath     = flag.String("up", "", "Path to up-script")
 	downPath   = flag.String("down", "", "Path to down-script")
 	stats      = flag.String("stats", "", "Enable stats retrieving on host:port")
+	proxyAddr  = flag.String("proxy", "", "Use HTTP proxy on host:port")
+	proxyAuth  = flag.String("proxy-auth", "", "user:password Basic proxy auth")
 	mtu        = flag.Int("mtu", 1452, "MTU for outgoing packets")
 	timeoutP   = flag.Int("timeout", 60, "Timeout seconds")
 	noisy      = flag.Bool("noise", false, "Enable noise appending")
@@ -83,7 +85,11 @@ func main() {
 	case "udp":
 		conn, sink, ready = startUDP()
 	case "tcp":
-		conn, sink, ready = startTCP()
+		if *proxyAddr != "" {
+			conn, sink, ready = proxyTCP()
+		} else {
+			conn, sink, ready = startTCP()
+		}
 	default:
 		log.Fatalln("Unknown protocol specified")
 	}

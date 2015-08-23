@@ -46,6 +46,7 @@ Copylefted free software: licensed under
 @item
 Works with @url{https://en.wikipedia.org/wiki/TAP_(network_driver), TAP}
 network interfaces on top of either UDP or TCP entirely.
+@item Ability to use HTTP proxies to access TCP server.
 @item
 @url{https://www.gnu.org/, GNU}/Linux and
 @url{http://www.freebsd.org/, FreeBSD} support.

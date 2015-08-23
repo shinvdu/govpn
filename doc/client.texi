@@ -1,10 +1,21 @@
 @node Client part
 @section Client part
 
-Except for common @code{-proto}, @code{-mtu}, @code{-stats}, @code{-egd}
+Except for common @code{-mtu}, @code{-stats}, @code{-egd}
 options client has the following ones:
 
 @table @code
+
+@item -proto
+@ref{Network transport} to use. Can be either @emph{udp} or @emph{tcp}.
+
+@item -proxy
+Use specified @emph{host:port} @ref{Proxy} server for accessing remote
+server.
+
+@item -proxy-auth
+Optional @emph{user:password} for HTTP Basic authorization on proxy
+server.
 
 @item -remote
 Address (@code{host:port} format) of remote server we need to connect to.

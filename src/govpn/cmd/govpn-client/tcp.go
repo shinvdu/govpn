@@ -50,46 +50,50 @@ func startTCP() (io.Writer, chan []byte, chan struct{}) {
 	}
 	sink := make(chan []byte)
 	ready := make(chan struct{})
-	go func() {
-		var err error
-		var n int
-		var sizeNbuf int
-		sizeBuf := make([]byte, 2)
-		var sizeNeed uint16
-		var bufN uint16
-		buf := make([]byte, govpn.MTU)
-		for {
-			<-ready
-			if sizeNbuf != 2 {
-				n, err = c.Read(sizeBuf[sizeNbuf:2])
-				if err != nil {
-					break
-				}
-				sizeNbuf += n
-				if sizeNbuf == 2 {
-					sizeNeed = binary.BigEndian.Uint16(sizeBuf)
-					if sizeNeed > uint16(govpn.MTU)-2 {
-						log.Println("Invalid TCP size, skipping")
-						sizeNbuf = 0
-						sink <- nil
-						continue
-					}
-					bufN = 0
-				}
-			}
-		ReadMore:
-			if sizeNeed != bufN {
-				n, err = c.Read(buf[bufN:sizeNeed])
-				if err != nil {
-					break
-				}
-				bufN += uint16(n)
-				goto ReadMore
-			}
-			sizeNbuf = 0
-			sink <- buf[:sizeNeed]
-		}
-	}()
+	go handleTCP(c, sink, ready)
 	go func() { ready <- struct{}{} }()
 	return conn, sink, ready
+}
+
+func handleTCP(conn *net.TCPConn, sink chan []byte, ready chan struct{}) {
+	var err error
+	var n int
+	var sizeNbuf int
+	sizeBuf := make([]byte, 2)
+	var sizeNeed uint16
+	var bufN uint16
+	buf := make([]byte, govpn.MTU)
+	for {
+		<-ready
+		if sizeNbuf != 2 {
+			n, err = conn.Read(sizeBuf[sizeNbuf:2])
+			if err != nil {
+				break
+			}
+			sizeNbuf += n
+			if sizeNbuf != 2 {
+				sink <- nil
+				continue
+			}
+			sizeNeed = binary.BigEndian.Uint16(sizeBuf)
+			if int(sizeNeed) > govpn.MTU-2 {
+				log.Println("Invalid TCP size, skipping")
+				sizeNbuf = 0
+				sink <- nil
+				continue
+			}
+			bufN = 0
+		}
+	ReadMore:
+		if sizeNeed != bufN {
+			n, err = conn.Read(buf[bufN:sizeNeed])
+			if err != nil {
+				break
+			}
+			bufN += uint16(n)
+			goto ReadMore
+		}
+		sizeNbuf = 0
+		sink <- buf[:sizeNeed]
+	}
 }
