@@ -21,7 +21,6 @@ package main
 
 import (
 	"flag"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -78,7 +77,7 @@ func main() {
 	}
 	govpn.PeersInitDummy(id, conf)
 
-	var conn io.Writer
+	var conn govpn.RemoteConn
 	var sink chan []byte
 	var ready chan struct{}
 	switch *proto {

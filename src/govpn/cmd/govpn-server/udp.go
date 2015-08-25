@@ -35,6 +35,10 @@ func (c UDPSender) Write(data []byte) (int, error) {
 	return c.conn.WriteToUDP(data, c.addr)
 }
 
+func (c UDPSender) Reorderable() bool {
+	return true
+}
+
 func startUDP(sink chan Pkt) {
 	bind, err := net.ResolveUDPAddr("udp", *bindAddr)
 	ready := make(chan struct{})

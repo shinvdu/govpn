@@ -20,7 +20,6 @@ package main
 
 import (
 	"encoding/binary"
-	"io"
 	"log"
 	"net"
 
@@ -38,7 +37,11 @@ func (c TCPSender) Write(data []byte) (int, error) {
 	return c.conn.Write(append(size, data...))
 }
 
-func startTCP() (io.Writer, chan []byte, chan struct{}) {
+func (c TCPSender) Reorderable() bool {
+	return false
+}
+
+func startTCP() (govpn.RemoteConn, chan []byte, chan struct{}) {
 	remote, err := net.ResolveTCPAddr("tcp", *remoteAddr)
 	if err != nil {
 		log.Fatalln("Can not resolve remote address:", err)

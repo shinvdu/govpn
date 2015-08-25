@@ -14,7 +14,7 @@ var (
 	conf       *PeerConf
 )
 
-type Dummy struct{
+type Dummy struct {
 	dst *[]byte
 }
 
@@ -23,6 +23,10 @@ func (d Dummy) Write(b []byte) (int, error) {
 		*d.dst = b
 	}
 	return len(b), nil
+}
+
+func (d Dummy) Reorderable() bool {
+	return true
 }
 
 func init() {
@@ -34,7 +38,7 @@ func init() {
 		NoiseEnable: false,
 		CPR:         0,
 	}
-	peer = newPeer("foo", Dummy{&ciphertext}, conf, 128, new([SSize]byte))
+	peer = newPeer(true, "foo", Dummy{&ciphertext}, conf, new([SSize]byte))
 	plaintext = make([]byte, 789)
 	ready = make(chan struct{})
 	go func() {
@@ -54,7 +58,7 @@ func BenchmarkEnc(b *testing.B) {
 
 func BenchmarkDec(b *testing.B) {
 	peer.EthProcess(plaintext, ready)
-	peer = newPeer("foo", Dummy{nil}, conf, 128, new([SSize]byte))
+	peer = newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		peer.nonceBucket0 = make(map[uint64]struct{}, 1)

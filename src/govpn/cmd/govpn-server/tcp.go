@@ -36,6 +36,10 @@ func (c TCPSender) Write(data []byte) (int, error) {
 	return c.conn.Write(append(size, data...))
 }
 
+func (c TCPSender) Reorderable() bool {
+	return false
+}
+
 func startTCP(sink chan Pkt) {
 	bind, err := net.ResolveTCPAddr("tcp", *bindAddr)
 	if err != nil {

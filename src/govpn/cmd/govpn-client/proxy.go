@@ -21,13 +21,14 @@ package main
 import (
 	"bufio"
 	"encoding/base64"
-	"io"
 	"log"
 	"net"
 	"net/http"
+
+	"govpn"
 )
 
-func proxyTCP() (io.Writer, chan []byte, chan struct{}) {
+func proxyTCP() (govpn.RemoteConn, chan []byte, chan struct{}) {
 	proxyAddr, err := net.ResolveTCPAddr("tcp", *proxyAddr)
 	if err != nil {
 		log.Fatalln("Can not resolve proxy address:", err)

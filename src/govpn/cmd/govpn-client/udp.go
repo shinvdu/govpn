@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"io"
 	"log"
 	"net"
 	"time"
@@ -27,13 +26,24 @@ import (
 	"govpn"
 )
 
-func startUDP() (io.Writer, chan []byte, chan struct{}) {
+type UDPSender struct {
+	conn *net.UDPConn
+}
+
+func (c UDPSender) Write(data []byte) (int, error) {
+	return c.conn.Write(data)
+}
+
+func (c UDPSender) Reorderable() bool {
+	return true
+}
+
+func startUDP() (govpn.RemoteConn, chan []byte, chan struct{}) {
 	remote, err := net.ResolveUDPAddr("udp", *remoteAddr)
 	if err != nil {
 		log.Fatalln("Can not resolve remote address:", err)
 	}
 	c, err := net.DialUDP("udp", nil, remote)
-	conn := io.Writer(c)
 	if err != nil {
 		log.Fatalln("Can not listen on UDP:", err)
 	}
@@ -55,5 +65,5 @@ func startUDP() (io.Writer, chan []byte, chan struct{}) {
 		}
 	}()
 	ready <- struct{}{}
-	return conn, sink, ready
+	return UDPSender{c}, sink, ready
 }

@@ -41,10 +41,16 @@ const (
 	TimeoutHeartbeat = 4
 )
 
+type RemoteConn interface {
+	io.Writer
+	// Can incoming packets be reordered
+	Reorderable() bool
+}
+
 type Peer struct {
 	Addr string
 	Id   *PeerId
-	Conn io.Writer
+	Conn RemoteConn
 
 	// Traffic behaviour
 	NoiseEnable bool
@@ -56,6 +62,7 @@ type Peer struct {
 	NonceOur     uint64       `json:"-"`
 	NonceRecv    uint64       `json:"-"`
 	NonceCipher  *xtea.Cipher `json:"-"`
+	nonceExpect  uint64       `json:"-"`
 	nonceBucket0 map[uint64]struct{}
 	nonceBucket1 map[uint64]struct{}
 	nonceFound   bool
@@ -201,7 +208,7 @@ func cprCycleCalculate(rate int) time.Duration {
 	return time.Second / time.Duration(rate*(1<<10)/MTU)
 }
 
-func newPeer(addr string, conn io.Writer, conf *PeerConf, nonce int, key *[SSize]byte) *Peer {
+func newPeer(isClient bool, addr string, conn RemoteConn, conf *PeerConf, key *[SSize]byte) *Peer {
 	now := time.Now()
 	timeout := conf.Timeout
 	cprCycle := cprCycleCalculate(conf.CPR)
@@ -213,25 +220,33 @@ func newPeer(addr string, conn io.Writer, conf *PeerConf, nonce int, key *[SSize
 		timeout = timeout / TimeoutHeartbeat
 	}
 	peer := Peer{
-		Addr:         addr,
-		Conn:         conn,
-		Timeout:      timeout,
-		Established:  now,
-		LastPing:     now,
-		Id:           conf.Id,
-		NoiseEnable:  noiseEnable,
-		CPR:          conf.CPR,
-		CPRCycle:     cprCycle,
-		NonceOur:     uint64(nonce),
-		NonceRecv:    uint64(0),
-		nonceBucket0: make(map[uint64]struct{}, NonceBucketSize),
-		nonceBucket1: make(map[uint64]struct{}, NonceBucketSize),
-		Key:          key,
-		NonceCipher:  newNonceCipher(key),
-		buf:          make([]byte, MTU+S20BS),
-		tag:          new([poly1305.TagSize]byte),
-		keyAuth:      new([SSize]byte),
-		nonce:        make([]byte, NonceSize),
+		Addr:        addr,
+		Conn:        conn,
+		Timeout:     timeout,
+		Established: now,
+		LastPing:    now,
+		Id:          conf.Id,
+		NoiseEnable: noiseEnable,
+		CPR:         conf.CPR,
+		CPRCycle:    cprCycle,
+		NonceRecv:   0,
+		Key:         key,
+		NonceCipher: newNonceCipher(key),
+		buf:         make([]byte, MTU+S20BS),
+		tag:         new([poly1305.TagSize]byte),
+		keyAuth:     new([SSize]byte),
+		nonce:       make([]byte, NonceSize),
+	}
+	if isClient {
+		peer.NonceOur = 1
+		peer.nonceExpect = 0 + 2
+	} else {
+		peer.NonceOur = 0
+		peer.nonceExpect = 1 + 2
+	}
+	if conn.Reorderable() {
+		peer.nonceBucket0 = make(map[uint64]struct{}, NonceBucketSize)
+		peer.nonceBucket1 = make(map[uint64]struct{}, NonceBucketSize)
 	}
 	return &peer
 }
@@ -265,21 +280,30 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, ready chan struct{}) bool 
 	// If Bucket0 is filled, then it becomes Bucket1.
 	p.NonceCipher.Decrypt(p.buf, data[:NonceSize])
 	ready <- struct{}{}
+
 	p.nonceRecv, _ = binary.Uvarint(p.buf[:NonceSize])
-	if _, p.nonceFound = p.nonceBucket1[p.NonceRecv]; p.nonceFound {
-		p.FramesDup++
-		return false
-	}
-	if _, p.nonceFound = p.nonceBucket0[p.NonceRecv]; p.nonceFound {
-		p.FramesDup++
-		return false
-	}
-	p.nonceBucket0[p.NonceRecv] = struct{}{}
-	p.nonceBucketN++
-	if p.nonceBucketN == NonceBucketSize {
-		p.nonceBucket1 = p.nonceBucket0
-		p.nonceBucket0 = make(map[uint64]struct{}, NonceBucketSize)
-		p.nonceBucketN = 0
+	if p.Conn.Reorderable() {
+		if _, p.nonceFound = p.nonceBucket1[p.NonceRecv]; p.nonceFound {
+			p.FramesDup++
+			return false
+		}
+		if _, p.nonceFound = p.nonceBucket0[p.NonceRecv]; p.nonceFound {
+			p.FramesDup++
+			return false
+		}
+		p.nonceBucket0[p.NonceRecv] = struct{}{}
+		p.nonceBucketN++
+		if p.nonceBucketN == NonceBucketSize {
+			p.nonceBucket1 = p.nonceBucket0
+			p.nonceBucket0 = make(map[uint64]struct{}, NonceBucketSize)
+			p.nonceBucketN = 0
+		}
+	} else {
+		if p.nonceRecv != p.nonceExpect {
+			p.FramesDup++
+			return false
+		}
+		p.nonceExpect += 2
 	}
 
 	p.FramesIn++

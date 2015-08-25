@@ -22,7 +22,6 @@ package main
 import (
 	"bytes"
 	"flag"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -45,7 +44,7 @@ var (
 
 type Pkt struct {
 	addr  string
-	conn  io.Writer
+	conn  govpn.RemoteConn
 	data  []byte
 	ready chan struct{}
 }
