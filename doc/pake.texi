@@ -6,7 +6,7 @@ client-server authentication. Is is secure, but not convenient for some
 user use-cases:
 
 @itemize @bullet
-@item Compromising of password files on either server or client side
+@item Compromising of passphrase files on either server or client side
 allows attacker to masquerade himself a client.
 @item To prevent compromising of keys on the client side, one needs some
 kind of passphrase protected secure storage (like either PGP with
@@ -15,7 +15,7 @@ decryption to the memory, or full-disk encryption).
 
 Overall security on the client side is concentrated in passphrase
 (high-entropy password), so it is convenient to use it in GoVPN
-directly, without static on-disk keys. That is why we use password
+directly, without static on-disk keys. That is why we use passphrase
 authenticated key agreement.
 
 We use "passphrase" term instead of "password". Technically there may be

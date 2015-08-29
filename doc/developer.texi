@@ -1,7 +1,7 @@
-@node Developer manual
+@node Developer
 @unnumbered Developer manual
 
-Pay attention how to get @ref{Development source code}.
+Pay attention how to get @ref{Sources, development source code}.
 
 @table @asis
 @item Nonce and identity encryption
@@ -30,8 +30,8 @@ handshake.
 
 @menu
 * Verifier structure::
-* Transport protocol::
-* Handshake protocol::
+* Transport protocol: Transport.
+* Handshake protocol: Handshake.
 @end menu
 
 @include verifierstruct.texi

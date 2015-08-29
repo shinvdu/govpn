@@ -1,4 +1,4 @@
-@node Network transport
+@node Network
 @section Network transport
 
 You can use either UDP or TCP underlying network transport protocols.

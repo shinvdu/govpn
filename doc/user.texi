@@ -1,4 +1,4 @@
-@node User manual
+@node User
 @unnumbered User manual
 
 Announcements about updates and new releases can be found in @ref{Contacts}.
@@ -18,16 +18,16 @@ with @emph{Go 1.5} gives 435 Mbps TCP (over UDP) throughput.
 * Identity::
 * PAKE:: Password Authenticated Key Agreement
 * Timeout::
-* Network transport::
+* Network transport: Network.
 * Proxy::
 * MTU:: Maximum Transmission Unit
 * Stats::
 * Noise::
 * CPR:: Constant Packet Rate
 * Verifier::
-* Client part::
-* Server part::
-* Example usage::
+* Client part: Client.
+* Server part: Server.
+* Example usage: Example.
 @end menu
 
 @include egd.texi

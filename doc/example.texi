@@ -1,4 +1,4 @@
-@node Example usage
+@node Example
 @section Example usage
 
 Let's assume that there is some insecure link between your computer and

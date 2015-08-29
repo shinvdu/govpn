@@ -1,4 +1,4 @@
-@node Server part
+@node Server
 @section Server part
 
 Except for common @code{-mtu}, @code{-stats}, @code{-egd} options server
@@ -7,7 +7,8 @@ has the following ones:
 @table @code
 
 @item -proto
-@ref{Network transport} to use. Can be @emph{udp}, @emph{tcp} or @emph{all}.
+@ref{Network, network protocol} to use. Can be @emph{udp},
+@emph{tcp} or @emph{all}.
 
 @item -bind
 Address (@code{host:port} format) we must bind to.

@@ -5,7 +5,7 @@
 
 @item Release 3.5
 @itemize @bullet
-@item Ability to use @ref{Network transport, TCP} network transport.
+@item Ability to use @ref{Network, TCP} network transport.
 Server can listen on both UDP and TCP sockets.
 @item Ability to use @ref{Proxy, HTTP proxies} (through CONNECT method)
 for accessing the server. Server can also emulate HTTP proxy behaviour.
@@ -96,7 +96,7 @@ JSON of all known connected peers information. Real-time client's
 statistics.
 
 @item
-Documentation is explicitly licensed under GNU FDL 1.3+.
+Documentation is explicitly licenced under GNU FDL 1.3+.
 @end itemize
 
 @item Release 2.3

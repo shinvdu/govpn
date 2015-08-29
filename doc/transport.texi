@@ -1,4 +1,4 @@
-@node Transport protocol
+@node Transport
 @section Transport protocol
 
 @verbatim

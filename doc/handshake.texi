@@ -1,4 +1,4 @@
-@node Handshake protocol
+@node Handshake
 @section Handshake protocol
 
 @verbatiminclude handshake.utxt

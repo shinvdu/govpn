@@ -1,4 +1,5 @@
-In the media:
+@node Media
+@unnumbered In the media
 
 @itemize @bullet
 @item @url{http://habrahabr.ru/company/ivi/blog/256365/, Реализуем безопасный VPN-протокол} (on russian)
