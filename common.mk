@@ -36,8 +36,8 @@ install: all doc
 	cp -f utils/newclient.sh utils/storekey.sh $(SHAREDIR)
 	chmod 755 $(SHAREDIR)/newclient.sh $(SHAREDIR)/storekey.sh
 	mkdir -p $(DOCDIR)
-	cp -f -L AUTHORS INSTALL NEWS README THANKS $(DOCDIR)
-	chmod 644 $(DOCDIR)/AUTHORS $(DOCDIR)/INSTALL $(DOCDIR)/NEWS $(DOCDIR)/README $(DOCDIR)/THANKS
+	cp -f -L AUTHORS INSTALL NEWS README README.RU THANKS $(DOCDIR)
+	chmod 644 $(DOCDIR)/*
 
 install-strip: install
 	strip $(BINDIR)/govpn-client $(BINDIR)/govpn-server $(BINDIR)/govpn-verifier
