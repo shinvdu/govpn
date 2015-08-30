@@ -82,7 +82,7 @@ type Peer struct {
 	nonceRecv uint64
 	frame     []byte
 	nonce     []byte
-	pktSize   uint64
+	pktSize   uint16
 	size      int
 	now       time.Time
 
@@ -114,8 +114,7 @@ func (p *Peer) Zero() {
 }
 
 var (
-	Emptiness = make([]byte, 1<<14)
-	taps      = make(map[string]*TAP)
+	taps = make(map[string]*TAP)
 )
 
 // Create TAP listening goroutine.
@@ -232,7 +231,7 @@ func newPeer(isClient bool, addr string, conn RemoteConn, conf *PeerConf, key *[
 		NonceRecv:   0,
 		Key:         key,
 		NonceCipher: newNonceCipher(key),
-		buf:         make([]byte, MTU+S20BS),
+		buf:         make([]byte, MTU+S20BS+NonceSize+poly1305.TagSize),
 		tag:         new([poly1305.TagSize]byte),
 		keyAuth:     new([SSize]byte),
 		nonce:       make([]byte, NonceSize),
@@ -257,18 +256,23 @@ func newPeer(isClient bool, addr string, conn RemoteConn, conf *PeerConf, key *[
 // will be written to the interface immediately (except heartbeat ones).
 func (p *Peer) PktProcess(data []byte, tap io.Writer, ready chan struct{}) bool {
 	p.size = len(data)
-	copy(p.buf, Emptiness)
-	copy(p.tag[:], data[p.size-poly1305.TagSize:])
-	copy(p.buf[S20BS:], data[NonceSize:p.size-poly1305.TagSize])
+	p.frame = make([]byte, p.size)
+	copy(p.frame, data)
+	ready <- struct{}{}
+
+	copy(p.buf[S20BS:], p.frame[:p.size-NonceSize-poly1305.TagSize])
+	for i := 0; i < S20BS; i++ {
+		p.buf[i] = byte(0)
+	}
 	salsa20.XORKeyStream(
-		p.buf[:S20BS+p.size-poly1305.TagSize],
-		p.buf[:S20BS+p.size-poly1305.TagSize],
-		data[:NonceSize],
+		p.buf[:S20BS+p.size-NonceSize-poly1305.TagSize],
+		p.buf[:S20BS+p.size-NonceSize-poly1305.TagSize],
+		p.frame[p.size-NonceSize-poly1305.TagSize:p.size-poly1305.TagSize],
 		p.Key,
 	)
+	copy(p.tag[:], p.frame[p.size-poly1305.TagSize:])
 	copy(p.keyAuth[:], p.buf[:SSize])
-	if !poly1305.Verify(p.tag, data[:p.size-poly1305.TagSize], p.keyAuth) {
-		ready <- struct{}{}
+	if !poly1305.Verify(p.tag, p.frame[:p.size-poly1305.TagSize], p.keyAuth) {
 		p.FramesUnauth++
 		return false
 	}
@@ -278,10 +282,12 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, ready chan struct{}) bool 
 	// Check from the oldest bucket, as in most cases this will result
 	// in constant time check.
 	// If Bucket0 is filled, then it becomes Bucket1.
-	p.NonceCipher.Decrypt(p.buf, data[:NonceSize])
-	ready <- struct{}{}
+	p.NonceCipher.Decrypt(
+		p.nonce,
+		p.frame[p.size-NonceSize-poly1305.TagSize:p.size-poly1305.TagSize],
+	)
 
-	p.nonceRecv, _ = binary.Uvarint(p.buf[:NonceSize])
+	p.nonceRecv = binary.BigEndian.Uint64(p.nonce)
 	if p.Conn.Reorderable() {
 		if _, p.nonceFound = p.nonceBucket1[p.NonceRecv]; p.nonceFound {
 			p.FramesDup++
@@ -310,14 +316,13 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, ready chan struct{}) bool 
 	p.BytesIn += int64(p.size)
 	p.LastPing = time.Now()
 	p.NonceRecv = p.nonceRecv
-	p.pktSize, _ = binary.Uvarint(p.buf[S20BS : S20BS+PktSizeSize])
+	p.pktSize = binary.BigEndian.Uint16(p.buf[S20BS : S20BS+PktSizeSize])
 	if p.pktSize == 0 {
 		p.HeartbeatRecv++
 		return true
 	}
-	p.frame = p.buf[S20BS+PktSizeSize : S20BS+PktSizeSize+p.pktSize]
 	p.BytesPayloadIn += int64(p.pktSize)
-	tap.Write(p.frame)
+	tap.Write(p.buf[S20BS+PktSizeSize : S20BS+PktSizeSize+p.pktSize])
 	return true
 }
 
@@ -332,29 +337,31 @@ func (p *Peer) EthProcess(data []byte, ready chan struct{}) {
 	if p.size == 0 && !p.LastSent.Add(p.Timeout).Before(p.now) {
 		return
 	}
-	copy(p.buf, Emptiness)
 	if p.size > 0 {
 		copy(p.buf[S20BS+PktSizeSize:], data)
 		ready <- struct{}{}
-		binary.PutUvarint(p.buf[S20BS:S20BS+PktSizeSize], uint64(p.size))
+		binary.BigEndian.PutUint16(p.buf[S20BS:S20BS+PktSizeSize], uint16(p.size))
 		p.BytesPayloadOut += int64(p.size)
 	} else {
+		p.buf[S20BS+0] = byte(0)
+		p.buf[S20BS+1] = byte(0)
 		p.HeartbeatSent++
 	}
 
 	p.NonceOur += 2
-	copy(p.nonce, Emptiness)
-	binary.PutUvarint(p.nonce, p.NonceOur)
+	binary.BigEndian.PutUint64(p.nonce, p.NonceOur)
 	p.NonceCipher.Encrypt(p.nonce, p.nonce)
 
-	salsa20.XORKeyStream(p.buf, p.buf, p.nonce, p.Key)
-	copy(p.buf[S20BS-NonceSize:S20BS], p.nonce)
-	copy(p.keyAuth[:], p.buf[:SSize])
-	if p.NoiseEnable {
-		p.frame = p.buf[S20BS-NonceSize : S20BS+MTU-NonceSize-poly1305.TagSize]
-	} else {
-		p.frame = p.buf[S20BS-NonceSize : S20BS+PktSizeSize+p.size]
+	for i := 0; i < S20BS; i++ {
+		p.buf[i] = byte(0)
 	}
+	salsa20.XORKeyStream(p.buf, p.buf, p.nonce, p.Key)
+	if p.NoiseEnable {
+		p.frame = append(p.buf[S20BS:S20BS+MTU-NonceSize-poly1305.TagSize], p.nonce...)
+	} else {
+		p.frame = append(p.buf[S20BS:S20BS+PktSizeSize+p.size], p.nonce...)
+	}
+	copy(p.keyAuth[:], p.buf[:SSize])
 	poly1305.Sum(p.tag, p.frame, p.keyAuth)
 
 	p.BytesOut += int64(len(p.frame) + poly1305.TagSize)

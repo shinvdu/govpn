@@ -2,8 +2,8 @@
 @section Transport protocol
 
 @verbatim
-[PktLen] + ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE) +
-    AUTH(ENCn(SERIAL) + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE))
+[PktLen] + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE) + ENCn(SERIAL) +
+    AUTH(ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE) + ENCn(SERIAL))
 @end verbatim
 
 All transport and handshake messages are indistinguishable from
