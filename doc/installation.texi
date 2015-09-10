@@ -1,6 +1,13 @@
 @node Installation
 @unnumbered Installation
 
+Possibly GoVPN already exists in your distribution:
+
+@itemize @bullet
+@item @url{https://aur.archlinux.org/packages/govpn/, AUR}
+@item @url{http://www.freshports.org/security/govpn/, FreeBSD ports}
+@end itemize
+
 GoVPN is written on Go programming language and you have to install Go
 compiler (1.5+ version is highly recommended): @code{lang/go} port in
 FreeBSD and @code{golang} package in most GNU/Linux distributions.
