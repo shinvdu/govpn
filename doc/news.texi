@@ -3,6 +3,15 @@
 
 @table @strong
 
+@item Release 4.0
+@itemize @bullet
+@item Handshake messages can be noised. Now they are indistinguishable
+from transport ones and from the noise.
+@item Parallelization of clients processing on the server side.
+@item Much higher overall performance of handshake and transport
+protocols.
+@end itemize
+
 @item Release 3.5
 @itemize @bullet
 @item Ability to use @ref{Network, TCP} network transport.
