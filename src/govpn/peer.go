@@ -84,14 +84,14 @@ type Peer struct {
 	HeartbeatSent   int
 
 	// Receiver
-	BusyR    sync.Mutex
+	BusyR    sync.Mutex `json:"-"`
 	bufR     []byte
 	tagR     *[TagSize]byte
 	keyAuthR *[SSize]byte
 	pktSizeR uint16
 
 	// Transmitter
-	BusyT    sync.Mutex
+	BusyT    sync.Mutex `json:"-"`
 	bufT     []byte
 	tagT     *[TagSize]byte
 	keyAuthT *[SSize]byte
