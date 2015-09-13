@@ -2,45 +2,60 @@
 @section Transport protocol
 
 @verbatim
-[PktLen] + ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE) + ENCn(SERIAL) +
-    AUTH(ENC(KEY, ENCn(SERIAL), DATA_SIZE+DATA+NOISE) + ENCn(SERIAL))
+TAG || ENCRYPTED || NONCE <-- PACKET
+ ^         ^          ^
+ |         |          |
+ |         |          +------------+
+ |         |                       |
+ |         +------------+          |
+ |                      |          |
+ +-->AUTH(AUTH_KEY, ENCRYPTED || NONCE)
+                        ^          ^
+                        |          |
++-----------------------+          |
+|                                  |
+|                   +--------------+
+|                   |
++--> ENCRYPT(KEY, NONCE, PAYLOAD)
+                    ^       ^
+                    |       |
+                    |       +--> SIZE || DATA [|| NOISE]
+                    |
+                    +--> PRP(PRP_KEY, SERIAL)
 @end verbatim
-
-All transport and handshake messages are indistinguishable from
-pseudo random noise, except when using TCP connections.
-
-@code{PktLen} is used only with TCP connections. It is big-endian
-@emph{uint16} length of the whole packet (except @code{PktLen} itself).
 
 @code{SERIAL} is message's serial number. Odds are reserved for
 client(->server) messages, evens for server(->client) messages.
 
-@code{ENCn} is XTEA block cipher algorithm used here as PRP (pseudo
+@code{PRP} is XTEA block cipher algorithm used here as PRP (pseudo
 random permutation function) to obfuscate @code{SERIAL}. Plaintext
 @code{SERIAL} state is kept in peers internal state, but encrypted
-before transmission. XTEA is compact and fast enough. Salsa20 is PRF
-function and requires much more code to create PRP from it.
+before transmission.
 
 XTEA's encryption key is the first 128-bit of Salsa20's output with
 established common key and zero nonce (message nonces start from 1).
 
-@code{ENC} is Salsa20 stream cipher, with established session @code{KEY}
-and obfuscated @code{SERIAL} used as a nonce. First 256 bits of
-Salsa20's output is used as Poly1305 authentication key, next 256 bits
-are ignored. All remaining output is XORed with the data, encrypting it.
+@verbatim
+PRP_KEY = ENCRYPT(KEY, 0, 128-bit)
+@end verbatim
 
-@code{DATA_SIZE} is big-endian @emph{uint16} storing length of the
+@code{ENCRYPT} is Salsa20 stream cipher, with established session
+@code{KEY} and obfuscated @code{SERIAL} used as a nonce. 512 bit of
+Salsa20's output is ignored and only remaining is XORed with ther data,
+encrypting it.
+
+@code{SIZE} is big-endian @emph{uint16} storing length of the
 @code{DATA}.
 
 @code{NOISE} is optional. It is just some junk data, intended to fill up
 packet to MTU size. This is useful for concealing payload packets length.
 
 @code{AUTH} is Poly1305 authentication function. First 256 bits of
-Salsa20 output are used as a one-time key for @code{AUTH}.
+Salsa20's output are used as a one-time key for @code{AUTH}.
+
+@verbatim
+AUTH_KEY = ENCRYPT(KEY, NONCE, 256 bit)
+@end verbatim
 
 To prevent replay attacks we must remember received @code{SERIAL}s and
-if meet one, then drop it. Basically we could just store latest number
-and check if received one is greater, but because of UDP packets
-reordering this can lead to valid packets dropping and overall
-performance degradation. We store up to 256 seen nonces in hash
-structure, in two swapping buckets.
+drop when receiving duplicate ones.

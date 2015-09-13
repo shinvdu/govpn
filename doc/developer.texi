@@ -19,10 +19,10 @@ and @url{http://ed25519.cr.yp.to/, Ed25519}.
 @url{https://en.wikipedia.org/wiki/PBKDF2, PBKDF2} based on
 @url{https://en.wikipedia.org/wiki/SHA-2, SHA-512}.
 @item Packet overhead
-26 bytes per packet. Two more bytes in TCP mode.
+26 bytes per packet.
 @item Handshake overhead
 4 UDP (2 from client, 2 from server) packets (round-trips for TCP),
-264 bytes total payload (8 bytes more in TCP mode).
+264 bytes total payload.
 @item Entropy required
 832 bits in average on client, 832 bits in average on server side per
 handshake.

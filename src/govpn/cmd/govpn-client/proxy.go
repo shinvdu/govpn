@@ -24,11 +24,9 @@ import (
 	"log"
 	"net"
 	"net/http"
-
-	"govpn"
 )
 
-func proxyTCP() (govpn.RemoteConn, chan []byte, chan struct{}) {
+func proxyTCP(timeouted, rehandshaking, termination chan struct{}) {
 	proxyAddr, err := net.ResolveTCPAddr("tcp", *proxyAddr)
 	if err != nil {
 		log.Fatalln("Can not resolve proxy address:", err)
@@ -52,9 +50,5 @@ func proxyTCP() (govpn.RemoteConn, chan []byte, chan struct{}) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		log.Fatalln("Unexpected response from proxy")
 	}
-	sink := make(chan []byte)
-	ready := make(chan struct{})
-	go handleTCP(conn, sink, ready)
-	go func() { ready <- struct{}{} }()
-	return TCPSender{conn}, sink, ready
+	go handleTCP(conn, timeouted, rehandshaking, termination)
 }

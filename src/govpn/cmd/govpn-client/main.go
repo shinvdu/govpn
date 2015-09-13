@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Simple secure free software virtual private network daemon client.
+// Simple secure, DPI/censorship-resistant free software VPN daemon client.
 package main
 
 import (
@@ -46,11 +46,17 @@ var (
 	noisy      = flag.Bool("noise", false, "Enable noise appending")
 	cpr        = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
 	egdPath    = flag.String("egd", "", "Optional path to EGD socket")
+
+	conf        *govpn.PeerConf
+	tap         *govpn.TAP
+	timeout     int
+	firstUpCall bool = true
+	knownPeers  govpn.KnownPeers
 )
 
 func main() {
 	flag.Parse()
-	timeout := *timeoutP
+	timeout = *timeoutP
 	var err error
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
@@ -67,7 +73,7 @@ func main() {
 	}
 
 	pub, priv := govpn.NewVerifier(id, govpn.StringFromFile(*keyPath))
-	conf := &govpn.PeerConf{
+	conf = &govpn.PeerConf{
 		Id:          id,
 		Timeout:     time.Second * time.Duration(timeout),
 		NoiseEnable: *noisy,
@@ -76,41 +82,13 @@ func main() {
 		DSAPriv:     priv,
 	}
 	govpn.PeersInitDummy(id, conf)
+	log.Println(govpn.VersionGet())
 
-	var conn govpn.RemoteConn
-	var sink chan []byte
-	var ready chan struct{}
-	switch *proto {
-	case "udp":
-		conn, sink, ready = startUDP()
-	case "tcp":
-		if *proxyAddr != "" {
-			conn, sink, ready = proxyTCP()
-		} else {
-			conn, sink, ready = startTCP()
-		}
-	default:
-		log.Fatalln("Unknown protocol specified")
-	}
-
-	tap, ethSink, ethReady, _, err := govpn.TAPListen(
-		*ifaceName,
-		time.Second*time.Duration(timeout),
-		*cpr,
-	)
+	tap, err = govpn.TAPListen(*ifaceName)
 	if err != nil {
 		log.Fatalln("Can not listen on TAP interface:", err)
 	}
 
-	timeouts := 0
-	firstUpCall := true
-	var peer *govpn.Peer
-	var ethPkt []byte
-	var pkt []byte
-	knownPeers := govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
-
-	log.Println(govpn.VersionGet())
-	log.Println("Connected to", *proto, *remoteAddr)
 	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
@@ -124,65 +102,35 @@ func main() {
 	termSignal := make(chan os.Signal, 1)
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
 
-	log.Println("Starting handshake")
-	handshake := govpn.HandshakeStart(*remoteAddr, conn, conf)
-
 MainCycle:
 	for {
-		if peer != nil && (peer.BytesIn+peer.BytesOut) > govpn.MaxBytesPerKey {
-			peer.Zero()
-			peer = nil
-			handshake = govpn.HandshakeStart(*remoteAddr, conn, conf)
-			log.Println("Rehandshaking")
+		timeouted := make(chan struct{})
+		rehandshaking := make(chan struct{})
+		termination := make(chan struct{})
+		switch *proto {
+		case "udp":
+			go startUDP(timeouted, rehandshaking, termination)
+		case "tcp":
+			if *proxyAddr != "" {
+				go proxyTCP(timeouted, rehandshaking, termination)
+			} else {
+				go startTCP(timeouted, rehandshaking, termination)
+			}
+		default:
+			log.Fatalln("Unknown protocol specified")
 		}
 		select {
 		case <-termSignal:
+			log.Fatalln("Finishing...")
+			termination <- struct{}{}
 			break MainCycle
-		case ethPkt = <-ethSink:
-			if peer == nil {
-				if len(ethPkt) > 0 {
-					ethReady <- struct{}{}
-				}
-				continue
-			}
-			peer.EthProcess(ethPkt, ethReady)
-		case pkt = <-sink:
-			timeouts++
-			if timeouts >= timeout {
-				break MainCycle
-			}
-			if pkt == nil {
-				ready <- struct{}{}
-				continue
-			}
-
-			if peer == nil {
-				if govpn.IDsCache.Find(pkt) == nil {
-					log.Println("Invalid identity in handshake packet")
-					ready <- struct{}{}
-					continue
-				}
-				if p := handshake.Client(pkt); p != nil {
-					log.Println("Handshake completed")
-					if firstUpCall {
-						go govpn.ScriptCall(*upPath, *ifaceName)
-						firstUpCall = false
-					}
-					peer = p
-					handshake.Zero()
-					handshake = nil
-				}
-				ready <- struct{}{}
-				continue
-			}
-			if peer == nil {
-				ready <- struct{}{}
-				continue
-			}
-			if peer.PktProcess(pkt, tap, ready) {
-				timeouts = 0
-			}
+		case <-timeouted:
+			break MainCycle
+		case <-rehandshaking:
 		}
+		close(timeouted)
+		close(rehandshaking)
+		close(termination)
 	}
 	govpn.ScriptCall(*downPath, *ifaceName)
 }

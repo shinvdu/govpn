@@ -22,6 +22,7 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/binary"
+	"io"
 	"log"
 	"time"
 
@@ -40,7 +41,7 @@ const (
 
 type Handshake struct {
 	addr     string
-	conn     RemoteConn
+	conn     io.Writer
 	LastPing time.Time
 	Conf     *PeerConf
 	dsaPubH  *[ed25519.PublicKeySize]byte
@@ -133,7 +134,7 @@ func dhKeyGen(priv, pub *[32]byte) *[32]byte {
 }
 
 // Create new handshake state.
-func HandshakeNew(addr string, conn RemoteConn, conf *PeerConf) *Handshake {
+func NewHandshake(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 	state := Handshake{
 		addr:     addr,
 		conn:     conn,
@@ -160,8 +161,8 @@ func idTag(id *PeerId, data []byte) []byte {
 // Start handshake's procedure from the client. It is the entry point
 // for starting the handshake procedure. // First handshake packet
 // will be sent immediately.
-func HandshakeStart(addr string, conn RemoteConn, conf *PeerConf) *Handshake {
-	state := HandshakeNew(addr, conn, conf)
+func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
+	state := NewHandshake(addr, conn, conf)
 	var dhPubRepr *[32]byte
 	state.dhPriv, dhPubRepr = dhKeypairGen()
 

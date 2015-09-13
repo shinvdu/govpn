@@ -23,9 +23,7 @@ import (
 	"net/http"
 )
 
-type proxyHandler struct {
-	sink chan Pkt
-}
+type proxyHandler struct{}
 
 func (p proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	conn, _, err := w.(http.Hijacker).Hijack()
@@ -34,17 +32,14 @@ func (p proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	conn.Write([]byte("HTTP/1.0 200 OK\n\n"))
-	ready := make(chan struct{}, 1)
-	go handleTCP(conn, p.sink, ready)
-	ready <- struct{}{}
-
+	go handleTCP(conn)
 }
 
-func proxyStart(sink chan Pkt) {
+func proxyStart() {
 	log.Println("HTTP proxy listening on:", *proxy)
 	s := &http.Server{
 		Addr:    *proxy,
-		Handler: proxyHandler{sink},
+		Handler: proxyHandler{},
 	}
 	log.Println("HTTP proxy result:", s.ListenAndServe())
 }

@@ -16,5 +16,5 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Simple secure free software virtual private network daemon
+// Simple secure, DPI/censorship-resistant free software VPN daemon.
 package govpn
