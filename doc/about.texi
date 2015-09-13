@@ -10,7 +10,8 @@ Copylefted free software: licenced under
 Fast strong @ref{PAKE, passphrase authenticated} augmented
 @ref{Handshake, key agreement protocol} with zero-knowledge mutual peers
 authentication (PAKE DH A-EKE (Diffie-Hellman Augmented Encrypted Key
-Exchange)).
+Exchange)), censorship resistant (indistinguishable from noise, with
+hidden packet's length).
 @item
 @ref{Verifier structure, Augmented authentication tokens} resistant to
 offline dictionary attacks. An attacker can not masquerade a client
@@ -18,7 +19,8 @@ even with server passphrase verifiers compromising.
 @item
 Encrypted and authenticated @ref{Transport, payload transport}
 with 128-bit @ref{Developer, security margin} state-of-the-art
-cryptography and censorship resistance (indistinguishability from noise).
+cryptography and censorship resistance (indistinguishability from noise
+and hiding of packet's length).
 @item
 @url{https://en.wikipedia.org/wiki/Forward_secrecy, Perfect forward secrecy}
 property.
@@ -27,7 +29,7 @@ Replay attack protection (using one-time MACs).
 @item
 Built-in rehandshake (session key rotation) and heartbeat features.
 @item
-Ability to hide payload packets length with the @ref{Noise, noise} data.
+Ability to hide packets length with the @ref{Noise, noise} data.
 @item
 Ability to hide payload timestamps with @ref{CPR, constant packet rate}
 traffic.
