@@ -27,26 +27,26 @@ A copy of the license is included in the section entitled "Copying conditions".
 @menu
 * Подробнее о демоне: About RU.
 * News::
-* In the media: Media.
 * Installation::
 * Precautions::
 * User manual: User.
 * Developer manual: Developer.
 * Contacts and feedback: Contacts.
 * Thanks::
+* In the media: Media.
 * TODO::
 * Copying conditions::
 @end menu
 
 @include about.ru.texi
 @include news.texi
-@include media.texi
 @include installation.texi
 @include precautions.texi
 @include user.texi
 @include developer.texi
 @include contacts.texi
 @include thanks.texi
+@include media.texi
 @include todo.texi
 
 @node Copying conditions
