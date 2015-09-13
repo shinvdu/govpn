@@ -2,26 +2,26 @@
 @section Transport protocol
 
 @verbatim
-TAG || ENCRYPTED || NONCE <-- PACKET
+TAG || ENCRYPTED || NONCE --> PACKET
  ^         ^          ^
  |         |          |
- |         |          +------------+
- |         |                       |
- |         +------------+          |
- |                      |          |
- +-->AUTH(AUTH_KEY, ENCRYPTED || NONCE)
-                        ^          ^
-                        |          |
-+-----------------------+          |
-|                                  |
-|                   +--------------+
+ |         |          +-------------+
+ |         |                        |
+ |         +-------------+          |
+ |                       |          |
+ +--< AUTH(AUTH_KEY, ENCRYPTED || NONCE)
+                         ^          ^
+                         |          |
++------------------------+          |
+|                                   |
+|                   +---------------+
 |                   |
-+--> ENCRYPT(KEY, NONCE, PAYLOAD)
++--< ENCRYPT(KEY, NONCE, PAYLOAD)
                     ^       ^
                     |       |
-                    |       +--> SIZE || DATA [|| NOISE]
+                    |       +--< SIZE || DATA [|| NOISE]
                     |
-                    +--> PRP(PRP_KEY, SERIAL)
+                    +--< PRP(PRP_KEY, SERIAL)
 @end verbatim
 
 @code{SERIAL} is message's serial number. Odds are reserved for
