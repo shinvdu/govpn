@@ -4,6 +4,5 @@
 @itemize
 @item Ability to tunnel only specified TCP connections, without full
   featured VPN solution. Similar to ssh -R.
-@item Ability to noise handshake packets sizes.
 @item Randomize ports usage.
 @end itemize

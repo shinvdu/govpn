@@ -170,8 +170,14 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 	if err := randRead(state.rNonce[:]); err != nil {
 		log.Fatalln("Error reading random for nonce:", err)
 	}
-	enc := make([]byte, 32)
-	salsa20.XORKeyStream(enc, dhPubRepr[:], state.rNonce[:], state.dsaPubH)
+	var enc []byte
+	if conf.NoiseEnable {
+		enc = make([]byte, MTU-xtea.BlockSize-RSize)
+	} else {
+		enc = make([]byte, 32)
+	}
+	copy(enc, dhPubRepr[:])
+	salsa20.XORKeyStream(enc, enc, state.rNonce[:], state.dsaPubH)
 	data := append(state.rNonce[:], enc...)
 	data = append(data, idTag(state.Conf.Id, state.rNonce[:])...)
 	state.conn.Write(data)
@@ -185,7 +191,7 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 // authenticated Peer is ready, then return nil.
 func (h *Handshake) Server(data []byte) *Peer {
 	// R + ENC(H(DSAPub), R, El(CDHPub)) + IDtag
-	if len(data) == 48 && h.rNonce == nil {
+	if h.rNonce == nil {
 		// Generate DH keypair
 		var dhPubRepr *[32]byte
 		h.dhPriv, dhPubRepr = dhKeypairGen()
@@ -217,15 +223,21 @@ func (h *Handshake) Server(data []byte) *Peer {
 		if err := randRead(h.sServer[:]); err != nil {
 			log.Fatalln("Error reading random for S:", err)
 		}
-		encRs := make([]byte, RSize+SSize)
-		salsa20.XORKeyStream(encRs, append(h.rServer[:], h.sServer[:]...), h.rNonce[:], h.key)
+		var encRs []byte
+		if h.Conf.NoiseEnable {
+			encRs = make([]byte, MTU-len(encPub)-xtea.BlockSize)
+		} else {
+			encRs = make([]byte, RSize+SSize)
+		}
+		copy(encRs, append(h.rServer[:], h.sServer[:]...))
+		salsa20.XORKeyStream(encRs, encRs, h.rNonce[:], h.key)
 
 		// Send that to client
 		h.conn.Write(append(encPub, append(encRs, idTag(h.Conf.Id, encPub)...)...))
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+1, RS + RC + SC + Sign(DSAPriv, K)) + IDtag
-	if len(data) == 120 && h.rClient == nil {
+	if h.rClient == nil {
 		// Decrypted Rs compare rServer
 		dec := make([]byte, RSize+RSize+SSize+ed25519.SignatureSize)
 		salsa20.XORKeyStream(
@@ -246,8 +258,14 @@ func (h *Handshake) Server(data []byte) *Peer {
 		}
 
 		// Send final answer to client
-		enc := make([]byte, RSize)
-		salsa20.XORKeyStream(enc, dec[RSize:RSize+RSize], h.rNonceNext(2), h.key)
+		var enc []byte
+		if h.Conf.NoiseEnable {
+			enc = make([]byte, MTU-xtea.BlockSize)
+		} else {
+			enc = make([]byte, RSize)
+		}
+		copy(enc, dec[RSize:RSize+RSize])
+		salsa20.XORKeyStream(enc, enc, h.rNonceNext(2), h.key)
 		h.conn.Write(append(enc, idTag(h.Conf.Id, enc)...))
 
 		// Switch peer
@@ -271,8 +289,8 @@ func (h *Handshake) Server(data []byte) *Peer {
 // will be created and used as a transport. If no mutually
 // authenticated Peer is ready, then return nil.
 func (h *Handshake) Client(data []byte) *Peer {
-	switch len(data) {
-	case 80: // ENC(H(DSAPub), R+1, El(SDHPub)) + ENC(K, R, RS + SS) + IDtag
+	// ENC(H(DSAPub), R+1, El(SDHPub)) + ENC(K, R, RS + SS) + IDtag
+	if h.rServer == nil {
 		if h.key != nil {
 			log.Println("Invalid handshake stage from", h.addr)
 			return nil
@@ -304,16 +322,23 @@ func (h *Handshake) Client(data []byte) *Peer {
 		}
 		sign := ed25519.Sign(h.Conf.DSAPriv, h.key[:])
 
-		enc := make([]byte, RSize+RSize+SSize+ed25519.SignatureSize)
-		salsa20.XORKeyStream(enc,
+		var enc []byte
+		if h.Conf.NoiseEnable {
+			enc = make([]byte, MTU-xtea.BlockSize)
+		} else {
+			enc = make([]byte, RSize+RSize+SSize+ed25519.SignatureSize)
+		}
+		copy(enc,
 			append(h.rServer[:],
 				append(h.rClient[:],
-					append(h.sClient[:], sign[:]...)...)...), h.rNonceNext(1), h.key)
+					append(h.sClient[:], sign[:]...)...)...))
+		salsa20.XORKeyStream(enc, enc, h.rNonceNext(1), h.key)
 
 		// Send that to server
 		h.conn.Write(append(enc, idTag(h.Conf.Id, enc)...))
 		h.LastPing = time.Now()
-	case 16: // ENC(K, R+2, RC) + IDtag
+	} else {
+		// ENC(K, R+2, RC) + IDtag
 		if h.key == nil {
 			log.Println("Invalid handshake stage from", h.addr)
 			return nil
@@ -337,8 +362,6 @@ func (h *Handshake) Client(data []byte) *Peer {
 		)
 		h.LastPing = time.Now()
 		return peer
-	default:
-		log.Println("Invalid handshake message from", h.addr)
 	}
 	return nil
 }
