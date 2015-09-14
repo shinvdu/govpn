@@ -290,12 +290,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 // authenticated Peer is ready, then return nil.
 func (h *Handshake) Client(data []byte) *Peer {
 	// ENC(H(DSAPub), R+1, El(SDHPub)) + ENC(K, R, RS + SS) + IDtag
-	if h.rServer == nil {
-		if h.key != nil {
-			log.Println("Invalid handshake stage from", h.addr)
-			return nil
-		}
-
+	if h.rServer == nil && h.key == nil {
 		// Decrypt remote public key and compute shared key
 		sDHRepr := new([32]byte)
 		salsa20.XORKeyStream(sDHRepr[:], data[:32], h.rNonceNext(1), h.dsaPubH)
@@ -337,13 +332,9 @@ func (h *Handshake) Client(data []byte) *Peer {
 		// Send that to server
 		h.conn.Write(append(enc, idTag(h.Conf.Id, enc)...))
 		h.LastPing = time.Now()
-	} else {
-		// ENC(K, R+2, RC) + IDtag
-		if h.key == nil {
-			log.Println("Invalid handshake stage from", h.addr)
-			return nil
-		}
-
+	} else
+	// ENC(K, R+2, RC) + IDtag
+	if h.key != nil {
 		// Decrypt rClient
 		dec := make([]byte, RSize)
 		salsa20.XORKeyStream(dec, data[:RSize], h.rNonceNext(2), h.key)
@@ -362,6 +353,8 @@ func (h *Handshake) Client(data []byte) *Peer {
 		)
 		h.LastPing = time.Now()
 		return peer
+	} else {
+		log.Println("Invalid handshake stage from", h.addr)
 	}
 	return nil
 }
