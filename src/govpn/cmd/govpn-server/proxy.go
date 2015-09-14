@@ -36,7 +36,7 @@ func (p proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func proxyStart() {
-	log.Println("HTTP proxy listening on:", *proxy)
+	log.Println("HTTP proxy listening on:" + *proxy)
 	s := &http.Server{
 		Addr:    *proxy,
 		Handler: proxyHandler{},

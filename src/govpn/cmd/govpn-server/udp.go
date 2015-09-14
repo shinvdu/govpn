@@ -48,7 +48,8 @@ func startUDP() {
 	if err != nil {
 		log.Fatalln("Can not listen on UDP:", err)
 	}
-	log.Println("Listening on UDP", *bindAddr)
+	log.Println("Listening on UDP:" + *bindAddr)
+
 	udpBufs <- make([]byte, govpn.MTU)
 	go func() {
 		var buf []byte
@@ -65,9 +66,9 @@ func startUDP() {
 		var conf *govpn.PeerConf
 		for {
 			buf = <-udpBufs
-
 			n, raddr, err = conn.ReadFromUDP(buf)
 			if err != nil {
+				log.Println("Unexpected error when receiving", err)
 				break
 			}
 			addr = raddr.String()
@@ -95,7 +96,7 @@ func startUDP() {
 				goto Finished
 			}
 
-			log.Println("Peer handshake finished:", addr)
+			log.Println("Peer handshake finished:", addr, peer.Id.String())
 			hs.Zero()
 			hsLock.Lock()
 			delete(handshakes, addr)
@@ -134,7 +135,7 @@ func startUDP() {
 					<-udpBufs
 					<-udpBufs
 				}(*ps)
-				log.Println("Rehandshake finished:", peer.Id.String())
+				log.Println("Rehandshake processed:", peer.Id.String())
 			} else {
 				go func(addr string, peer *govpn.Peer) {
 					ifaceName, err := callUp(peer.Id)
@@ -165,7 +166,7 @@ func startUDP() {
 					peersLock.Unlock()
 					peersByIdLock.Unlock()
 					kpLock.Unlock()
-					log.Println("New peer:", peer.Id.String())
+					log.Println("Peer created:", peer.Id.String())
 				}(addr, peer)
 			}
 			goto Finished
@@ -177,7 +178,7 @@ func startUDP() {
 			}
 			conf = peerId.Conf()
 			if conf == nil {
-				log.Println("Can not get peer configuration:", peerId.String())
+				log.Println("Unable to get peer configuration:", peerId.String())
 				goto Finished
 			}
 			hs = govpn.NewHandshake(

@@ -36,6 +36,7 @@ func startUDP(timeouted, rehandshaking, termination chan struct{}) {
 	if err != nil {
 		log.Fatalln("Can not listen on UDP:", err)
 	}
+	log.Println("Connected to UDP:" + *remoteAddr)
 
 	hs := govpn.HandshakeStart(*remoteAddr, conn, conf)
 	buf := make([]byte, govpn.MTU)
@@ -66,6 +67,7 @@ MainCycle:
 			if peer.PktProcess(buf[:n], tap, true) {
 				timeouts = 0
 			} else {
+				log.Println("Unauthenticated packet")
 				timeouts++
 			}
 			if atomic.LoadInt64(&peer.BytesIn)+atomic.LoadInt64(&peer.BytesOut) > govpn.MaxBytesPerKey {

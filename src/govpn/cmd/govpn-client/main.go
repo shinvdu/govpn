@@ -121,7 +121,7 @@ MainCycle:
 		}
 		select {
 		case <-termSignal:
-			log.Fatalln("Finishing...")
+			log.Fatalln("Finishing")
 			termination <- struct{}{}
 			break MainCycle
 		case <-timeouted:

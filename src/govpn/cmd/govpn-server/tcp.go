@@ -37,7 +37,7 @@ func startTCP() {
 	if err != nil {
 		log.Fatalln("Can not listen on TCP:", err)
 	}
-	log.Println("Listening on TCP", *bindAddr)
+	log.Println("Listening on TCP:" + *bindAddr)
 	go func() {
 		for {
 			conn, err := listener.AcceptTCP()
@@ -90,6 +90,7 @@ func handleTCP(conn net.Conn) {
 			continue
 		}
 		hs.Zero()
+		log.Println("Peer handshake finished:", addr, peer.Id.String())
 		peersByIdLock.RLock()
 		addrPrev, exists := peersById[*peer.Id]
 		peersByIdLock.RUnlock()
@@ -116,7 +117,7 @@ func handleTCP(conn net.Conn) {
 			peersByIdLock.Unlock()
 			kpLock.Unlock()
 			go peerReady(*ps)
-			log.Println("Rehandshake finished:", peer.Id.String())
+			log.Println("Rehandshake processed:", peer.Id.String())
 		} else {
 			ifaceName, err := callUp(peer.Id)
 			if err != nil {
@@ -142,7 +143,7 @@ func handleTCP(conn net.Conn) {
 			peersLock.Unlock()
 			peersByIdLock.Unlock()
 			kpLock.Unlock()
-			log.Println("New peer:", peer.Id.String())
+			log.Println("Peer created:", peer.Id.String())
 		}
 		break
 	}
@@ -178,6 +179,10 @@ func handleTCP(conn net.Conn) {
 			continue
 		}
 		if !peer.PktProcess(buf[:i+govpn.NonceSize], tap, false) {
+			log.Println(
+				"Unauthenticated packet, dropping connection",
+				addr, peer.Id.String(),
+			)
 			break
 		}
 		binary.BigEndian.PutUint64(nonceExpectation, peer.NonceExpect)

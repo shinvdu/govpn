@@ -36,8 +36,9 @@ func startTCP(timeouted, rehandshaking, termination chan struct{}) {
 	}
 	conn, err := net.DialTCP("tcp", nil, remote)
 	if err != nil {
-		log.Fatalln("Can not connect to remote address:", err)
+		log.Fatalln("Can not connect to address:", err)
 	}
+	log.Println("Connected to TCP:" + *remoteAddr)
 	handleTCP(conn, timeouted, rehandshaking, termination)
 }
 
@@ -57,13 +58,16 @@ HandshakeCycle:
 		default:
 		}
 		if prev == govpn.MTU {
+			log.Println("Timeouted waiting for the packet")
+			timeouted <- struct{}{}
 			break HandshakeCycle
 		}
 
 		conn.SetReadDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
 		n, err = conn.Read(buf[prev:])
 		if err != nil {
-			// Either EOFed or timeouted
+			log.Println("Connection timeouted")
+			timeouted <- struct{}{}
 			break HandshakeCycle
 		}
 
@@ -124,13 +128,14 @@ TransportCycle:
 		default:
 		}
 		if prev == govpn.MTU {
+			log.Println("Timeouted waiting for the packet")
 			timeouted <- struct{}{}
 			break TransportCycle
 		}
 		conn.SetReadDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
 		n, err = conn.Read(buf[prev:])
 		if err != nil {
-			// Either EOFed or timeouted
+			log.Println("Connection timeouted")
 			timeouted <- struct{}{}
 			break TransportCycle
 		}
@@ -144,6 +149,7 @@ TransportCycle:
 			continue
 		}
 		if !peer.PktProcess(buf[:i+govpn.NonceSize], tap, false) {
+			log.Println("Unauthenticated packet, dropping connection")
 			timeouted <- struct{}{}
 			break TransportCycle
 		}
