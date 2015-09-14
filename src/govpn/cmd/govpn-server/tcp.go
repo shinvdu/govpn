@@ -170,6 +170,9 @@ func handleTCP(conn net.Conn) {
 		}
 		prev += n
 	CheckMore:
+		if prev < govpn.MinPktLength {
+			continue
+		}
 		i = bytes.Index(buf[:prev], nonceExpectation)
 		if i == -1 {
 			continue

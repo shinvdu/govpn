@@ -24,6 +24,8 @@ const (
 	PktSizeSize = 2
 	// Heartbeat rate, relative to Timeout
 	TimeoutHeartbeat = 4
+	// Minimal valid packet length: 2+
+	MinPktLength = 2 + 16 + 8
 )
 
 func newNonceCipher(key *[32]byte) *xtea.Cipher {
