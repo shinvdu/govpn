@@ -24,7 +24,7 @@ const (
 	PktSizeSize = 2
 	// Heartbeat rate, relative to Timeout
 	TimeoutHeartbeat = 4
-	// Minimal valid packet length: 2+
+	// Minimal valid packet length
 	MinPktLength = 2 + 16 + 8
 )
 
