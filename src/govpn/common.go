@@ -56,7 +56,7 @@ func ScriptCall(path, ifaceName string) ([]byte, error) {
 // Zero each byte.
 func sliceZero(data []byte) {
 	for i := 0; i < len(data); i++ {
-		data[i] = '\x00'
+		data[i] = 0
 	}
 }
 
