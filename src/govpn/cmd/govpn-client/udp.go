@@ -118,4 +118,5 @@ MainCycle:
 	if hs != nil {
 		hs.Zero()
 	}
+	conn.Close()
 }

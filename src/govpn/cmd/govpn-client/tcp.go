@@ -168,4 +168,5 @@ TransportCycle:
 		terminator <- struct{}{}
 	}
 	peer.Zero()
+	conn.Close()
 }
