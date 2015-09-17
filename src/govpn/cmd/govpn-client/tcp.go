@@ -72,7 +72,7 @@ HandshakeCycle:
 		}
 
 		prev += n
-		peerId := govpn.IDsCache.Find(buf[:prev])
+		peerId := idsCache.Find(buf[:prev])
 		if peerId == nil {
 			continue
 		}

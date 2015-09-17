@@ -9,6 +9,7 @@
 hidden. Now they are indistinguishable from transport messages.
 @item Parallelized clients processing on the server side.
 @item Much higher overall performance.
+@item Single JSON file server configuration.
 @end itemize
 
 @item Release 3.5

@@ -7,7 +7,8 @@ options client has the following ones:
 @table @code
 
 @item -proto
-@ref{Network, network protocol} to use. Can be either @emph{udp} or @emph{tcp}.
+@ref{Network, network protocol} to use. Can be either @emph{udp}
+(default) or @emph{tcp}.
 
 @item -proxy
 Use specified @emph{host:port} @ref{Proxy} server for accessing remote
@@ -37,7 +38,7 @@ how to enter passphrase from stdin silently and store it in the file.
 Enable @ref{Noise}.
 
 @item -cpr
-Enable @ref{CPR} in KiB/sec.
+Set @ref{CPR} in KiB/sec.
 
 @item -up
 Optional path to script that will be executed after connection is

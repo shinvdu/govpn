@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"path"
 	"sync"
 	"time"
 
@@ -49,8 +48,7 @@ Processor:
 }
 
 func callUp(peerId *govpn.PeerId) (string, error) {
-	upPath := path.Join(govpn.PeersPath, peerId.String(), "up.sh")
-	result, err := govpn.ScriptCall(upPath, "")
+	result, err := govpn.ScriptCall(confs[*peerId].Up, "")
 	if err != nil {
 		return "", err
 	}

@@ -168,12 +168,12 @@ func startUDP() {
 			}
 			goto Finished
 		CheckID:
-			peerId = govpn.IDsCache.Find(buf[:n])
+			peerId = idsCache.Find(buf[:n])
 			if peerId == nil {
 				log.Println("Unknown identity from:", addr)
 				goto Finished
 			}
-			conf = peerId.Conf()
+			conf = confs[*peerId]
 			if conf == nil {
 				log.Println("Unable to get peer configuration:", peerId.String())
 				goto Finished

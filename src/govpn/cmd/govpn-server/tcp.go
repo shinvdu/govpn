@@ -72,12 +72,12 @@ func handleTCP(conn net.Conn) {
 			break
 		}
 		prev += n
-		peerId := govpn.IDsCache.Find(buf[:prev])
+		peerId := idsCache.Find(buf[:prev])
 		if peerId == nil {
 			continue
 		}
 		if hs == nil {
-			conf = peerId.Conf()
+			conf = confs[*peerId]
 			if conf == nil {
 				log.Println("Can not get peer configuration:", peerId.String())
 				break

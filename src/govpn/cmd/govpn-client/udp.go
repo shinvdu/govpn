@@ -77,7 +77,7 @@ MainCycle:
 			}
 			continue
 		}
-		if govpn.IDsCache.Find(buf[:n]) == nil {
+		if idsCache.Find(buf[:n]) == nil {
 			log.Println("Invalid identity in handshake packet")
 			continue
 		}

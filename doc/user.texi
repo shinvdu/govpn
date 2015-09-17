@@ -3,11 +3,11 @@
 
 Announcements about updates and new releases can be found in @ref{Contacts}.
 
-GoVPN is split into two pieces: client and server. Each of them work on
-top of UDP/TCP and TAP virtual network interfaces. GoVPN is just a
-tunnelling of Ethernet frames, nothing less, nothing more. All you
-IP-related network management is not touched by VPN at all. You can
-automate it using up and down shell scripts.
+GoVPN is split into two pieces: @ref{Client} and @ref{Server}. Each of
+them work on top of @ref{Network, UDP/TCP} and TAP virtual network
+interfaces. GoVPN is just a tunnelling of Ethernet frames, nothing less,
+nothing more. All you IP-related network management is not touched by
+VPN at all. You can automate it using up and down shell scripts.
 
 What network performance can user expect? For example single
 @emph{Intel i5-2450M 2.5 GHz} core on @emph{FreeBSD 10.2 amd64}

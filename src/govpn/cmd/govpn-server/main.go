@@ -25,20 +25,19 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"path"
 	"time"
 
 	"govpn"
 )
 
 var (
-	bindAddr  = flag.String("bind", "[::]:1194", "Bind to address")
-	proto     = flag.String("proto", "udp", "Protocol to use: udp, tcp or all")
-	peersPath = flag.String("peers", "peers", "Path to peers keys directory")
-	stats     = flag.String("stats", "", "Enable stats retrieving on host:port")
-	proxy     = flag.String("proxy", "", "Enable HTTP proxy on host:port")
-	mtu       = flag.Int("mtu", 1452, "MTU for outgoing packets")
-	egdPath   = flag.String("egd", "", "Optional path to EGD socket")
+	bindAddr = flag.String("bind", "[::]:1194", "Bind to address")
+	proto    = flag.String("proto", "udp", "Protocol to use: udp, tcp or all")
+	confPath = flag.String("conf", "peers.json", "Path to configuration JSON")
+	stats    = flag.String("stats", "", "Enable stats retrieving on host:port")
+	proxy    = flag.String("proxy", "", "Enable HTTP proxy on host:port")
+	mtu      = flag.Int("mtu", 1452, "MTU for outgoing packets")
+	egdPath  = flag.String("egd", "", "Optional path to EGD socket")
 )
 
 func main() {
@@ -48,7 +47,7 @@ func main() {
 	log.Println(govpn.VersionGet())
 
 	govpn.MTU = *mtu
-	govpn.PeersInit(*peersPath)
+	confInit()
 	knownPeers = govpn.KnownPeers(make(map[string]**govpn.Peer))
 
 	if *egdPath != "" {
@@ -116,12 +115,10 @@ MainCycle:
 					delete(peers, addr)
 					delete(knownPeers, addr)
 					delete(peersById, *ps.peer.Id)
-					downPath := path.Join(
-						govpn.PeersPath,
-						ps.peer.Id.String(),
-						"down.sh",
+					go govpn.ScriptCall(
+						confs[*ps.peer.Id].Down,
+						ps.tap.Name,
 					)
-					go govpn.ScriptCall(downPath, ps.tap.Name)
 					ps.terminator <- struct{}{}
 				}
 			}

@@ -52,6 +52,7 @@ var (
 	timeout     int
 	firstUpCall bool = true
 	knownPeers  govpn.KnownPeers
+	idsCache    govpn.CipherCache
 )
 
 func main() {
@@ -81,7 +82,7 @@ func main() {
 		DSAPub:  pub,
 		DSAPriv: priv,
 	}
-	govpn.PeersInitDummy(id, conf)
+	idsCache = govpn.NewCipherCache([]govpn.PeerId{*id})
 	log.Println(govpn.VersionGet())
 
 	tap, err = govpn.TAPListen(*ifaceName)
