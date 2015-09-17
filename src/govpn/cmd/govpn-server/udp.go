@@ -110,31 +110,28 @@ func startUDP() {
 			addrPrev, exists = peersById[*peer.Id]
 			peersByIdLock.RUnlock()
 			if exists {
-				peersLock.RLock()
+				peersLock.Lock()
+				peers[addrPrev].terminator <- struct{}{}
 				ps = &PeerState{
 					peer:       peer,
 					tap:        peers[addrPrev].tap,
-					terminator: peers[addrPrev].terminator,
+					terminator: make(chan struct{}),
 				}
-				peersLock.RUnlock()
-				ps.terminator <- struct{}{}
-				peersLock.Lock()
+				go func(ps PeerState) {
+					peerReady(ps)
+					<-udpBufs
+					<-udpBufs
+				}(*ps)
 				peersByIdLock.Lock()
 				kpLock.Lock()
 				delete(peers, addrPrev)
 				delete(knownPeers, addrPrev)
-				delete(peersById, *peer.Id)
 				peers[addr] = ps
 				knownPeers[addr] = &peer
 				peersById[*peer.Id] = addr
 				peersLock.Unlock()
 				peersByIdLock.Unlock()
 				kpLock.Unlock()
-				go func(ps PeerState) {
-					peerReady(ps)
-					<-udpBufs
-					<-udpBufs
-				}(*ps)
 				log.Println("Rehandshake processed:", peer.Id.String())
 			} else {
 				go func(addr string, peer *govpn.Peer) {
@@ -150,7 +147,7 @@ func startUDP() {
 					ps = &PeerState{
 						peer:       peer,
 						tap:        tap,
-						terminator: make(chan struct{}, 1),
+						terminator: make(chan struct{}),
 					}
 					go func(ps PeerState) {
 						peerReady(ps)

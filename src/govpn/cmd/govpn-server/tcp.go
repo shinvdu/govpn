@@ -95,28 +95,25 @@ func handleTCP(conn net.Conn) {
 		addrPrev, exists := peersById[*peer.Id]
 		peersByIdLock.RUnlock()
 		if exists {
-			peersLock.RLock()
+			peersLock.Lock()
+			peers[addrPrev].terminator <- struct{}{}
 			tap = peers[addrPrev].tap
 			ps = &PeerState{
 				peer:       peer,
 				tap:        tap,
-				terminator: peers[addrPrev].terminator,
+				terminator: make(chan struct{}),
 			}
-			peersLock.RUnlock()
-			ps.terminator <- struct{}{}
-			peersLock.Lock()
+			go peerReady(*ps)
 			peersByIdLock.Lock()
 			kpLock.Lock()
 			delete(peers, addrPrev)
 			delete(knownPeers, addrPrev)
-			delete(peersById, *peer.Id)
 			peers[addr] = ps
 			knownPeers[addr] = &peer
 			peersById[*peer.Id] = addr
 			peersLock.Unlock()
 			peersByIdLock.Unlock()
 			kpLock.Unlock()
-			go peerReady(*ps)
 			log.Println("Rehandshake processed:", peer.Id.String())
 		} else {
 			ifaceName, err := callUp(peer.Id)

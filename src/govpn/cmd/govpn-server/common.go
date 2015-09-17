@@ -43,6 +43,7 @@ Processor:
 			ps.peer.EthProcess(data)
 		}
 	}
+	close(ps.terminator)
 	ps.peer.Zero()
 	heartbeat.Stop()
 }
