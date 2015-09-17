@@ -123,7 +123,7 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 	timeout := conf.Timeout
 
 	cprCycle := cprCycleCalculate(conf.CPR)
-	noiseEnable := conf.NoiseEnable
+	noiseEnable := conf.Noise
 	if conf.CPR > 0 {
 		noiseEnable = true
 		timeout = cprCycle

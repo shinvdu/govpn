@@ -171,7 +171,7 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 		log.Fatalln("Error reading random for nonce:", err)
 	}
 	var enc []byte
-	if conf.NoiseEnable {
+	if conf.Noise {
 		enc = make([]byte, MTU-xtea.BlockSize-RSize)
 	} else {
 		enc = make([]byte, 32)
@@ -224,7 +224,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 			log.Fatalln("Error reading random for S:", err)
 		}
 		var encRs []byte
-		if h.Conf.NoiseEnable {
+		if h.Conf.Noise {
 			encRs = make([]byte, MTU-len(encPub)-xtea.BlockSize)
 		} else {
 			encRs = make([]byte, RSize+SSize)
@@ -259,7 +259,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 
 		// Send final answer to client
 		var enc []byte
-		if h.Conf.NoiseEnable {
+		if h.Conf.Noise {
 			enc = make([]byte, MTU-xtea.BlockSize)
 		} else {
 			enc = make([]byte, RSize)
@@ -318,7 +318,7 @@ func (h *Handshake) Client(data []byte) *Peer {
 		sign := ed25519.Sign(h.Conf.DSAPriv, h.key[:])
 
 		var enc []byte
-		if h.Conf.NoiseEnable {
+		if h.Conf.Noise {
 			enc = make([]byte, MTU-xtea.BlockSize)
 		} else {
 			enc = make([]byte, RSize+RSize+SSize+ed25519.SignatureSize)

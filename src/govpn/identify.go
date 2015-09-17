@@ -56,17 +56,6 @@ func (id PeerId) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + result + `"`), nil
 }
 
-type PeerConf struct {
-	Id          *PeerId
-	Timeout     time.Duration
-	NoiseEnable bool
-	CPR         int
-	// This is passphrase verifier
-	DSAPub *[ed25519.PublicKeySize]byte
-	// This field exists only in dummy configuration on client's side
-	DSAPriv *[ed25519.PrivateKeySize]byte
-}
-
 type cipherCache map[PeerId]*xtea.Cipher
 
 var (

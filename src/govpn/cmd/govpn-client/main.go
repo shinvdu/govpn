@@ -74,12 +74,12 @@ func main() {
 
 	pub, priv := govpn.NewVerifier(id, govpn.StringFromFile(*keyPath))
 	conf = &govpn.PeerConf{
-		Id:          id,
-		Timeout:     time.Second * time.Duration(timeout),
-		NoiseEnable: *noisy,
-		CPR:         *cpr,
-		DSAPub:      pub,
-		DSAPriv:     priv,
+		Id:      id,
+		Timeout: time.Second * time.Duration(timeout),
+		Noise:   *noisy,
+		CPR:     *cpr,
+		DSAPub:  pub,
+		DSAPriv: priv,
 	}
 	govpn.PeersInitDummy(id, conf)
 	log.Println(govpn.VersionGet())
