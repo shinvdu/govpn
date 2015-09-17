@@ -72,8 +72,6 @@ MainCycle:
 			}
 			if atomic.LoadInt64(&peer.BytesIn)+atomic.LoadInt64(&peer.BytesOut) > govpn.MaxBytesPerKey {
 				log.Println("Need rehandshake")
-				terminator <- struct{}{}
-				terminator = nil
 				rehandshaking <- struct{}{}
 				break MainCycle
 			}
