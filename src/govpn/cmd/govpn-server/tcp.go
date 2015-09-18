@@ -20,7 +20,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/binary"
 	"log"
 	"net"
 	"time"
@@ -152,8 +151,7 @@ func handleTCP(conn net.Conn) {
 	}
 
 	nonceExpectation := make([]byte, govpn.NonceSize)
-	binary.BigEndian.PutUint64(nonceExpectation, peer.NonceExpect)
-	peer.NonceCipher.Encrypt(nonceExpectation, nonceExpectation)
+	peer.NonceExpectation(nonceExpectation)
 	prev = 0
 	var i int
 	for {
@@ -182,8 +180,7 @@ func handleTCP(conn net.Conn) {
 			)
 			break
 		}
-		binary.BigEndian.PutUint64(nonceExpectation, peer.NonceExpect)
-		peer.NonceCipher.Encrypt(nonceExpectation, nonceExpectation)
+		peer.NonceExpectation(nonceExpectation)
 		copy(buf, buf[i+govpn.NonceSize:prev])
 		prev = prev - i - govpn.NonceSize
 		goto CheckMore

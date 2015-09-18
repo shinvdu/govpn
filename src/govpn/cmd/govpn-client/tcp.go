@@ -20,7 +20,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/binary"
 	"log"
 	"net"
 	"sync/atomic"
@@ -116,8 +115,7 @@ HandshakeCycle:
 	}
 
 	nonceExpectation := make([]byte, govpn.NonceSize)
-	binary.BigEndian.PutUint64(nonceExpectation, peer.NonceExpect)
-	peer.NonceCipher.Encrypt(nonceExpectation, nonceExpectation)
+	peer.NonceExpectation(nonceExpectation)
 	prev = 0
 	var i int
 TransportCycle:
@@ -158,8 +156,7 @@ TransportCycle:
 			rehandshaking <- struct{}{}
 			break TransportCycle
 		}
-		binary.BigEndian.PutUint64(nonceExpectation, peer.NonceExpect)
-		peer.NonceCipher.Encrypt(nonceExpectation, nonceExpectation)
+		peer.NonceExpectation(nonceExpectation)
 		copy(buf, buf[i+govpn.NonceSize:prev])
 		prev = prev - i - govpn.NonceSize
 		goto CheckMore

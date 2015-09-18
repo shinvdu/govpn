@@ -118,6 +118,11 @@ func (p *Peer) Zero() {
 	p.BusyR.Unlock()
 }
 
+func (p *Peer) NonceExpectation(buf []byte) {
+	binary.BigEndian.PutUint64(buf, p.NonceExpect)
+	p.NonceCipher.Encrypt(buf, buf)
+}
+
 func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[SSize]byte) *Peer {
 	now := time.Now()
 	timeout := conf.Timeout
