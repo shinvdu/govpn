@@ -7,7 +7,7 @@ to make DPI and deanonymization much harder to success.
 
 @example
 % ./utils/newclient.sh doesnotmatter
-Place verifier to peers/6d4ac605ce8dc37c2f0bf21cb542a713/verifier
+Your id is: 7012df29deee2170594119df5091d4a2
 @end example
 
-"6d4ac605ce8dc37c2f0bf21cb542a713" is client's identity.
+@code{7012df29deee2170594119df5091d4a2} is client's identity.

@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"time"
 )
 
 const (
@@ -52,13 +53,20 @@ func ScriptCall(path, ifaceName string) ([]byte, error) {
 	return out, err
 }
 
-// Zero each byte
+// Zero each byte.
 func sliceZero(data []byte) {
 	for i := 0; i < len(data); i++ {
-		data[i] = '\x00'
+		data[i] = 0
 	}
 }
 
 func VersionGet() string {
 	return "GoVPN version " + Version + " built with " + runtime.Version()
+}
+
+func cprCycleCalculate(rate int) time.Duration {
+	if rate == 0 {
+		return time.Duration(0)
+	}
+	return time.Second / time.Duration(rate*(1<<10)/MTU)
 }

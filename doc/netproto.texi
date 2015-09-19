@@ -1,10 +1,9 @@
-@node Network transport
+@node Network
 @section Network transport
 
 You can use either UDP or TCP underlying network transport protocols.
 
-TCP consumes more traffic: two additional bytes per packet. Also it is
-has more complex and slightly slower code. Moreover because of packet
-loss and TCP reliability it can lead to "meltdown" effect: significant
-performance decrease of underlying TCP connections. So generally TCP is
-not advisable for VPNs, but it can help with some nasty firewalls.
+TCP is more resource hungry. Moreover because of packet loss and TCP
+reliability it can lead to "meltdown" effect: significant performance
+loss of underlying TCP connections. Generally TCP is not advisable for
+VPNs, but it can help with some nasty firewalls.

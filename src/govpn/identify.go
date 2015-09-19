@@ -22,197 +22,20 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
-	"io/ioutil"
 	"log"
-	"os"
-	"path"
-	"strconv"
-	"strings"
 	"sync"
-	"time"
 
-	"github.com/agl/ed25519"
 	"golang.org/x/crypto/xtea"
 )
 
 const (
-	IDSize      = 128 / 8
-	RefreshRate = 60 * time.Second
+	IDSize = 128 / 8
 )
 
 type PeerId [IDSize]byte
 
 func (id PeerId) String() string {
 	return hex.EncodeToString(id[:])
-}
-
-// Return human readable name of the peer.
-// It equals either to peers/PEER/name file contents or PEER's hex.
-func (id PeerId) MarshalJSON() ([]byte, error) {
-	result := id.String()
-	if name, err := ioutil.ReadFile(path.Join(PeersPath, result, "name")); err == nil {
-		result = strings.TrimRight(string(name), "\n")
-	}
-	return []byte(`"` + result + `"`), nil
-}
-
-type PeerConf struct {
-	Id          *PeerId
-	Timeout     time.Duration
-	NoiseEnable bool
-	CPR         int
-	// This is passphrase verifier
-	DSAPub *[ed25519.PublicKeySize]byte
-	// This field exists only in dummy configuration on client's side
-	DSAPriv *[ed25519.PrivateKeySize]byte
-}
-
-type cipherCache map[PeerId]*xtea.Cipher
-
-var (
-	PeersPath       string
-	IDsCache        cipherCache
-	cipherCacheLock sync.RWMutex
-	dummyConf       *PeerConf
-)
-
-// Initialize (pre-cache) available peers info.
-func PeersInit(path string) {
-	PeersPath = path
-	IDsCache = make(map[PeerId]*xtea.Cipher)
-	go func() {
-		for {
-			IDsCache.refresh()
-			time.Sleep(RefreshRate)
-		}
-	}()
-}
-
-// Initialize dummy cache for client-side usage.
-func PeersInitDummy(id *PeerId, conf *PeerConf) {
-	IDsCache = make(map[PeerId]*xtea.Cipher)
-	cipher, err := xtea.NewCipher(id[:])
-	if err != nil {
-		panic(err)
-	}
-	IDsCache[*id] = cipher
-	dummyConf = conf
-}
-
-// Refresh IDsCache: remove disappeared keys, add missing ones with
-// initialized ciphers.
-func (cc cipherCache) refresh() {
-	dir, err := os.Open(PeersPath)
-	if err != nil {
-		panic(err)
-	}
-	peerIds, err := dir.Readdirnames(0)
-	if err != nil {
-		panic(err)
-	}
-	available := make(map[PeerId]bool)
-	for _, peerId := range peerIds {
-		id, err := IDDecode(peerId)
-		if err != nil {
-			continue
-		}
-		available[*id] = true
-	}
-
-	cipherCacheLock.Lock()
-	// Cleanup deleted ones from cache
-	for k, _ := range cc {
-		if _, exists := available[k]; !exists {
-			delete(cc, k)
-			log.Println("Cleaning key: ", k)
-		}
-	}
-	// Add missing ones
-	for peerId, _ := range available {
-		if _, exists := cc[peerId]; !exists {
-			log.Println("Adding key", peerId)
-			cipher, err := xtea.NewCipher(peerId[:])
-			if err != nil {
-				panic(err)
-			}
-			cc[peerId] = cipher
-		}
-	}
-	cipherCacheLock.Unlock()
-}
-
-// Try to find peer's identity (that equals to an encryption key)
-// by taking first blocksize sized bytes from data at the beginning
-// as plaintext and last bytes as cyphertext.
-func (cc cipherCache) Find(data []byte) *PeerId {
-	if len(data) < xtea.BlockSize*2 {
-		return nil
-	}
-	buf := make([]byte, xtea.BlockSize)
-	cipherCacheLock.RLock()
-	for pid, cipher := range cc {
-		cipher.Decrypt(buf, data[len(data)-xtea.BlockSize:])
-		if subtle.ConstantTimeCompare(buf, data[:xtea.BlockSize]) == 1 {
-			ppid := PeerId(pid)
-			cipherCacheLock.RUnlock()
-			return &ppid
-		}
-	}
-	cipherCacheLock.RUnlock()
-	return nil
-}
-
-func readIntFromFile(path string) (int, error) {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return 0, err
-	}
-	val, err := strconv.Atoi(strings.TrimRight(string(data), "\n"))
-	if err != nil {
-		return 0, err
-	}
-	return val, nil
-}
-
-// Get peer related configuration.
-func (id *PeerId) Conf() *PeerConf {
-	if dummyConf != nil {
-		return dummyConf
-	}
-	conf := PeerConf{Id: id, NoiseEnable: false, CPR: 0}
-	peerPath := path.Join(PeersPath, id.String())
-
-	verPath := path.Join(peerPath, "verifier")
-	keyData, err := ioutil.ReadFile(verPath)
-	if err != nil {
-		log.Println("Unable to read verifier:", verPath)
-		return nil
-	}
-	if len(keyData) < ed25519.PublicKeySize*2 {
-		log.Println("Verifier must be 64 hex characters long:", verPath)
-		return nil
-	}
-	keyDecoded, err := hex.DecodeString(string(keyData[:ed25519.PublicKeySize*2]))
-	if err != nil {
-		log.Println("Unable to decode the key:", err.Error(), verPath)
-		return nil
-	}
-	conf.DSAPub = new([ed25519.PublicKeySize]byte)
-	copy(conf.DSAPub[:], keyDecoded)
-
-	timeout := TimeoutDefault
-	if val, err := readIntFromFile(path.Join(peerPath, "timeout")); err == nil {
-		timeout = val
-	}
-	conf.Timeout = time.Second * time.Duration(timeout)
-
-	if val, err := readIntFromFile(path.Join(peerPath, "noise")); err == nil && val == 1 {
-		conf.NoiseEnable = true
-	}
-	if val, err := readIntFromFile(path.Join(peerPath, "cpr")); err == nil {
-		conf.CPR = val
-	}
-	return &conf
 }
 
 // Decode identification string.
@@ -229,4 +52,62 @@ func IDDecode(raw string) (*PeerId, error) {
 	copy(idP[:], idDecoded)
 	id := PeerId(*idP)
 	return &id, nil
+}
+
+type CipherCache struct {
+	c map[PeerId]*xtea.Cipher
+	l sync.RWMutex
+}
+
+func NewCipherCache(peerIds []PeerId) CipherCache {
+	cc := CipherCache{c: make(map[PeerId]*xtea.Cipher, len(peerIds))}
+	cc.Update(peerIds)
+	return cc
+}
+
+// Remove disappeared keys, add missing ones with initialized ciphers.
+func (cc CipherCache) Update(peerIds []PeerId) {
+	available := make(map[PeerId]struct{})
+	for _, peerId := range peerIds {
+		available[peerId] = struct{}{}
+	}
+	cc.l.Lock()
+	for k, _ := range cc.c {
+		if _, exists := available[k]; !exists {
+			log.Println("Cleaning key:", k)
+			delete(cc.c, k)
+		}
+	}
+	for peerId, _ := range available {
+		if _, exists := cc.c[peerId]; !exists {
+			log.Println("Adding key", peerId)
+			cipher, err := xtea.NewCipher(peerId[:])
+			if err != nil {
+				panic(err)
+			}
+			cc.c[peerId] = cipher
+		}
+	}
+	cc.l.Unlock()
+}
+
+// Try to find peer's identity (that equals to an encryption key)
+// by taking first blocksize sized bytes from data at the beginning
+// as plaintext and last bytes as cyphertext.
+func (cc CipherCache) Find(data []byte) *PeerId {
+	if len(data) < xtea.BlockSize*2 {
+		return nil
+	}
+	buf := make([]byte, xtea.BlockSize)
+	cc.l.RLock()
+	for pid, cipher := range cc.c {
+		cipher.Decrypt(buf, data[len(data)-xtea.BlockSize:])
+		if subtle.ConstantTimeCompare(buf, data[:xtea.BlockSize]) == 1 {
+			ppid := PeerId(pid)
+			cc.l.RUnlock()
+			return &ppid
+		}
+	}
+	cc.l.RUnlock()
+	return nil
 }

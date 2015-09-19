@@ -21,13 +21,12 @@ package main
 import (
 	"bufio"
 	"encoding/base64"
-	"io"
 	"log"
 	"net"
 	"net/http"
 )
 
-func proxyTCP() (io.Writer, chan []byte, chan struct{}) {
+func proxyTCP(timeouted, rehandshaking, termination chan struct{}) {
 	proxyAddr, err := net.ResolveTCPAddr("tcp", *proxyAddr)
 	if err != nil {
 		log.Fatalln("Can not resolve proxy address:", err)
@@ -51,9 +50,6 @@ func proxyTCP() (io.Writer, chan []byte, chan struct{}) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		log.Fatalln("Unexpected response from proxy")
 	}
-	sink := make(chan []byte)
-	ready := make(chan struct{})
-	go handleTCP(conn, sink, ready)
-	go func() { ready <- struct{}{} }()
-	return TCPSender{conn}, sink, ready
+	log.Println("Connected to proxy:", *proxyAddr)
+	go handleTCP(conn, timeouted, rehandshaking, termination)
 }

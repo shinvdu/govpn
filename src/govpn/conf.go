@@ -16,30 +16,27 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package main
+package govpn
 
 import (
-	"log"
-	"net/http"
+	"time"
+
+	"github.com/agl/ed25519"
 )
 
-type proxyHandler struct{}
+type PeerConf struct {
+	Id         *PeerId       `json:"-"`
+	Name       string        `json:"name"`
+	Up         string        `json:"up"`
+	Down       string        `json:"down"`
+	TimeoutInt int           `json:"timeout"`
+	Timeout    time.Duration `json:"-"`
+	Noise      bool          `json:"noise"`
+	CPR        int           `json:"cpr"`
+	Verifier   string        `json:"verifier"`
 
-func (p proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	conn, _, err := w.(http.Hijacker).Hijack()
-	if err != nil {
-		log.Println("Hijacking failed:", err.Error())
-		return
-	}
-	conn.Write([]byte("HTTP/1.0 200 OK\n\n"))
-	go handleTCP(conn)
-}
-
-func proxyStart() {
-	log.Println("HTTP proxy listening on:" + *proxy)
-	s := &http.Server{
-		Addr:    *proxy,
-		Handler: proxyHandler{},
-	}
-	log.Println("HTTP proxy result:", s.ListenAndServe())
+	// This is passphrase verifier
+	DSAPub *[ed25519.PublicKeySize]byte `json:"-"`
+	// This field exists only on client's side
+	DSAPriv *[ed25519.PrivateKeySize]byte `json:"-"`
 }

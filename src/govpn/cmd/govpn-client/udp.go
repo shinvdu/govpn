@@ -19,41 +19,104 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"io"
 	"log"
 	"net"
+	"sync/atomic"
 	"time"
 
 	"govpn"
 )
 
-func startUDP() (io.Writer, chan []byte, chan struct{}) {
+func startUDP(timeouted, rehandshaking, termination chan struct{}) {
 	remote, err := net.ResolveUDPAddr("udp", *remoteAddr)
 	if err != nil {
 		log.Fatalln("Can not resolve remote address:", err)
 	}
-	c, err := net.DialUDP("udp", nil, remote)
-	conn := io.Writer(c)
+	conn, err := net.DialUDP("udp", nil, remote)
 	if err != nil {
 		log.Fatalln("Can not listen on UDP:", err)
 	}
-	sink := make(chan []byte)
-	ready := make(chan struct{})
-	go func() {
-		buf := make([]byte, govpn.MTU)
-		var n int
-		var err error
-		for {
-			<-ready
-			c.SetReadDeadline(time.Now().Add(time.Second))
-			n, err = c.Read(buf)
-			if err != nil {
-				sink <- nil
-				continue
-			}
-			sink <- buf[:n]
+	log.Println("Connected to UDP:" + *remoteAddr)
+
+	hs := govpn.HandshakeStart(*remoteAddr, conn, conf)
+	buf := make([]byte, govpn.MTU)
+	var n int
+	var timeouts int
+	var peer *govpn.Peer
+	var terminator chan struct{}
+MainCycle:
+	for {
+		select {
+		case <-termination:
+			break MainCycle
+		default:
 		}
-	}()
-	ready <- struct{}{}
-	return conn, sink, ready
+
+		conn.SetReadDeadline(time.Now().Add(time.Second))
+		n, err = conn.Read(buf)
+		if timeouts == timeout {
+			log.Println("Timeouted")
+			timeouted <- struct{}{}
+			break
+		}
+		if err != nil {
+			timeouts++
+			continue
+		}
+		if peer != nil {
+			if peer.PktProcess(buf[:n], tap, true) {
+				timeouts = 0
+			} else {
+				log.Println("Unauthenticated packet")
+				timeouts++
+			}
+			if atomic.LoadInt64(&peer.BytesIn)+atomic.LoadInt64(&peer.BytesOut) > govpn.MaxBytesPerKey {
+				log.Println("Need rehandshake")
+				rehandshaking <- struct{}{}
+				break MainCycle
+			}
+			continue
+		}
+		if idsCache.Find(buf[:n]) == nil {
+			log.Println("Invalid identity in handshake packet")
+			continue
+		}
+		timeouts = 0
+		peer = hs.Client(buf[:n])
+		if peer == nil {
+			continue
+		}
+		log.Println("Handshake completed")
+		knownPeers = govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
+		if firstUpCall {
+			go govpn.ScriptCall(*upPath, *ifaceName)
+			firstUpCall = false
+		}
+		hs.Zero()
+		terminator = make(chan struct{})
+		go func() {
+			heartbeat := time.NewTicker(peer.Timeout)
+			var data []byte
+		Processor:
+			for {
+				select {
+				case <-heartbeat.C:
+					peer.EthProcess(nil)
+				case <-terminator:
+					break Processor
+				case data = <-tap.Sink:
+					peer.EthProcess(data)
+				}
+			}
+			heartbeat.Stop()
+			peer.Zero()
+		}()
+	}
+	if terminator != nil {
+		terminator <- struct{}{}
+	}
+	if hs != nil {
+		hs.Zero()
+	}
+	conn.Close()
 }

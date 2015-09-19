@@ -1,0 +1,62 @@
+GoVPN is simple free software virtual private network daemon,
+aimed to be reviewable, secure and
+@url{https://en.wikipedia.org/wiki/Deep_packet_inspection, DPI}/censorship-resistant.
+
+@itemize @bullet
+@item
+Copylefted free software: licenced under
+@url{https://www.gnu.org/licenses/gpl-3.0.html, GPLv3+}.
+@item
+Fast strong @ref{PAKE, passphrase authenticated} augmented
+@ref{Handshake, key agreement protocol} with zero-knowledge mutual peers
+authentication (PAKE DH A-EKE (Diffie-Hellman Augmented Encrypted Key
+Exchange)).
+@item
+@ref{Verifier structure, Augmented authentication tokens} resistant to
+offline dictionary attacks. An attacker can not masquerade a client
+even with server passphrase verifiers compromising.
+@item
+Encrypted and authenticated @ref{Transport, payload transport}
+with 128-bit @ref{Developer, security margin} state-of-the-art
+cryptography.
+@item
+Censorship resistant handshake and transport messages: fully
+indistinguishable from the noise with optionally hidden packets lengths.
+@item
+@url{https://en.wikipedia.org/wiki/Forward_secrecy, Perfect forward secrecy}
+property.
+@item
+Replay attack protection (using one-time MACs).
+@item
+Built-in rehandshake (session key rotation) and heartbeat features.
+@item
+Ability to hide packets length with the @ref{Noise, noise} data.
+@item
+Ability to hide payload timestamps with @ref{CPR, constant packet rate}
+traffic.
+@item
+Compatible with @url{http://egd.sourceforge.net/, EGD} (entropy
+gathering daemon) PRNGs.
+@item
+Several simultaneous clients support with per-client configuration
+options. Clients have pre-established @ref{Identity, identity} invisible
+for third-parties (they are anonymous).
+@item
+Uses @url{https://en.wikipedia.org/wiki/TAP_(network_driver), TAP}
+underlying network interfaces.
+@item
+Can use @ref{Network, UDP and TCP} or HTTP @ref{Proxy, proxies}
+for accessing the server.
+@item
+Fully IPv4 and IPv6 compatible.
+@item
+Optional built-in HTTP-server for retrieving real-time
+@ref{Stats, statistics} information about known connected peers in
+@url{http://json.org/, JSON} format.
+@item
+Written on @url{http://golang.org/, Go} programming language with
+simple code that can be read and reviewed.
+@item
+@url{https://www.gnu.org/, GNU}/Linux and
+@url{http://www.freebsd.org/, FreeBSD} support.
+@end itemize

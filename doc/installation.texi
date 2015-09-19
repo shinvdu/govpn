@@ -1,6 +1,13 @@
 @node Installation
 @unnumbered Installation
 
+Possibly GoVPN already exists in your distribution:
+
+@itemize @bullet
+@item @url{https://aur.archlinux.org/packages/govpn/, AUR}
+@item @url{http://www.freshports.org/security/govpn/, FreeBSD ports}
+@end itemize
+
 GoVPN is written on Go programming language and you have to install Go
 compiler (1.5+ version is highly recommended): @code{lang/go} port in
 FreeBSD and @code{golang} package in most GNU/Linux distributions.
@@ -20,8 +27,8 @@ Included required libraries:
 @item @code{github.com/bigeagle/water} @tab GNU/Linux @tab BSD 3-Clause
 @end multitable
 
-Get @ref{Prepared tarballs, the tarball}, check its
-@ref{Tarballs integrity check, authenticity} and run @code{make}.
+Get @ref{Tarballs, the tarball}, check its
+@ref{Integrity, integrity and authenticity} and run @code{make}.
 @emph{govpn-client}, @emph{govpn-server}, @emph{govpn-verifier}
 binaries will be built in the current directory:
 
@@ -37,11 +44,11 @@ There is @code{install} target respecting @code{DESTDIR}. It will
 install binaries, info-documentation and utilities.
 
 @menu
-* Prepared tarballs::
-* Development source code::
-* Tarballs integrity check::
+* Prepared tarballs: Tarballs.
+* Tarballs integrity check: Integrity.
+* Development source code: Sources.
 @end menu
 
 @include download.texi
-@include sources.texi
 @include integrity.texi
+@include sources.texi

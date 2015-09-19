@@ -1,4 +1,4 @@
-@node Server part
+@node Server
 @section Server part
 
 Except for common @code{-mtu}, @code{-stats}, @code{-egd} options server
@@ -7,75 +7,69 @@ has the following ones:
 @table @code
 
 @item -proto
-@ref{Network transport} to use. Can be @emph{udp}, @emph{tcp} or @emph{all}.
+@ref{Network, network protocol} to use. Can be @emph{udp} (default),
+@emph{tcp} or @emph{all}.
 
 @item -bind
 Address (@code{host:port} format) we must bind to.
 
-@item -peers
-Path to the directory containing peers information, database.
+@item -conf
+Path to JSON file with the configuration.
 
 @item -proxy
 Start trivial HTTP @ref{Proxy} server on specified @emph{host:port}.
 
 @end table
 
-Peers directory must contain subdirectories with the names of client's
-identities in hexadecimal notation. Each subdirectory has the following
-files:
+Configuration file is JSON file with following example structure:
 
-@table @code
+@verbatim
+{
+  "9b40701bdaf522f2b291cb039490312": {  <-- Peer identifier
+    "name": "stargrave",                <-- OPTIONAL human readable name
+    "up": "./stargrave-up.sh",          <-- up-script
+    "down": "./stargrave-down.sh",      <-- OPTIONAL down-script
+    "timeout": 60,                      <-- OPTIONAL overriden timeout
+    "noise": true,                      <-- OPTIONAL noise enabler
+                                            (default: false)
+    "cpr": 64,                          <-- OPTIONAL constant packet
+                                            rate in KiB/sec
+    "verifier": "2c15bbdffc73193bea56db412bce1143c68ccbdaa9e2eade53a684497646a685"
+  },
+  [...]
+}
+@end verbatim
 
-@item verifier
-@strong{Required}. Contains corresponding verifier used to authenticate
-the client in hexadecimal notation. See @ref{Verifier} for how
-to create it.
+See @ref{Verifier} for its description.
 
-@item up.sh
-@strong{Required}. up-script executes each time connection with the
-client is established. It's @emph{stdout} output must contain TAP
-interface name on the first string. This script can be simple
-@code{echo tap10}, or maybe more advanced like this:
-    @example
-    #!/bin/sh
-    $tap=$(ifconfig tap create)
-    ifconfig $tap inet6 fc00::1/96 mtu 1412 up
-    echo $tap
-    @end example
+up-script executes each time connection with the client is established.
+Its @emph{stdout} output must contain TAP interface name as the first
+line. This script can be simple @code{echo tap10}, or maybe more
+advanced like this:
+@example
+#!/bin/sh
+$tap=$(ifconfig tap create)
+ifconfig $tap inet6 fc00::1/96 mtu 1412 up
+echo $tap
+@end example
 
-@item down.sh
-Optional. Same as @code{up.sh} above, but executes when connection is
-lost.
-
-@item name
-Optional. Contains human readable username. Used to beauty output of
-@ref{Stats}.
-
-@item timeout
-Optional. Contains @ref{Timeout} setting (decimal notation) in seconds.
-Otherwise default minute timeout will be used.
-
-@item noise
-Optional. Contains either "1" (enable @ref{Noise} adding), or "0".
-
-@item cpr
-Optional. Contains @ref{CPR} setting (decimal notation) in KiB/sec.
-
-@end table
-
-Each minute server refreshes peers directory contents and adds newly
-appeared identities, deletes an obsolete ones.
+Each minute server rereads and refreshes peers configuration and adds
+newly appeared identities, deletes an obsolete ones.
 
 You can use convenient @code{utils/newclient.sh} script for new client
 creation:
 
-@example
+@verbatim
 % ./utils/newclient.sh Alice
-Place verifier to peers/9b40701bdaf522f2b291cb039490312/verifier
-@end example
+[...]
+Your id is: 7012df29deee2170594119df5091d4a2
 
-@code{9b40701bdaf522f2b291cb039490312} is client's identification.
-@code{peers/9b40701bdaf522f2b291cb039490312/name} contains @emph{Alice},
-@code{peers/9b40701bdaf522f2b291cb039490312/verifier} contains dummy
-verifier and @code{peers/9b40701bdaf522f2b291cb039490312/up.sh} contains
-currently dummy empty up-script.
+Place the following JSON configuration entry on the server's side:
+
+    "906e34b98750c4f686d6c5489508763c": {
+        "name": "Alice",
+        "up": "/path/to/up.sh",
+        "verifier": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    }
+[...]
+@end verbatim

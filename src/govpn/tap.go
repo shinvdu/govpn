@@ -29,13 +29,17 @@ const (
 )
 
 type TAP struct {
-	Name   string
-	dev    io.ReadWriter
-	buf    []byte
-	sink   chan []byte
-	ready  chan struct{}
-	synced bool
+	Name string
+	Sink chan []byte
+	dev  io.ReadWriter
+	buf0 []byte
+	buf1 []byte
+	bufZ bool
 }
+
+var (
+	taps = make(map[string]*TAP)
+)
 
 // Return maximal acceptable TAP interface MTU. This is daemon's MTU
 // minus nonce, MAC, packet size mark and Ethernet header sizes.
@@ -50,23 +54,28 @@ func NewTAP(ifaceName string) (*TAP, error) {
 		return nil, err
 	}
 	tap := TAP{
-		Name:   ifaceName,
-		dev:    tapRaw,
-		buf:    make([]byte, maxIfacePktSize),
-		sink:   make(chan []byte),
-		ready:  make(chan struct{}),
-		synced: false,
+		Name: ifaceName,
+		dev:  tapRaw,
+		buf0: make([]byte, maxIfacePktSize),
+		buf1: make([]byte, maxIfacePktSize),
+		Sink: make(chan []byte),
 	}
 	go func() {
 		var n int
 		var err error
+		var buf []byte
 		for {
-			<-tap.ready
-			n, err = tap.dev.Read(tap.buf)
+			if tap.bufZ {
+				buf = tap.buf0
+			} else {
+				buf = tap.buf1
+			}
+			tap.bufZ = !tap.bufZ
+			n, err = tap.dev.Read(buf)
 			if err != nil {
 				panic("Reading TAP:" + err.Error())
 			}
-			tap.sink <- tap.buf[:n]
+			tap.Sink <- buf[:n]
 		}
 	}()
 	return &tap, nil
@@ -74,4 +83,17 @@ func NewTAP(ifaceName string) (*TAP, error) {
 
 func (t *TAP) Write(data []byte) (n int, err error) {
 	return t.dev.Write(data)
+}
+
+func TAPListen(ifaceName string) (*TAP, error) {
+	tap, exists := taps[ifaceName]
+	if exists {
+		return tap, nil
+	}
+	tap, err := NewTAP(ifaceName)
+	if err != nil {
+		return nil, err
+	}
+	taps[ifaceName] = tap
+	return tap, nil
 }

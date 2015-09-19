@@ -19,81 +19,151 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"encoding/binary"
-	"io"
+	"bytes"
 	"log"
 	"net"
+	"sync/atomic"
+	"time"
 
 	"govpn"
 )
 
-// TCPSender prepends size prefix to each outgoing packet.
-type TCPSender struct {
-	conn *net.TCPConn
-}
-
-func (c TCPSender) Write(data []byte) (int, error) {
-	size := make([]byte, 2)
-	binary.BigEndian.PutUint16(size, uint16(len(data)))
-	return c.conn.Write(append(size, data...))
-}
-
-func startTCP() (io.Writer, chan []byte, chan struct{}) {
+func startTCP(timeouted, rehandshaking, termination chan struct{}) {
 	remote, err := net.ResolveTCPAddr("tcp", *remoteAddr)
 	if err != nil {
 		log.Fatalln("Can not resolve remote address:", err)
 	}
-	c, err := net.DialTCP("tcp", nil, remote)
-	conn := TCPSender{c}
+	conn, err := net.DialTCP("tcp", nil, remote)
 	if err != nil {
-		log.Fatalln("Can not connect TCP:", err)
+		log.Fatalln("Can not connect to address:", err)
 	}
-	sink := make(chan []byte)
-	ready := make(chan struct{})
-	go handleTCP(c, sink, ready)
-	go func() { ready <- struct{}{} }()
-	return conn, sink, ready
+	log.Println("Connected to TCP:" + *remoteAddr)
+	handleTCP(conn, timeouted, rehandshaking, termination)
 }
 
-func handleTCP(conn *net.TCPConn, sink chan []byte, ready chan struct{}) {
-	var err error
-	var n int
-	var sizeNbuf int
-	sizeBuf := make([]byte, 2)
-	var sizeNeed uint16
-	var bufN uint16
+func handleTCP(conn *net.TCPConn, timeouted, rehandshaking, termination chan struct{}) {
+	hs := govpn.HandshakeStart(*remoteAddr, conn, conf)
 	buf := make([]byte, govpn.MTU)
+	var n int
+	var err error
+	var prev int
+	var peer *govpn.Peer
+	var terminator chan struct{}
+HandshakeCycle:
 	for {
-		<-ready
-		if sizeNbuf != 2 {
-			n, err = conn.Read(sizeBuf[sizeNbuf:2])
-			if err != nil {
-				break
-			}
-			sizeNbuf += n
-			if sizeNbuf != 2 {
-				sink <- nil
-				continue
-			}
-			sizeNeed = binary.BigEndian.Uint16(sizeBuf)
-			if int(sizeNeed) > govpn.MTU-2 {
-				log.Println("Invalid TCP size, skipping")
-				sizeNbuf = 0
-				sink <- nil
-				continue
-			}
-			bufN = 0
+		select {
+		case <-termination:
+			break HandshakeCycle
+		default:
 		}
-	ReadMore:
-		if sizeNeed != bufN {
-			n, err = conn.Read(buf[bufN:sizeNeed])
-			if err != nil {
-				break
-			}
-			bufN += uint16(n)
-			goto ReadMore
+		if prev == govpn.MTU {
+			log.Println("Timeouted waiting for the packet")
+			timeouted <- struct{}{}
+			break HandshakeCycle
 		}
-		sizeNbuf = 0
-		sink <- buf[:sizeNeed]
+
+		conn.SetReadDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
+		n, err = conn.Read(buf[prev:])
+		if err != nil {
+			log.Println("Connection timeouted")
+			timeouted <- struct{}{}
+			break HandshakeCycle
+		}
+
+		prev += n
+		peerId := idsCache.Find(buf[:prev])
+		if peerId == nil {
+			continue
+		}
+		peer = hs.Client(buf[:prev])
+		prev = 0
+		if peer == nil {
+			continue
+		}
+		log.Println("Handshake completed")
+		knownPeers = govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
+		if firstUpCall {
+			go govpn.ScriptCall(*upPath, *ifaceName)
+			firstUpCall = false
+		}
+		hs.Zero()
+		terminator = make(chan struct{})
+		go func() {
+			heartbeat := time.NewTicker(peer.Timeout)
+			var data []byte
+		Processor:
+			for {
+				select {
+				case <-heartbeat.C:
+					peer.EthProcess(nil)
+				case <-terminator:
+					break Processor
+				case data = <-tap.Sink:
+					peer.EthProcess(data)
+				}
+			}
+			heartbeat.Stop()
+			peer.Zero()
+		}()
+		break HandshakeCycle
 	}
+	if hs != nil {
+		hs.Zero()
+	}
+	if peer == nil {
+		return
+	}
+
+	nonceExpectation := make([]byte, govpn.NonceSize)
+	peer.NonceExpectation(nonceExpectation)
+	prev = 0
+	var i int
+TransportCycle:
+	for {
+		select {
+		case <-termination:
+			break TransportCycle
+		default:
+		}
+		if prev == govpn.MTU {
+			log.Println("Timeouted waiting for the packet")
+			timeouted <- struct{}{}
+			break TransportCycle
+		}
+		conn.SetReadDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
+		n, err = conn.Read(buf[prev:])
+		if err != nil {
+			log.Println("Connection timeouted")
+			timeouted <- struct{}{}
+			break TransportCycle
+		}
+		prev += n
+	CheckMore:
+		if prev < govpn.MinPktLength {
+			continue
+		}
+		i = bytes.Index(buf[:prev], nonceExpectation)
+		if i == -1 {
+			continue
+		}
+		if !peer.PktProcess(buf[:i+govpn.NonceSize], tap, false) {
+			log.Println("Unauthenticated packet, dropping connection")
+			timeouted <- struct{}{}
+			break TransportCycle
+		}
+		if atomic.LoadInt64(&peer.BytesIn)+atomic.LoadInt64(&peer.BytesOut) > govpn.MaxBytesPerKey {
+			log.Println("Need rehandshake")
+			rehandshaking <- struct{}{}
+			break TransportCycle
+		}
+		peer.NonceExpectation(nonceExpectation)
+		copy(buf, buf[i+govpn.NonceSize:prev])
+		prev = prev - i - govpn.NonceSize
+		goto CheckMore
+	}
+	if terminator != nil {
+		terminator <- struct{}{}
+	}
+	peer.Zero()
+	conn.Close()
 }

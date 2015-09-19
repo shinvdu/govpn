@@ -7,4 +7,4 @@ delays other ones.
 
 This mode is turned by @code{-cpr} option, where you specify desired
 outgoing traffic rate in KiB/sec (kibibytes per second). This option also
-forces using of the @ref{Noise}! It is turned off by default.
+@strong{forces} using of the @ref{Noise}! It is turned off by default.

@@ -1,33 +1,33 @@
-@node User manual
+@node User
 @unnumbered User manual
 
 Announcements about updates and new releases can be found in @ref{Contacts}.
 
-GoVPN is split into two pieces: client and server. Each of them work on
-top of UDP/TCP and TAP virtual network interfaces. GoVPN is just a
-tunnelling of Ethernet frames, nothing less, nothing more. All you
-IP-related network management is not touched by VPN at all. You can
-automate it using up and down shell scripts.
+GoVPN is split into two pieces: @ref{Client} and @ref{Server}. Each of
+them work on top of @ref{Network, UDP/TCP} and TAP virtual network
+interfaces. GoVPN is just a tunnelling of Ethernet frames, nothing less,
+nothing more. All you IP-related network management is not touched by
+VPN at all. You can automate it using up and down shell scripts.
 
 What network performance can user expect? For example single
 @emph{Intel i5-2450M 2.5 GHz} core on @emph{FreeBSD 10.2 amd64}
-with @emph{Go 1.5} gives 435 Mbps TCP (over UDP) throughput.
+with @emph{Go 1.5.1} gives 786 Mbps (UDP transport) throughput.
 
 @menu
 * EGD:: Entropy gathering daemon
 * Identity::
 * PAKE:: Password Authenticated Key Agreement
 * Timeout::
-* Network transport::
+* Network transport: Network.
 * Proxy::
 * MTU:: Maximum Transmission Unit
 * Stats::
 * Noise::
 * CPR:: Constant Packet Rate
 * Verifier::
-* Client part::
-* Server part::
-* Example usage::
+* Client part: Client.
+* Server part: Server.
+* Example usage: Example.
 @end menu
 
 @include egd.texi

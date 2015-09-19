@@ -13,8 +13,8 @@ Enter passphrase:[hello world]
 210e3878542828901a3af9b4aa00b004de530410eef5c1ba2ffb6d04504371b2
 @end example
 
-Store "210...1b2" string on the server's side in corresponding
-@code{verifier} file.
+Store @code{210...1b2} string on the server's side in corresponding
+@code{verifier} configuration file's field.
 
 You can check passphrase against verifier by specifying @code{-verifier}
 option with the path to verifier file:

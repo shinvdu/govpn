@@ -1,28 +1,25 @@
-GoVPN is simple secure free software virtual private network daemon,
-aimed to be reviewable, secure, DPI/censorship-resistant, written on Go.
+GoVPN is simple free software virtual private network daemon, aimed to
+be reviewable, secure, DPI/censorship-resistant, written on Go.
 
-It uses fast strong password authenticated key agreement protocol with
-augmented mutual peers authentication (PAKE DH A-EKE). Encrypted,
-authenticated data transport that hides message's length and timestamps.
-Perfect forward secrecy property. Resistance to: offline dictionary
-attacks, replay attacks, client's passwords compromising and dictionary
-attacks on the server side. Built-in heartbeating, rehandshaking,
-real-time statistics. Ability to work through UDP, TCP and HTTP proxies.
-IPv4/IPv6-compatibility. GNU/Linux and FreeBSD support.
+It uses fast strong passphrase authenticated key agreement protocol with
+augmented zero-knowledge mutual peers authentication (PAKE DH A-EKE).
+Encrypted, authenticated data transport that hides message's length and
+timestamps. Perfect forward secrecy property. Resistance to: offline
+dictionary attacks, replay attacks, client's passphrases compromising
+and dictionary attacks on the server side. Built-in heartbeating,
+rehandshaking, real-time statistics. Ability to work through UDP, TCP
+and HTTP proxies. IPv4/IPv6-compatibility. GNU/Linux and FreeBSD support.
 
 GoVPN is free software: see the file COPYING for copying conditions.
 
-Home page: http://www.cypherpunks.ru/govpn/
+Home page: http://govpn.info/ -> http://www.cypherpunks.ru/govpn/
 also available as Tor hidden service: http://vabu56j2ep2rwv3b.onion/govpn/
 
-Please send all questions, bug reports and patches to
-govpn-devel@lists.cypherpunks.ru mailing list.
-Also it is used for announcements. Either visit
-https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel for
-subscription and archive access information, or send email with the
-subject "subscribe" to govpn-devel-request@lists.cypherpunks.ru.
+Please send questions regarding the use of GoVPN, bug reports and
+patches to govpn-devel mailing list:
+https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel
 
 Development Git source code repository currently is located here:
 http://git.cypherpunks.ru/cgit.cgi/govpn.git/
 
-For futher information please read either doc/govpn.info or doc/govpn.texi.
+For further information please read either doc/govpn.info or doc/govpn.texi.

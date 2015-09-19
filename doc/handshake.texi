@@ -1,4 +1,4 @@
-@node Handshake protocol
+@node Handshake
 @section Handshake protocol
 
 @verbatiminclude handshake.utxt
@@ -6,9 +6,10 @@
 Each handshake message ends with so called @code{IDtag}: it is an XTEA
 encrypted first 64 bits of each message with client's @ref{Identity} as
 a key. It is used to transmit identity and to mark packet as handshake
-message. Server can determine used identity by trying all possible known
-to him keys. It consumes resources, but XTEA is rather fast algorithm
-and handshake messages checking is seldom enough event.
+message.
+
+If @ref{Noise} is enabled, then junk data is inserted before
+@code{IDtag} to full up packet to MTU's size.
 
 @strong{Preparation stage}:
 
