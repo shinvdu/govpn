@@ -33,7 +33,7 @@ mv $tmp/golang.org src/
 rm -fr $tmp/golang.org $tmp/includes
 
 cat > doc/download.texi <<EOF
-@node Prepared tarballs
+@node Tarballs
 @section Prepared tarballs
 You can obtain releases source code prepared tarballs on
 @url{http://www.cypherpunks.ru/govpn/}.
