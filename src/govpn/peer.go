@@ -260,6 +260,9 @@ func (p *Peer) EthProcess(data []byte) {
 }
 
 func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
+	if len(data) < MinPktLength {
+		return false
+	}
 	p.BusyR.Lock()
 	for i := 0; i < SSize; i++ {
 		p.bufR[i] = byte(0)
@@ -326,6 +329,9 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 		p.HeartbeatRecv++
 		p.BusyR.Unlock()
 		return true
+	}
+	if int(p.pktSizeR) > len(data) - MinPktLength {
+		return false
 	}
 	p.BytesPayloadIn += int64(p.pktSizeR)
 	tap.Write(p.bufR[S20BS+PktSizeSize : S20BS+PktSizeSize+p.pktSizeR])

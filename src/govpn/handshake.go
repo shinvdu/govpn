@@ -191,7 +191,7 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 // authenticated Peer is ready, then return nil.
 func (h *Handshake) Server(data []byte) *Peer {
 	// R + ENC(H(DSAPub), R, El(CDHPub)) + IDtag
-	if h.rNonce == nil {
+	if h.rNonce == nil && len(data) >= 48 {
 		// Generate DH keypair
 		var dhPubRepr *[32]byte
 		h.dhPriv, dhPubRepr = dhKeypairGen()
@@ -237,7 +237,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+1, RS + RC + SC + Sign(DSAPriv, K)) + IDtag
-	if h.rClient == nil {
+	if h.rClient == nil && len(data) >= 120 {
 		// Decrypted Rs compare rServer
 		dec := make([]byte, RSize+RSize+SSize+ed25519.SignatureSize)
 		salsa20.XORKeyStream(
@@ -290,7 +290,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 // authenticated Peer is ready, then return nil.
 func (h *Handshake) Client(data []byte) *Peer {
 	// ENC(H(DSAPub), R+1, El(SDHPub)) + ENC(K, R, RS + SS) + IDtag
-	if h.rServer == nil && h.key == nil {
+	if h.rServer == nil && h.key == nil && len(data) >= 80 {
 		// Decrypt remote public key and compute shared key
 		sDHRepr := new([32]byte)
 		salsa20.XORKeyStream(sDHRepr[:], data[:32], h.rNonceNext(1), h.dsaPubH)
@@ -334,7 +334,7 @@ func (h *Handshake) Client(data []byte) *Peer {
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+2, RC) + IDtag
-	if h.key != nil {
+	if h.key != nil && len(data) >= 16 {
 		// Decrypt rClient
 		dec := make([]byte, RSize)
 		salsa20.XORKeyStream(dec, data[:RSize], h.rNonceNext(2), h.key)
