@@ -108,6 +108,9 @@ MainCycle:
 		timeouted := make(chan struct{})
 		rehandshaking := make(chan struct{})
 		termination := make(chan struct{})
+		if *proxyAddr != "" {
+			*proto = "tcp"
+		}
 		switch *proto {
 		case "udp":
 			go startUDP(timeouted, rehandshaking, termination)
