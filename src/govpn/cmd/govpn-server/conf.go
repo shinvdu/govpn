@@ -19,13 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"log"
 	"time"
-
-	"github.com/agl/ed25519"
 
 	"govpn"
 )
@@ -51,35 +48,25 @@ func confRead() map[govpn.PeerId]*govpn.PeerConf {
 	}
 
 	confs := make(map[govpn.PeerId]*govpn.PeerConf, len(*confsRaw))
-	for peerIdRaw, pc := range *confsRaw {
-		peerId, err := govpn.IDDecode(peerIdRaw)
+	for name, pc := range *confsRaw {
+		verifier, err := govpn.VerifierFromString(pc.VerifierRaw)
 		if err != nil {
-			log.Fatalln("Invalid peer ID:", peerIdRaw, err)
+			log.Fatalln("Unable to decode the key:", err.Error(), pc.VerifierRaw)
 		}
 		conf := govpn.PeerConf{
-			Id:    peerId,
-			Name:  pc.Name,
-			Up:    pc.Up,
-			Down:  pc.Down,
-			Noise: pc.Noise,
-			CPR:   pc.CPR,
+			Verifier: verifier,
+			Id:       verifier.Id,
+			Name:     name,
+			Up:       pc.Up,
+			Down:     pc.Down,
+			Noise:    pc.Noise,
+			CPR:      pc.CPR,
 		}
 		if pc.TimeoutInt <= 0 {
 			pc.TimeoutInt = govpn.TimeoutDefault
 		}
 		conf.Timeout = time.Second * time.Duration(pc.TimeoutInt)
-
-		if len(pc.Verifier) != ed25519.PublicKeySize*2 {
-			log.Fatalln("Verifier must be 64 hex characters long")
-		}
-		keyDecoded, err := hex.DecodeString(string(pc.Verifier))
-		if err != nil {
-			log.Fatalln("Unable to decode the key:", err.Error(), pc.Verifier)
-		}
-		conf.DSAPub = new([ed25519.PublicKeySize]byte)
-		copy(conf.DSAPub[:], keyDecoded)
-
-		confs[*peerId] = &conf
+		confs[*verifier.Id] = &conf
 	}
 	return confs
 }

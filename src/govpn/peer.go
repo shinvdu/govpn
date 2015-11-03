@@ -330,7 +330,7 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 		p.BusyR.Unlock()
 		return true
 	}
-	if int(p.pktSizeR) > len(data) - MinPktLength {
+	if int(p.pktSizeR) > len(data)-MinPktLength {
 		return false
 	}
 	p.BytesPayloadIn += int64(p.pktSizeR)

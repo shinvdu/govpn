@@ -26,9 +26,10 @@ func (d Dummy) Write(b []byte) (int, error) {
 
 func init() {
 	MTU = 1500
-	peerId, _ = IDDecode("ffffffffffffffffffffffffffffffff")
+	id := new([IDSize]byte)
+	peerId := PeerId(*id)
 	conf = &PeerConf{
-		Id:      peerId,
+		Id:      &peerId,
 		Timeout: time.Second * time.Duration(TimeoutDefault),
 		Noise:   false,
 		CPR:     0,

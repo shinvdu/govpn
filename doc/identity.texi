@@ -3,11 +3,5 @@
 
 Client's identity is 128-bit string. It is not secret, so can be
 transmitted and stored in the clear. However handshake applies PRP on it
-to make DPI and deanonymization much harder to success.
-
-@example
-% ./utils/newclient.sh doesnotmatter
-Your id is: 7012df29deee2170594119df5091d4a2
-@end example
-
-@code{7012df29deee2170594119df5091d4a2} is client's identity.
+to make DPI and deanonymization much harder to success. It is used as a
+salt in verifier.

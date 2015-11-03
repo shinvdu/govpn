@@ -3,8 +3,8 @@
 [ -n "$1" ] || {
     cat <<EOF
 Example script for creating new user peer for GoVPN.
-It generates random client's identity, ask for passphrase, generates
-verifier and shows you example JSON entry for server configuration.
+It asks for passphrase, generates verifier and shows you example
+JSON entry for server configuration.
 
 Usage: $0 <username>
 EOF
@@ -12,30 +12,29 @@ EOF
 }
 
 username=$1
-peerid=$(dd if=/dev/urandom bs=16 count=1 2>/dev/null | hexdump -ve '"%02x"')
-[ $(echo -n $peerid | wc -c) = 32 ] || peerid=0"$peerid"
 umask 077
 passphrase=$(mktemp)
 $(dirname $0)/storekey.sh $passphrase
-verifier=$(govpn-verifier -id $peerid -key $passphrase)
+verifier=$(govpn-verifier -key $passphrase)
 rm -f $passphrase
+verifierS=$(echo $verifier | sed 's/^\(.*\) .*$/\1/')
+verifierC=$(echo $verifier | sed 's/^.* \(.*\)$/\1/')
 echo
 
 cat <<EOF
-Your id is: $peerid
+Your client verifier is: $verifierC
 
 Place the following JSON configuration entry on the server's side:
 
-    "$peerid": {
-        "name": "$username",
+    "$username": {
         "up": "/path/to/up.sh",
-        "verifier": "$verifier"
+        "verifier": "$verifierS"
     }
 
 Verifier was generated with:
 
     $(dirname $0)/storekey.sh /tmp/passphrase
-    govpn-verifier -id $peerid -key /tmp/passphrase
+    govpn-verifier -key /tmp/passphrase
 
 Create up.sh script that will output on the first line TAP interface
 name that must be used for the peer. For example:

@@ -20,4 +20,5 @@ File Compromise @copyright{} Steven M. Belloving, Michael Merrit.
 @item @url{http://ed25519.cr.yp.to/, Ed25519: high-speed high-security signatures}.
 @item @email{watsonbladd@@gmail.com, Watson Ladd} for suggestion of
     @url{http://elligator.cr.yp.to/, Elligator} encoding.
+@item @url{https://password-hashing.net/#argon2, PHC for Argon2}.
 @end itemize

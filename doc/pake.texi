@@ -25,6 +25,6 @@ they are memorable. Because of their quantity, they acts as a high
 entropy source.
 
 Passphrases are entered directly by the human on the client side. Server
-side stores previously shared so-called @ref{Verifier}. Verifier contains
-dictionary attack resistant password derivative. Attacker can not use it
-to act as a client.
+side stores previously shared so-called @ref{Verifier, verifier}. Verifier
+contains dictionary attack resistant password derivative. Attacker can not
+use it to act as a client.

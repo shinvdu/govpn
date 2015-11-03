@@ -25,8 +25,7 @@ Configuration file is JSON file with following example structure:
 
 @verbatim
 {
-  "9b40701bdaf522f2b291cb039490312": {  <-- Peer identifier
-    "name": "stargrave",                <-- OPTIONAL human readable name
+  "stargrave": {                        <-- Peer human readable name
     "up": "./stargrave-up.sh",          <-- up-script
     "down": "./stargrave-down.sh",      <-- OPTIONAL down-script
     "timeout": 60,                      <-- OPTIONAL overriden timeout
@@ -34,13 +33,11 @@ Configuration file is JSON file with following example structure:
                                             (default: false)
     "cpr": 64,                          <-- OPTIONAL constant packet
                                             rate in KiB/sec
-    "verifier": "2c15bbdffc73193bea56db412bce1143c68ccbdaa9e2eade53a684497646a685"
+    "verifier": "$argon2d..."           <-- verifier received from client
   },
   [...]
 }
 @end verbatim
-
-See @ref{Verifier} for its description.
 
 up-script executes each time connection with the client is established.
 Its @emph{stdout} output must contain TAP interface name as the first
@@ -62,14 +59,13 @@ creation:
 @verbatim
 % ./utils/newclient.sh Alice
 [...]
-Your id is: 7012df29deee2170594119df5091d4a2
+Your client verifier is: $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg
 
 Place the following JSON configuration entry on the server's side:
 
-    "906e34b98750c4f686d6c5489508763c": {
-        "name": "Alice",
+    "Alice": {
         "up": "/path/to/up.sh",
-        "verifier": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        "verifier": "$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10"
     }
 [...]
 @end verbatim

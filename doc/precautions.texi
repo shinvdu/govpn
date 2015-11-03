@@ -6,7 +6,7 @@
 We use password (passphrase) authentication, so overall security fully
 depends on its strength. You @strong{should} use long, high-entropy
 passphrases. Also remember to keep passphrase in temporary file and read
-it securely as described in @ref{Verifier}.
+it securely as described in @ref{Verifier, verifier}.
 
 @item
 You must @strong{never} use the same key for multiple clients.

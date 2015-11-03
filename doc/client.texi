@@ -24,8 +24,8 @@ Address (@code{host:port} format) of remote server we need to connect to.
 @item -iface
 TAP interface name.
 
-@item -id
-Our client's @ref{Identity} (hexadecimal string).
+@item -verifier
+Our client's @ref{Verifier}.
 
 @item -key
 Path to the file with the passphrase. See @ref{Verifier} for

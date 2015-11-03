@@ -142,7 +142,7 @@ func NewHandshake(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 		Conf:     conf,
 	}
 	state.dsaPubH = new([ed25519.PublicKeySize]byte)
-	copy(state.dsaPubH[:], state.Conf.DSAPub[:])
+	copy(state.dsaPubH[:], state.Conf.Verifier.Pub[:])
 	HApply(state.dsaPubH)
 	return &state
 }
@@ -252,7 +252,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 		}
 		sign := new([ed25519.SignatureSize]byte)
 		copy(sign[:], dec[RSize+RSize+SSize:])
-		if !ed25519.Verify(h.Conf.DSAPub, h.key[:], sign) {
+		if !ed25519.Verify(h.Conf.Verifier.Pub, h.key[:], sign) {
 			log.Println("Invalid signature from", h.addr)
 			return nil
 		}

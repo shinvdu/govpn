@@ -3,6 +3,14 @@
 
 @table @strong
 
+@item Release 4.1
+@itemize
+@item @url{https://password-hashing.net/#argon2, Argon2d} is used instead
+of PBKDF2 for password verifier hashing.
+@item Client's identity is stored inside the verifier, so it simplifies
+server-side configuration and the code.
+@end itemize
+
 @item Release 4.0
 @itemize
 @item Handshake messages can be noised: their messages lengths are

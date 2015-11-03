@@ -21,7 +21,6 @@ package govpn
 import (
 	"crypto/subtle"
 	"encoding/hex"
-	"errors"
 	"log"
 	"sync"
 
@@ -36,22 +35,6 @@ type PeerId [IDSize]byte
 
 func (id PeerId) String() string {
 	return hex.EncodeToString(id[:])
-}
-
-// Decode identification string.
-// It must be 32 hexadecimal characters long.
-func IDDecode(raw string) (*PeerId, error) {
-	if len(raw) != IDSize*2 {
-		return nil, errors.New("ID must be 32 characters long")
-	}
-	idDecoded, err := hex.DecodeString(raw)
-	if err != nil {
-		return nil, errors.New("ID must contain hexadecimal characters only")
-	}
-	idP := new([IDSize]byte)
-	copy(idP[:], idDecoded)
-	id := PeerId(*idP)
-	return &id, nil
 }
 
 type CipherCache struct {
