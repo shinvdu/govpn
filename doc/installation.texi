@@ -3,7 +3,7 @@
 
 Possibly GoVPN already exists in your distribution:
 
-@itemize @bullet
+@itemize
 @item @url{https://aur.archlinux.org/packages/govpn/, AUR}
 @item @url{http://www.freshports.org/security/govpn/, FreeBSD ports}
 @end itemize

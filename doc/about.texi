@@ -2,7 +2,7 @@ GoVPN is simple free software virtual private network daemon,
 aimed to be reviewable, secure and
 @url{https://en.wikipedia.org/wiki/Deep_packet_inspection, DPI}/censorship-resistant.
 
-@itemize @bullet
+@itemize
 @item
 Copylefted free software: licenced under
 @url{https://www.gnu.org/licenses/gpl-3.0.html, GPLv3+}.

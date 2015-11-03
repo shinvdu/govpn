@@ -4,7 +4,7 @@
 Let's assume that there is some insecure link between your computer and
 WiFi-reachable gateway.
 
-@itemize @bullet
+@itemize
 @item You have got @code{wlan0} NIC with 192.168.0/24 network on it.
 @item You want to create virtual encrypted and authenticated 172.16.0/24
 network and use it as a default transport.
