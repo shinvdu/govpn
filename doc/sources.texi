@@ -23,7 +23,9 @@ repositories will be unavailable (they are seldom updated):
 @multitable @columnfractions .50 .50
 @headitem Software/library @tab Mirror
 @item @code{govpn} @tab @url{https://github.com/stargrave/govpn.git}
-@item @code{golang.org/x/crypto} @tab @url{git://git.cypherpunks.ru/crypto.git}
 @item @code{github.com/agl/ed25519} @tab @url{git://git.cypherpunks.ru/ed25519.git}
 @item @code{github.com/bigeagle/water} @tab @url{git://git.cypherpunks.ru/water.git}
+@item @code{github.com/dchest/blake2b} @tab @url{git://git.cypherpunks.ru/blake2b.git}
+@item @code{github.com/magical/argon2} @tab @url{git://git.cypherpunks.ru/argon2.git}
+@item @code{golang.org/x/crypto} @tab @url{git://git.cypherpunks.ru/crypto.git}
 @end multitable
