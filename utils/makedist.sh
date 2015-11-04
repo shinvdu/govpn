@@ -8,7 +8,7 @@ release=$1
 [ -n "$release" ]
 
 git clone . $tmp/govpn-$release
-for repo in src/github.com/bigeagle/water src/github.com/agl/ed25519 src/golang.org/x/crypto; do
+for repo in src/github.com/bigeagle/water src/github.com/agl/ed25519 src/github.com/magical/argon2 src/github.com/dchest/blake2b src/golang.org/x/crypto; do
     git clone $repo $tmp/govpn-$release/$repo
 done
 cd $tmp/govpn-$release
@@ -133,6 +133,7 @@ $(git cat-file -p $release | sed -n '6,/^.*BEGIN/p' | sed '$d')
 ----------------8<-----------------8<-----------------8<----------------
 
 Домашняя страница GoVPN: http://govpn.info -> http://www.cypherpunks.ru/govpn/
+Коротко о демоне: http://www.cypherpunks.ru/govpn/About-RU.html
 также доступна как скрытый сервис Tor: http://vabu56j2ep2rwv3b.onion/govpn/
 
 Исходный код и его подпись для этой версии находится здесь:

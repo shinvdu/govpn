@@ -4,7 +4,7 @@
 Let's assume that there is some insecure link between your computer and
 WiFi-reachable gateway.
 
-@itemize @bullet
+@itemize
 @item You have got @code{wlan0} NIC with 192.168.0/24 network on it.
 @item You want to create virtual encrypted and authenticated 172.16.0/24
 network and use it as a default transport.
@@ -17,25 +17,25 @@ is 1432.
 @strong{Install}. At first you must @ref{Installation, install} this
 software: download, @ref{Integrity, check the signature}, compile.
 
-@strong{Prepare the client}. Generate client's identity and verifier for
-Alice as an example:
+@strong{Prepare the client}. Generate client's verifier for Alice as an
+example:
+
 @verbatim
 client% ./utils/newclient.sh Alice
 Enter passphrase:
-Your id is: 7012df29deee2170594119df5091d4a2
+Your client verifier is: $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg
 
 Place the following JSON configuration entry on the server's side:
 
-    "7012df29deee2170594119df5091d4a2": {
-        "name": "Alice",
+    "Alice": {
         "up": "/path/to/up.sh",
-        "verifier": "fb43255ca3fe5bd884e364e5eae0cd37ad14774930a027fd38d8938fd0b57425"
+        "verifier": "$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10"
     }
 
 Verifier was generated with:
 
     ./utils/storekey.sh /tmp/passphrase
-    govpn-verifier -id 7012df29deee2170594119df5091d4a2 -key /tmp/passphrase
+    govpn-verifier -key /tmp/passphrase
 @end verbatim
 
 @strong{Prepare the server}. Add this entry to @code{peers.json}
@@ -77,7 +77,7 @@ client% ip route add default via 172.16.0.1
 @example
 client% govpn-client \
     -key key.txt \
-    -id 906e34b98750c4f686d6c5489508763c \
+    -verifier '$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg' \
     -iface tap10 \
     -remote 192.168.0.1:1194 \
     -mtu 1472
@@ -97,7 +97,7 @@ client% ifconfig tap10 inet6 fc00::2/96 mtu 1412 up
 client% route -6 add default fc00::1
 client% govpn-client \
     -key key.txt \
-    -id 906e34b98750c4f686d6c5489508763c \
+    -verifier '$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg' \
     -iface tap10 \
     -remote "[fe80::1%me0]":1194
 @end example

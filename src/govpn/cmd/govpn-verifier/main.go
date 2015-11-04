@@ -20,8 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
+	"crypto/rand"
 	"crypto/subtle"
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
@@ -30,25 +30,32 @@ import (
 )
 
 var (
-	IDRaw        = flag.String("id", "", "Client identification")
-	keyPath      = flag.String("key", "", "Path to passphrase file")
-	verifierPath = flag.String("verifier", "", "Optional path to verifier")
+	keyPath  = flag.String("key", "", "Path to passphrase file")
+	verifier = flag.String("verifier", "", "Optional verifier")
+	mOpt     = flag.Int("m", govpn.DefaultM, "Argon2d memory parameter (KiBs)")
+	tOpt     = flag.Int("t", govpn.DefaultT, "Argon2d iteration parameter")
+	pOpt     = flag.Int("p", govpn.DefaultP, "Argon2d parallelizm parameter")
 )
 
 func main() {
 	flag.Parse()
-	id, err := govpn.IDDecode(*IDRaw)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	pub, _ := govpn.NewVerifier(id, govpn.StringFromFile(*keyPath))
-	if *verifierPath == "" {
-		fmt.Println(hex.EncodeToString(pub[:]))
-	} else {
-		verifier, err := hex.DecodeString(govpn.StringFromFile(*verifierPath))
-		if err != nil {
-			log.Fatalln("Can not decode verifier:", err)
+	if *verifier == "" {
+		id := new([govpn.IDSize]byte)
+		if _, err := rand.Read(id[:]); err != nil {
+			log.Fatalln(err)
 		}
-		fmt.Println(subtle.ConstantTimeCompare(verifier[:], pub[:]) == 1)
+		pid := govpn.PeerId(*id)
+		v := govpn.VerifierNew(*mOpt, *tOpt, *pOpt, &pid)
+		v.PasswordApply(govpn.StringFromFile(*keyPath))
+		fmt.Println(v.LongForm())
+		fmt.Println(v.ShortForm())
+		return
 	}
+	v, err := govpn.VerifierFromString(*verifier)
+	if err != nil {
+		log.Fatalln("Can not decode verifier", err)
+	}
+	pub := *v.Pub
+	v.PasswordApply(govpn.StringFromFile(*keyPath))
+	fmt.Println(subtle.ConstantTimeCompare(v.Pub[:], pub[:]) == 1)
 }

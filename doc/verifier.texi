@@ -9,18 +9,23 @@ silently.
 @example
 % utils/storekey.sh mypass.txt
 Enter passphrase:[hello world]
-% govpn-verifier -id 9da9bf91112d0e4483c135b12d5b48de -key mypass.txt
-210e3878542828901a3af9b4aa00b004de530410eef5c1ba2ffb6d04504371b2
+% govpn-verifier -key mypass.txt
+$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10
+$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg
 @end example
 
-Store @code{210...1b2} string on the server's side in corresponding
+First line is the verifier for the server side. Second line is for the
+client -- it lacks generated public key. However you can server's one
+on the client side too.
+
+Store @code{$argon2d...u10} string on the server's side in corresponding
 @code{verifier} configuration file's field.
 
 You can check passphrase against verifier by specifying @code{-verifier}
 option with the path to verifier file:
 
 @example
-% govpn-verifier -id 9da9bf91112d0e4483c135b12d5b48de -key mypass.txt -verifier verifier
+% govpn-verifier -key mypass.txt -verifier '$argon2d...'
 true
 @end example
 

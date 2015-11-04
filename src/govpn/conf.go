@@ -25,18 +25,18 @@ import (
 )
 
 type PeerConf struct {
-	Id         *PeerId       `json:"-"`
-	Name       string        `json:"name"`
-	Up         string        `json:"up"`
-	Down       string        `json:"down"`
-	TimeoutInt int           `json:"timeout"`
-	Timeout    time.Duration `json:"-"`
-	Noise      bool          `json:"noise"`
-	CPR        int           `json:"cpr"`
-	Verifier   string        `json:"verifier"`
+	Id          *PeerId       `json:"-"`
+	Name        string        `json:"name"`
+	Up          string        `json:"up"`
+	Down        string        `json:"down"`
+	TimeoutInt  int           `json:"timeout"`
+	Timeout     time.Duration `json:"-"`
+	Noise       bool          `json:"noise"`
+	CPR         int           `json:"cpr"`
+	VerifierRaw string        `json:"verifier"`
 
 	// This is passphrase verifier
-	DSAPub *[ed25519.PublicKeySize]byte `json:"-"`
+	Verifier *Verifier
 	// This field exists only on client's side
 	DSAPriv *[ed25519.PrivateKeySize]byte `json:"-"`
 }

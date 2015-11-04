@@ -31,21 +31,21 @@ import (
 )
 
 var (
-	remoteAddr = flag.String("remote", "", "Remote server address")
-	proto      = flag.String("proto", "udp", "Protocol to use: udp or tcp")
-	ifaceName  = flag.String("iface", "tap0", "TAP network interface")
-	IDRaw      = flag.String("id", "", "Client identification")
-	keyPath    = flag.String("key", "", "Path to passphrase file")
-	upPath     = flag.String("up", "", "Path to up-script")
-	downPath   = flag.String("down", "", "Path to down-script")
-	stats      = flag.String("stats", "", "Enable stats retrieving on host:port")
-	proxyAddr  = flag.String("proxy", "", "Use HTTP proxy on host:port")
-	proxyAuth  = flag.String("proxy-auth", "", "user:password Basic proxy auth")
-	mtu        = flag.Int("mtu", 1452, "MTU for outgoing packets")
-	timeoutP   = flag.Int("timeout", 60, "Timeout seconds")
-	noisy      = flag.Bool("noise", false, "Enable noise appending")
-	cpr        = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
-	egdPath    = flag.String("egd", "", "Optional path to EGD socket")
+	remoteAddr  = flag.String("remote", "", "Remote server address")
+	proto       = flag.String("proto", "udp", "Protocol to use: udp or tcp")
+	ifaceName   = flag.String("iface", "tap0", "TAP network interface")
+	verifierRaw = flag.String("verifier", "", "Verifier")
+	keyPath     = flag.String("key", "", "Path to passphrase file")
+	upPath      = flag.String("up", "", "Path to up-script")
+	downPath    = flag.String("down", "", "Path to down-script")
+	stats       = flag.String("stats", "", "Enable stats retrieving on host:port")
+	proxyAddr   = flag.String("proxy", "", "Use HTTP proxy on host:port")
+	proxyAuth   = flag.String("proxy-auth", "", "user:password Basic proxy auth")
+	mtu         = flag.Int("mtu", 1452, "MTU for outgoing packets")
+	timeoutP    = flag.Int("timeout", 60, "Timeout seconds")
+	noisy       = flag.Bool("noise", false, "Enable noise appending")
+	cpr         = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
+	egdPath     = flag.String("egd", "", "Optional path to EGD socket")
 
 	conf        *govpn.PeerConf
 	tap         *govpn.TAP
@@ -63,26 +63,25 @@ func main() {
 
 	govpn.MTU = *mtu
 
-	id, err := govpn.IDDecode(*IDRaw)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	if *egdPath != "" {
 		log.Println("Using", *egdPath, "EGD")
 		govpn.EGDInit(*egdPath)
 	}
 
-	pub, priv := govpn.NewVerifier(id, govpn.StringFromFile(*keyPath))
-	conf = &govpn.PeerConf{
-		Id:      id,
-		Timeout: time.Second * time.Duration(timeout),
-		Noise:   *noisy,
-		CPR:     *cpr,
-		DSAPub:  pub,
-		DSAPriv: priv,
+	verifier, err := govpn.VerifierFromString(*verifierRaw)
+	if err != nil {
+		log.Fatalln(err)
 	}
-	idsCache = govpn.NewCipherCache([]govpn.PeerId{*id})
+	priv := verifier.PasswordApply(govpn.StringFromFile(*keyPath))
+	conf = &govpn.PeerConf{
+		Id:       verifier.Id,
+		Timeout:  time.Second * time.Duration(timeout),
+		Noise:    *noisy,
+		CPR:      *cpr,
+		Verifier: verifier,
+		DSAPriv:  priv,
+	}
+	idsCache = govpn.NewCipherCache([]govpn.PeerId{*verifier.Id})
 	log.Println(govpn.VersionGet())
 
 	tap, err = govpn.TAPListen(*ifaceName)
@@ -108,6 +107,9 @@ MainCycle:
 		timeouted := make(chan struct{})
 		rehandshaking := make(chan struct{})
 		termination := make(chan struct{})
+		if *proxyAddr != "" {
+			*proto = "tcp"
+		}
 		switch *proto {
 		case "udp":
 			go startUDP(timeouted, rehandshaking, termination)

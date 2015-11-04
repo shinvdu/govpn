@@ -2,9 +2,6 @@
 @unnumbered TODO
 
 @itemize
-@item Use Argon2:
-@url{https://password-hashing.net/, Password Hashing Competition}
-winner, instead of PBKDF2.
 @item Ability to tunnel only specified TCP connections, without full
   featured VPN solution. Similar to ssh -R.
 @item Randomize ports usage.

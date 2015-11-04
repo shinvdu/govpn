@@ -2,7 +2,7 @@ GoVPN is simple free software virtual private network daemon,
 aimed to be reviewable, secure and
 @url{https://en.wikipedia.org/wiki/Deep_packet_inspection, DPI}/censorship-resistant.
 
-@itemize @bullet
+@itemize
 @item
 Copylefted free software: licenced under
 @url{https://www.gnu.org/licenses/gpl-3.0.html, GPLv3+}.
@@ -13,8 +13,9 @@ authentication (PAKE DH A-EKE (Diffie-Hellman Augmented Encrypted Key
 Exchange)).
 @item
 @ref{Verifier structure, Augmented authentication tokens} resistant to
-offline dictionary attacks. An attacker can not masquerade a client
-even with server passphrase verifiers compromising.
+offline dictionary attacks. They use CPU and memory hardened hashing
+algorithm. An attacker can not masquerade a client even with server
+passphrase verifiers compromising.
 @item
 Encrypted and authenticated @ref{Transport, payload transport}
 with 128-bit @ref{Developer, security margin} state-of-the-art

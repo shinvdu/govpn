@@ -3,8 +3,16 @@
 
 @table @strong
 
+@item Release 4.1
+@itemize
+@item @url{https://password-hashing.net/#argon2, Argon2d} is used instead
+of PBKDF2 for password verifier hashing.
+@item Client's identity is stored inside the verifier, so it simplifies
+server-side configuration and the code.
+@end itemize
+
 @item Release 4.0
-@itemize @bullet
+@itemize
 @item Handshake messages can be noised: their messages lengths are
 hidden. Now they are indistinguishable from transport messages.
 @item Parallelized clients processing on the server side.
@@ -13,7 +21,7 @@ hidden. Now they are indistinguishable from transport messages.
 @end itemize
 
 @item Release 3.5
-@itemize @bullet
+@itemize
 @item Ability to use @ref{Network, TCP} network transport.
 Server can listen on both UDP and TCP sockets.
 @item Ability to use @ref{Proxy, HTTP proxies} (through CONNECT method)
@@ -24,7 +32,7 @@ reasons.
 @end itemize
 
 @item Release 3.4
-@itemize @bullet
+@itemize
 @item Ability to use external @ref{EGD}-compatible PRNGs. Now you are
 able to use GoVPN even on systems with the bad @code{/dev/random},
 providing higher quality entropy from external sources.
@@ -34,7 +42,7 @@ without performance degradation related to inbound packets reordering.
 @end itemize
 
 @item Release 3.3
-@itemize @bullet
+@itemize
 @item Compatibility with an old GNU Make 3.x. Previously only BSD Make
 and GNU Make 4.x were supported.
 @item /dev/urandom is used for correct client identity generation under
@@ -44,7 +52,7 @@ GNU/Linux systems. Previously /dev/random can produce less than required
 @end itemize
 
 @item Release 3.2
-@itemize @bullet
+@itemize
 @item
 Deterministic building: dependent libraries source code commits are
 fixed in our makefiles.
@@ -56,7 +64,7 @@ FreeBSD Make compatibility. GNU Make is not necessary anymore.
 @end itemize
 
 @item Release 3.1
-@itemize @bullet
+@itemize
 @item
 Diffie-Hellman public keys are encoded with Elligator algorithm when
 sending over the wire, making them indistinguishable from the random
@@ -66,7 +74,7 @@ consume twice entropy for DH key generation in average.
 @end itemize
 
 @item Release 3.0
-@itemize @bullet
+@itemize
 @item
 EKE protocol is replaced by Augmented-EKE and static symmetric (both
 sides have it) pre-shared key replaced with server-side verifier. This
@@ -98,7 +106,7 @@ Per-peer @code{-timeout}, @code{-noncediff}, @code{-noise} and
 @end itemize
 
 @item Release 2.4
-@itemize @bullet
+@itemize
 @item
 Added ability to optionally run built-in HTTP-server responding with
 JSON of all known connected peers information. Real-time client's
@@ -109,7 +117,7 @@ Documentation is explicitly licenced under GNU FDL 1.3+.
 @end itemize
 
 @item Release 2.3
-@itemize @bullet
+@itemize
 @item
 Handshake packets became indistinguishable from the random.
 Now all GoVPN's traffic is the noise for men in the middle.
@@ -124,46 +132,46 @@ consuming and resource heavy computations.
 @end itemize
 
 @item Release 2.2
-@itemize @bullet
+@itemize
 @item Fixed several possible channel deadlocks.
 @end itemize
 
 @item Release 2.1
-@itemize @bullet
+@itemize
 @item Fixed Linux-related building.
 @end itemize
 
 @item Release 2.0
-@itemize @bullet
+@itemize
 @item Added clients identification.
 @item Simultaneous several clients support by server.
 @item Per-client up/down scripts.
 @end itemize
 
 @item Release 1.5
-@itemize @bullet
+@itemize
 @item Nonce obfuscation/encryption.
 @end itemize
 
 @item Release 1.4
-@itemize @bullet
+@itemize
 @item Performance optimizations.
 @end itemize
 
 @item Release 1.3
-@itemize @bullet
+@itemize
 @item Heartbeat feature.
 @item Rehandshake feature.
 @item up- and down- optinal scripts.
 @end itemize
 
 @item Release 1.1
-@itemize @bullet
+@itemize
 @item FreeBSD support.
 @end itemize
 
 @item Release 1.0
-@itemize @bullet
+@itemize
 @item Initial stable release.
 @end itemize
 

@@ -20,35 +20,101 @@ package govpn
 
 import (
 	"bytes"
-	"crypto/sha512"
+	"encoding/base64"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"strings"
 
 	"github.com/agl/ed25519"
-	"golang.org/x/crypto/pbkdf2"
+	"github.com/magical/argon2"
 )
 
 const (
-	PBKDF2Iters = 1 << 16
+	DefaultM = 1 << 12
+	DefaultT = 1 << 7
+	DefaultP = 1
 )
 
-// Create verifier from supplied password for given PeerId.
-func NewVerifier(id *PeerId, password string) (*[ed25519.PublicKeySize]byte, *[ed25519.PrivateKeySize]byte) {
-	r := pbkdf2.Key(
-		[]byte(password),
-		id[:],
-		PBKDF2Iters,
-		ed25519.PrivateKeySize,
-		sha512.New,
-	)
+type Verifier struct {
+	M   int
+	T   int
+	P   int
+	Id  *PeerId
+	Pub *[ed25519.PublicKeySize]byte
+}
+
+// Generate new verifier for given peer, with specified password and
+// hashing parameters.
+func VerifierNew(m, t, p int, id *PeerId) *Verifier {
+	return &Verifier{M: m, T: t, P: p, Id: id}
+}
+
+// Apply the password: create Ed25519 keypair based on it, save public
+// key in verifier.
+func (v *Verifier) PasswordApply(password string) *[ed25519.PrivateKeySize]byte {
+	r, err := argon2.Key([]byte(password), v.Id[:], v.T, v.P, int64(v.M), 32)
+	if err != nil {
+		log.Fatalln("Unable to apply Argon2d", err)
+	}
 	defer sliceZero(r)
 	src := bytes.NewBuffer(r)
-	pub, priv, err := ed25519.GenerateKey(src)
+	pub, prv, err := ed25519.GenerateKey(src)
 	if err != nil {
 		log.Fatalln("Unable to generate Ed25519 keypair", err)
 	}
-	return pub, priv
+	v.Pub = pub
+	return prv
+}
+
+// Parse either short or long verifier form.
+func VerifierFromString(input string) (*Verifier, error) {
+	s := strings.Split(input, "$")
+	if !(len(s) != 4 || len(s) != 5) || s[1] != "argon2d" {
+		return nil, errors.New("Invalid verifier structure")
+	}
+	var m, t, p int
+	n, err := fmt.Sscanf(s[2], "m=%d,t=%d,p=%d", &m, &t, &p)
+	if n != 3 || err != nil {
+		return nil, errors.New("Invalid verifier parameters")
+	}
+	salt, err := base64.RawStdEncoding.DecodeString(s[3])
+	if err != nil {
+		return nil, err
+	}
+	v := Verifier{M: m, T: t, P: p}
+	id := new([IDSize]byte)
+	copy(id[:], salt)
+	pid := PeerId(*id)
+	v.Id = &pid
+	if len(s) == 5 {
+		pub, err := base64.RawStdEncoding.DecodeString(s[4])
+		if err != nil {
+			return nil, err
+		}
+		v.Pub = new([ed25519.PublicKeySize]byte)
+		copy(v.Pub[:], pub)
+	}
+	return &v, nil
+}
+
+// Short verifier string form -- it is useful for the client.
+// Does not include public key.
+func (v *Verifier) ShortForm() string {
+	return fmt.Sprintf(
+		"$argon2d$m=%d,t=%d,p=%d$%s",
+		v.M, v.T, v.P, base64.RawStdEncoding.EncodeToString(v.Id[:]),
+	)
+}
+
+// Long verifier string form -- it is useful for the server.
+// Includes public key.
+func (v *Verifier) LongForm() string {
+	return fmt.Sprintf(
+		"%s$%s", v.ShortForm(),
+		base64.RawStdEncoding.EncodeToString(v.Pub[:]),
+	)
 }
 
 // Read string from the file, trimming newline.

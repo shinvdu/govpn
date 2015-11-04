@@ -34,7 +34,7 @@ symmetric encryption. @code{El()} is Elligator point encoding algorithm.
 @verb{|R + enc(H(DSAPub), R, El(CDHPub)) + IDtag -> Server|} [48 bytes]
 
 @item
-@itemize @bullet
+@itemize
 @item Server remembers client address.
 @item Decrypts @code{El(CDHPub)}.
 @item Inverts @code{El()} encoding and gets @code{CDHPub}.
@@ -48,7 +48,7 @@ symmetric encryption. @code{El()} is Elligator point encoding algorithm.
 @verb{|enc(H(DSAPub), R+1, El(SDHPub)) + enc(K, R, RS + SS) + IDtag -> Client|} [80 bytes]
 
 @item
-@itemize @bullet
+@itemize
 @item Client decrypts @code{El(SDHPub)}.
 @item Inverts @code{El()} encoding and gets @code{SDHPub}.
 @item Computes @code{K}.
@@ -63,7 +63,7 @@ symmetric encryption. @code{El()} is Elligator point encoding algorithm.
 @verb{|enc(K, R+1, RS + RC + SC + Sign(DSAPriv, K)) + IDtag -> Server|} [120 bytes]
 
 @item
-@itemize @bullet
+@itemize
     @item Server decrypts @code{RS}, @code{RC}, @code{SC},
     @code{Sign(DSAPriv, K)}.
 
@@ -81,7 +81,7 @@ symmetric encryption. @code{El()} is Elligator point encoding algorithm.
 @verb{|ENC(K, R+2, RC) + IDtag -> Client|} [16 bytes]
 
 @item
-@itemize @bullet
+@itemize
 @item Client decrypts @code{RC}
 @item Compares with its own one sent before.
 @item Computes final session encryption key as server did.

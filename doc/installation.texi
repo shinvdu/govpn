@@ -3,7 +3,7 @@
 
 Possibly GoVPN already exists in your distribution:
 
-@itemize @bullet
+@itemize
 @item @url{https://aur.archlinux.org/packages/govpn/, AUR}
 @item @url{http://www.freshports.org/security/govpn/, FreeBSD ports}
 @end itemize
@@ -24,6 +24,8 @@ Included required libraries:
 @headitem Library @tab Platform @tab Licence
 @item @code{golang.org/x/crypto} @tab All @tab BSD 3-Clause
 @item @code{github.com/agl/ed25519} @tab All @tab BSD 3-Clause
+@item @code{github.com/dchest/blake2b} @tab All @tab CC0 1.0
+@item @code{github.com/magical/argon2} @tab All @tab BSD 2-Clause
 @item @code{github.com/bigeagle/water} @tab GNU/Linux @tab BSD 3-Clause
 @end multitable
 
