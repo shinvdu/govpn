@@ -55,6 +55,9 @@ func main() {
 	if err != nil {
 		log.Fatalln("Can not decode verifier", err)
 	}
+	if v.Pub == nil {
+		log.Fatalln("Verifier does not contain public key")
+	}
 	pub := *v.Pub
 	v.PasswordApply(govpn.StringFromFile(*keyPath))
 	fmt.Println(subtle.ConstantTimeCompare(v.Pub[:], pub[:]) == 1)
