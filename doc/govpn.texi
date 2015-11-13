@@ -26,6 +26,8 @@ A copy of the license is included in the section entitled "Copying conditions".
 
 @menu
 * About (russian): О демоне.
+* Frequently Asked Questions: FAQ.
+* Часто задаваемые вопросы: ЧАВО.
 * News::
 * Installation::
 * Precautions::
@@ -39,6 +41,8 @@ A copy of the license is included in the section entitled "Copying conditions".
 @end menu
 
 @include about.ru.texi
+@include faq.texi
+@include faq.ru.texi
 @include news.texi
 @include installation.texi
 @include precautions.texi
