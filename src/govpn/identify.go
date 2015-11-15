@@ -37,6 +37,10 @@ func (id PeerId) String() string {
 	return hex.EncodeToString(id[:])
 }
 
+func (id PeerId) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + id.String() + `"`), nil
+}
+
 type CipherCache struct {
 	c map[PeerId]*xtea.Cipher
 	l sync.RWMutex

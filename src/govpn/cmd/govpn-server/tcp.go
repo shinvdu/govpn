@@ -117,11 +117,13 @@ func handleTCP(conn net.Conn) {
 		} else {
 			ifaceName, err := callUp(peer.Id)
 			if err != nil {
+				peer = nil
 				break
 			}
 			tap, err = govpn.TAPListen(ifaceName)
 			if err != nil {
 				log.Println("Unable to create TAP:", err)
+				peer = nil
 				break
 			}
 			ps = &PeerState{

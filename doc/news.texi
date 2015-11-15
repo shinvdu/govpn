@@ -3,6 +3,12 @@
 
 @table @strong
 
+@item Release 4.2
+@itemize
+@item Fixed non-critical bug when server may fail if up-script is not
+executed successfully.
+@end itemize
+
 @item Release 4.1
 @itemize
 @item @url{https://password-hashing.net/#argon2, Argon2d} is used instead
