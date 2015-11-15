@@ -20,6 +20,7 @@ package main
 
 import (
 	"bytes"
+	"log"
 	"sync"
 	"time"
 
@@ -68,6 +69,7 @@ Processor:
 func callUp(peerId *govpn.PeerId) (string, error) {
 	result, err := govpn.ScriptCall(confs[*peerId].Up, "")
 	if err != nil {
+		log.Println("Script", confs[*peerId].Up, "call failed", err)
 		return "", err
 	}
 	sepIndex := bytes.Index(result, []byte{'\n'})
