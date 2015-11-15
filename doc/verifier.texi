@@ -18,9 +18,6 @@ First line is the verifier for the server side. Second line is for the
 client -- it lacks generated public key. However you can use server's
 one on the client side too.
 
-Store @code{$argon2d...u10} string on the server's side in corresponding
-@code{verifier} configuration file's field.
-
 You can check passphrase against verifier by specifying @code{-verifier}
 option with the path to verifier file:
 
