@@ -1,5 +1,7 @@
 #!/bin/sh -e
 
+PATH=$PATH:.
+
 [ -n "$1" ] || {
     cat <<EOF
 Example script for creating new user peer for GoVPN.
