@@ -58,7 +58,7 @@ func (v *Verifier) PasswordApply(password string) *[ed25519.PrivateKeySize]byte 
 	if err != nil {
 		log.Fatalln("Unable to apply Argon2d", err)
 	}
-	defer sliceZero(r)
+	defer SliceZero(r)
 	src := bytes.NewBuffer(r)
 	pub, prv, err := ed25519.GenerateKey(src)
 	if err != nil {

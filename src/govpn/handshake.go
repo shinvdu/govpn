@@ -69,28 +69,28 @@ func HApply(data *[32]byte) {
 // Zero handshake's memory state
 func (h *Handshake) Zero() {
 	if h.rNonce != nil {
-		sliceZero(h.rNonce[:])
+		SliceZero(h.rNonce[:])
 	}
 	if h.dhPriv != nil {
-		sliceZero(h.dhPriv[:])
+		SliceZero(h.dhPriv[:])
 	}
 	if h.key != nil {
-		sliceZero(h.key[:])
+		SliceZero(h.key[:])
 	}
 	if h.dsaPubH != nil {
-		sliceZero(h.dsaPubH[:])
+		SliceZero(h.dsaPubH[:])
 	}
 	if h.rServer != nil {
-		sliceZero(h.rServer[:])
+		SliceZero(h.rServer[:])
 	}
 	if h.rClient != nil {
-		sliceZero(h.rClient[:])
+		SliceZero(h.rClient[:])
 	}
 	if h.sServer != nil {
-		sliceZero(h.sServer[:])
+		SliceZero(h.sServer[:])
 	}
 	if h.sClient != nil {
-		sliceZero(h.sClient[:])
+		SliceZero(h.sClient[:])
 	}
 }
 

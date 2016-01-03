@@ -127,11 +127,11 @@ func (p *Peer) String() string {
 func (p *Peer) Zero() {
 	p.BusyT.Lock()
 	p.BusyR.Lock()
-	sliceZero(p.Key[:])
-	sliceZero(p.bufR)
-	sliceZero(p.bufT)
-	sliceZero(p.keyAuthR[:])
-	sliceZero(p.keyAuthT[:])
+	SliceZero(p.Key[:])
+	SliceZero(p.bufR)
+	SliceZero(p.bufT)
+	SliceZero(p.keyAuthR[:])
+	SliceZero(p.keyAuthT[:])
 	p.BusyT.Unlock()
 	p.BusyR.Unlock()
 }
