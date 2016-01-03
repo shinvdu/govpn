@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
-	"crypto/rand"
 	"crypto/subtle"
 	"encoding/binary"
 	"io"
@@ -102,23 +101,13 @@ func (h *Handshake) rNonceNext(count uint64) []byte {
 	return nonce
 }
 
-func randRead(b []byte) error {
-	var err error
-	if egdPath == "" {
-		_, err = rand.Read(b)
-	} else {
-		err = EGDRead(b)
-	}
-	return err
-}
-
 func dhKeypairGen() (*[32]byte, *[32]byte) {
 	priv := new([32]byte)
 	pub := new([32]byte)
 	repr := new([32]byte)
 	reprFound := false
 	for !reprFound {
-		if err := randRead(priv[:]); err != nil {
+		if _, err := Rand.Read(priv[:]); err != nil {
 			log.Fatalln("Error reading random for DH private key:", err)
 		}
 		reprFound = extra25519.ScalarBaseMult(pub, repr, priv)
@@ -167,7 +156,7 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 	state.dhPriv, dhPubRepr = dhKeypairGen()
 
 	state.rNonce = new([RSize]byte)
-	if err := randRead(state.rNonce[:]); err != nil {
+	if _, err := Rand.Read(state.rNonce[:]); err != nil {
 		log.Fatalln("Error reading random for nonce:", err)
 	}
 	var enc []byte
@@ -216,11 +205,12 @@ func (h *Handshake) Server(data []byte) *Peer {
 
 		// Generate R* and encrypt them
 		h.rServer = new([RSize]byte)
-		if err := randRead(h.rServer[:]); err != nil {
+		var err error
+		if _, err = Rand.Read(h.rServer[:]); err != nil {
 			log.Fatalln("Error reading random for R:", err)
 		}
 		h.sServer = new([SSize]byte)
-		if err := randRead(h.sServer[:]); err != nil {
+		if _, err = Rand.Read(h.sServer[:]); err != nil {
 			log.Fatalln("Error reading random for S:", err)
 		}
 		var encRs []byte
@@ -308,11 +298,12 @@ func (h *Handshake) Client(data []byte) *Peer {
 
 		// Generate R* and signature and encrypt them
 		h.rClient = new([RSize]byte)
-		if err := randRead(h.rClient[:]); err != nil {
+		var err error
+		if _, err = Rand.Read(h.rClient[:]); err != nil {
 			log.Fatalln("Error reading random for R:", err)
 		}
 		h.sClient = new([SSize]byte)
-		if err := randRead(h.sClient[:]); err != nil {
+		if _, err = Rand.Read(h.sClient[:]); err != nil {
 			log.Fatalln("Error reading random for S:", err)
 		}
 		sign := ed25519.Sign(h.Conf.DSAPriv, h.key[:])

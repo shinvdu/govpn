@@ -19,32 +19,38 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
+	"crypto/rand"
 	"errors"
+	"io"
 	"net"
 )
 
 var (
-	egdPath string
+	Rand io.Reader = rand.Reader
 )
 
-func EGDInit(path string) {
-	egdPath = path
-}
+type EGDRand string
 
 // Read n bytes from EGD, blocking mode.
-func EGDRead(b []byte) error {
-	c, err := net.Dial("unix", egdPath)
+func (egdPath EGDRand) Read(b []byte) (int, error) {
+	conn, err := net.Dial("unix", string(egdPath))
 	if err != nil {
-		return err
+		return 0, err
 	}
-	defer c.Close()
-	c.Write([]byte{0x02, byte(len(b))})
-	r, err := c.Read(b)
+	conn.Write([]byte{0x02, byte(len(b))})
+	read, err := conn.Read(b)
 	if err != nil {
-		return err
+		conn.Close()
+		return read, err
 	}
-	if r != len(b) {
-		return errors.New("Got less bytes than expected from EGD")
+	if read != len(b) {
+		conn.Close()
+		return read, errors.New("Got less bytes than expected from EGD")
 	}
-	return nil
+	conn.Close()
+	return read, nil
+}
+
+func EGDInit(path string) {
+	Rand = EGDRand(path)
 }
