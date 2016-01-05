@@ -22,7 +22,6 @@ golang.org/x/crypto/LICENSE
 golang.org/x/crypto/PATENTS
 golang.org/x/crypto/README
 golang.org/x/crypto/curve25519
-golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/salsa20
 golang.org/x/crypto/xtea
