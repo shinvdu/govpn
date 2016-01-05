@@ -17,7 +17,7 @@ govpn-verifier:
 	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-verifier
 
 bench:
-	cd src/govpn ; GOPATH=$(GOPATH) go test -bench .
+	GOPATH=$(GOPATH) go test -bench . govpn/...
 
 clean:
 	rm -f govpn-client govpn-server govpn-verifier
