@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // package PKG:
 //
 //     PKG = P1 || P2
-//      P1 = HKDF(BLAKE2b, r) XOR (M || BLAKE2b(M || r)) ||
+//      P1 = HKDF(BLAKE2b, r) XOR (M || BLAKE2b(r || M)) ||
 //      P2 = BLAKE2b(P1) XOR r
 package aont
 
