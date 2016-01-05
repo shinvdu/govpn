@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io"
 	"sync"
@@ -38,12 +39,12 @@ const (
 	S20BS = 64
 	// Maximal amount of bytes transfered with single key (4 GiB)
 	MaxBytesPerKey int64 = 1 << 32
-	// Size of packet's size mark in bytes
-	PktSizeSize = 2
 	// Heartbeat rate, relative to Timeout
 	TimeoutHeartbeat = 4
 	// Minimal valid packet length
-	MinPktLength = 2 + 16 + 8
+	MinPktLength = 1 + 16 + 8
+	// Padding byte
+	PadByte = byte(0x80)
 )
 
 func newNonceCipher(key *[32]byte) *xtea.Cipher {
@@ -109,7 +110,7 @@ type Peer struct {
 	bufR     []byte
 	tagR     *[TagSize]byte
 	keyAuthR *[SSize]byte
-	pktSizeR uint16
+	pktSizeR int
 
 	// Transmitter
 	BusyT    sync.Mutex `json:"-"`
@@ -206,23 +207,20 @@ func (p *Peer) EthProcess(data []byte) {
 	p.BusyT.Lock()
 
 	// Zero size is a heartbeat packet
+	SliceZero(p.bufT)
 	if len(data) == 0 {
 		// If this heartbeat is necessary
 		if !p.LastSent.Add(p.Timeout).Before(p.now) {
 			p.BusyT.Unlock()
 			return
 		}
-		p.bufT[S20BS+0] = 0
-		p.bufT[S20BS+1] = 0
+		p.bufT[S20BS+0] = PadByte
 		p.HeartbeatSent++
 	} else {
 		// Copy payload to our internal buffer and we are ready to
 		// accept the next one
-		binary.BigEndian.PutUint16(
-			p.bufT[S20BS:S20BS+PktSizeSize],
-			uint16(len(data)),
-		)
-		copy(p.bufT[S20BS+PktSizeSize:], data)
+		copy(p.bufT[S20BS:], data)
+		p.bufT[S20BS+len(data)] = PadByte
 		p.BytesPayloadOut += int64(len(data))
 	}
 
@@ -231,7 +229,7 @@ func (p *Peer) EthProcess(data []byte) {
 	} else if p.EncLess {
 		p.frameT = p.bufT[S20BS : S20BS+MTU]
 	} else {
-		p.frameT = p.bufT[S20BS : S20BS+PktSizeSize+len(data)+NonceSize]
+		p.frameT = p.bufT[S20BS : S20BS+len(data)+1+NonceSize]
 	}
 	p.nonceOur += 2
 	binary.BigEndian.PutUint64(p.frameT[len(p.frameT)-NonceSize:], p.nonceOur)
@@ -252,9 +250,6 @@ func (p *Peer) EthProcess(data []byte) {
 		}
 		out = append(out, p.frameT[len(p.frameT)-NonceSize:]...)
 	} else {
-		for i := 0; i < SSize; i++ {
-			p.bufT[i] = 0
-		}
 		salsa20.XORKeyStream(
 			p.bufT[:S20BS+len(p.frameT)-NonceSize],
 			p.bufT[:S20BS+len(p.frameT)-NonceSize],
@@ -317,7 +312,7 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 			p.BusyR.Unlock()
 			return false
 		}
-		out = p.bufR[S20BS:]
+		out = p.bufR[S20BS : S20BS+len(data)-TagSize-NonceSize]
 	}
 
 	// Check if received nonce is known to us in either of two buckets.
@@ -360,18 +355,26 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 	p.FramesIn++
 	atomic.AddInt64(&p.BytesIn, int64(len(data)))
 	p.LastPing = time.Now()
-	p.pktSizeR = binary.BigEndian.Uint16(out[:PktSizeSize])
+	p.pktSizeR = bytes.LastIndexByte(out, PadByte)
+	if p.pktSizeR == -1 {
+		p.BusyR.Unlock()
+		return false
+	}
+	// Validate the pad
+	for i := p.pktSizeR + 1; i < len(out); i++ {
+		if out[i] != 0 {
+			p.BusyR.Unlock()
+			return false
+		}
+	}
 
 	if p.pktSizeR == 0 {
 		p.HeartbeatRecv++
 		p.BusyR.Unlock()
 		return true
 	}
-	if int(p.pktSizeR) > len(data)-MinPktLength {
-		return false
-	}
 	p.BytesPayloadIn += int64(p.pktSizeR)
-	tap.Write(out[PktSizeSize : PktSizeSize+p.pktSizeR])
+	tap.Write(out[:p.pktSizeR])
 	p.BusyR.Unlock()
 	return true
 }

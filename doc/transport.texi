@@ -19,7 +19,7 @@ TAG || ENCRYPTED || NONCE --> PACKET
 +--< ENCRYPT(KEY, NONCE, PAYLOAD)
                     ^       ^
                     |       |
-                    |       +--< SIZE || DATA [|| NOISE]
+                    |       +--< DATA || PAD [|| ZEROS]
                     |
                     +--< PRP(PRP_KEY, SERIAL)
 @end verbatim
@@ -44,11 +44,9 @@ PRP_KEY = ENCRYPT(KEY, 0, 128-bit)
 Salsa20's output is ignored and only remaining is XORed with ther data,
 encrypting it.
 
-@code{SIZE} is big-endian @emph{uint16} storing length of the
-@code{DATA}.
-
-@code{NOISE} is optional. It is just some junk data, intended to fill up
-packet to MTU size. This is useful for concealing payload packets length.
+@code{DATA} is padded with @code{PAD} (0x80 byte). Optional @code{ZEROS}
+may follow, to fillup packet with the junk to conceal pyload packet
+length.
 
 @code{AUTH} is Poly1305 authentication function. First 256 bits of
 Salsa20's output are used as a one-time key for @code{AUTH}.

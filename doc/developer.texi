@@ -18,7 +18,7 @@ and @url{http://ed25519.cr.yp.to/, Ed25519}.
 @item Verifier password hashing algorithm
 @url{https://password-hashing.net/#argon2, Argon2d}.
 @item Packet overhead
-26 bytes per packet.
+25 bytes per packet.
 @item Handshake overhead
 4 UDP (2 from client, 2 from server) packets (round-trips for TCP),
 264 bytes total payload.

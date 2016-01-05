@@ -71,10 +71,27 @@ func TestSymmetric(t *testing.T) {
 	}
 }
 
-func TestSymmetricEncLess(t *testing.T) {
+func TestSymmetricNoise(t *testing.T) {
 	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
 	peer.NoiseEnable = true
+	peerd.NoiseEnable = true
+	f := func(payload []byte) bool {
+		if len(payload) == 0 {
+			return true
+		}
+		peer.EthProcess(payload)
+		return peerd.PktProcess(ciphertext, Dummy{nil}, true)
+	}
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
+	peer.NoiseEnable = true
+}
+
+func TestSymmetricEncLess(t *testing.T) {
+	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
 	peer.EncLess = true
+	peer.NoiseEnable = true
 	peerd.EncLess = true
 	peerd.NoiseEnable = true
 	f := func(payload []byte) bool {
