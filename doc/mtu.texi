@@ -1,5 +1,5 @@
 @node MTU
-@section Maximum Transmission Unit
+@subsection Maximum Transmission Unit
 
 MTU option tells what maximum transmission unit is expected to get from
 TAP interface. It is per-user configuration. If the program gets bigger

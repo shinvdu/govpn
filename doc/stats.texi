@@ -1,5 +1,5 @@
 @node Stats
-@section Stats
+@subsection Statistics
 
 Both client and server has ability to show statistics about known
 connected peers. You retrieve them by downloading JSON from built-in
