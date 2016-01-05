@@ -1,4 +1,5 @@
 @startuml
+hide footbox
 participant Client
 participant Server
 
