@@ -12,6 +12,7 @@
 * Statistics: Stats.
 * Noise::
 * Constant Packet Rate: CPR.
+* Encryptionless mode: Encless.
 * Verifier::
 @end menu
 
@@ -25,4 +26,5 @@
 @include stats.texi
 @include noise.texi
 @include cpr.texi
+@include encless.texi
 @include verifier.texi

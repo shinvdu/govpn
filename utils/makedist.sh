@@ -73,11 +73,13 @@ be reviewable, secure, DPI/censorship-resistant, written on Go.
 It uses fast strong passphrase authenticated key agreement protocol with
 augmented zero-knowledge mutual peers authentication (PAKE DH A-EKE).
 Encrypted, authenticated data transport that hides message's length and
-timestamps. Perfect forward secrecy property. Resistance to: offline
-dictionary attacks, replay attacks, client's passphrases compromising
-and dictionary attacks on the server side. Built-in heartbeating,
-rehandshaking, real-time statistics. Ability to work through UDP, TCP
-and HTTP proxies. IPv4/IPv6-compatibility. GNU/Linux and FreeBSD support.
+timestamps. Optional encryptionless mode, that still preserves data
+confidentiality. Perfect forward secrecy property. Resistance to:
+offline dictionary attacks, replay attacks, client's passphrases
+compromising and dictionary attacks on the server side. Built-in
+heartbeating, rehandshaking, real-time statistics. Ability to work
+through UDP, TCP and HTTP proxies. IPv4/IPv6-compatibility.
+GNU/Linux and FreeBSD support.
 
 ----------------8<-----------------8<-----------------8<----------------
 
@@ -116,13 +118,14 @@ GoVPN это простой демон виртуальных частных с�
 несбалансированный протокол согласования ключей с двусторонней
 аутентификацией сторон (PAKE DH A-EKE). Зашифрованный, аутентифицируемый
 транспортный протокол передачи данных, скрывающий длины сообщений и их
-временные характеристики. Свойство совершенной прямой секретности.
-Устойчивость к: внесетевым (offline) атакам по словарю, атакам
-повторного воспроизведения (replay), компрометации клиентских парольных
-фраз на стороне сервера. Встроенные функции сердцебиения (heartbeat),
-пересогласования ключей, статистика реального времени. Возможность
-работы поверх UDP, TCP и HTTP прокси. Совместимость с IPv4 и IPv6.
-Поддержка GNU/Linux и FreeBSD.
+временные характеристики. Опциональный нешифрованный режим, который
+всё-равно обеспечивает конфиденциальность и аутентичность данных.
+Свойство совершенной прямой секретности. Устойчивость к: внесетевым
+(offline) атакам по словарю, атакам повторного воспроизведения (replay),
+компрометации клиентских парольных фраз на стороне сервера. Встроенные
+функции сердцебиения (heartbeat), пересогласования ключей, статистика
+реального времени. Возможность работы поверх UDP, TCP и HTTP прокси.
+Совместимость с IPv4 и IPv6. Поддержка GNU/Linux и FreeBSD.
 
 ----------------8<-----------------8<-----------------8<----------------
 

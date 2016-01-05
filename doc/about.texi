@@ -21,6 +21,11 @@ Encrypted and authenticated @ref{Transport, payload transport}
 with 128-bit @ref{Developer, security margin} state-of-the-art
 cryptography.
 @item
+Optional @ref{Encless, encryptionless mode} of operation: no encryption
+functions are applied for outgoing traffic, but still confidentiality
+preserving encoding. Jurisdictions and courts can force you to reveal
+encryption keys or sue for encryption usage.
+@item
 Censorship resistant handshake and transport messages: fully
 indistinguishable from the noise with optionally hidden packets lengths.
 @item

@@ -43,6 +43,9 @@ Enable @ref{Noise}.
 @item -cpr
 Set @ref{CPR} in KiB/sec.
 
+@item -encless
+Enable @ref{Encless, encryptionless mode}.
+
 @item -up
 Optional path to script that will be executed after connection is
 established. Interface name will be given to it as a first argument.

@@ -36,7 +36,7 @@ XTEA's encryption key is the first 128-bit of Salsa20's output with
 established common key and zero nonce (message nonces start from 1).
 
 @verbatim
-PRP_KEY = ENCRYPT(KEY, 0, 128-bit)
+PRP_KEY = 128bit(ENCRYPT(KEY, 0))
 @end verbatim
 
 @code{ENCRYPT} is Salsa20 stream cipher, with established session
@@ -52,8 +52,19 @@ length.
 Salsa20's output are used as a one-time key for @code{AUTH}.
 
 @verbatim
-AUTH_KEY = ENCRYPT(KEY, NONCE, 256 bit)
+AUTH_KEY = 256bit(ENCRYPT(KEY, NONCE))
 @end verbatim
 
 To prevent replay attacks we must remember received @code{SERIAL}s and
 drop when receiving duplicate ones.
+
+In @ref{Encless, encryptionless mode} this scheme is slightly different:
+
+@verbatim
+ PACKET = ENCODED || NONCE
+ENCODED = ENCLESS(DATA || PAD || ZEROS)
+  NONCE = PRP(PRP_KEY, SERIAL)
+@end verbatim
+
+@code{ENCLESS} is AONT and chaffing function. There is no need in
+explicit separate authentication.

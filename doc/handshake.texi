@@ -93,3 +93,6 @@ symmetric encryption. @code{El()} is Elligator point encoding algorithm.
 has 128-bit security margin and that is why are not in use except in
 handshake process. @code{R*} are required for handshake randomization
 and two-way authentication.
+
+In @ref{Encless, encryptionless mode} each @code{enc()} is replaced with
+AONT and chaffing function over the noised data.

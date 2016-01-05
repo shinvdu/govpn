@@ -35,6 +35,7 @@ Configuration file is JSON file with following example structure:
                                             (default: false)
     "cpr": 64,                          <-- OPTIONAL constant packet
                                             rate in KiB/sec
+    "encless": false,                   <-- OPTIONAL Encryptionless mode
     "verifier": "$argon2d..."           <-- verifier received from client
   },
   [...]
