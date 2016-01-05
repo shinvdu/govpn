@@ -28,10 +28,11 @@ import (
 
 const (
 	TimeoutDefault = 60
+	MTUMax         = 9000
+	MTUDefault     = 1500 + 14
 )
 
 var (
-	MTU     int
 	Version string
 )
 
@@ -68,5 +69,5 @@ func cprCycleCalculate(rate int) time.Duration {
 	if rate == 0 {
 		return time.Duration(0)
 	}
-	return time.Second / time.Duration(rate*(1<<10)/MTU)
+	return time.Second / time.Duration(rate*(1<<10)/MTUMax)
 }

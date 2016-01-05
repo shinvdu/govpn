@@ -1,8 +1,8 @@
 @node Server
 @section Server part
 
-Except for common @code{-mtu}, @code{-stats}, @code{-egd} options server
-has the following ones:
+Except for common @code{-stats}, @code{-egd} options server has the
+following ones:
 
 @table @code
 
@@ -27,6 +27,7 @@ Configuration file is JSON file with following example structure:
 {
   "stargrave": {                        <-- Peer human readable name
     "iface": "tap10",                   <-- OPTIONAL TAP interface name
+    "mtu": 1514,                        <-- OPTIONAL overriden MTU
     "up": "./stargrave-up.sh",          <-- OPTIONAL up-script
     "down": "./stargrave-down.sh",      <-- OPTIONAL down-script
     "timeout": 60,                      <-- OPTIONAL overriden timeout

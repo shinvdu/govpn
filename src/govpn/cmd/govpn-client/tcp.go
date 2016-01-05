@@ -43,7 +43,7 @@ func startTCP(timeouted, rehandshaking, termination chan struct{}) {
 
 func handleTCP(conn *net.TCPConn, timeouted, rehandshaking, termination chan struct{}) {
 	hs := govpn.HandshakeStart(*remoteAddr, conn, conf)
-	buf := make([]byte, 2*(govpn.EncLessEnlargeSize+govpn.MTU)+govpn.MTU)
+	buf := make([]byte, 2*(govpn.EncLessEnlargeSize+*mtu)+*mtu)
 	var n int
 	var err error
 	var prev int

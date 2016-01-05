@@ -44,14 +44,12 @@ func (d Dummy) Write(b []byte) (int, error) {
 }
 
 func init() {
-	MTU = 1500
 	id := new([IDSize]byte)
 	peerId := PeerId(*id)
 	conf = &PeerConf{
 		Id:      &peerId,
+		MTU:     MTUDefault,
 		Timeout: time.Second * time.Duration(TimeoutDefault),
-		Noise:   false,
-		CPR:     0,
 	}
 	peer = newPeer(true, "foo", Dummy{&ciphertext}, conf, new([SSize]byte))
 	plaintext = make([]byte, 789)

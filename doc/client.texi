@@ -1,10 +1,13 @@
 @node Client
 @section Client part
 
-Except for common @code{-mtu}, @code{-stats}, @code{-egd}
-options client has the following ones:
+Except for common @code{-stats}, @code{-egd} options client has the
+following ones:
 
 @table @code
+
+@item -mtu
+Expected TAP interface @ref{MTU}.
 
 @item -proto
 @ref{Network, network protocol} to use. Can be either @emph{udp}

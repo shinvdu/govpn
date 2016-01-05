@@ -41,7 +41,7 @@ var (
 	stats       = flag.String("stats", "", "Enable stats retrieving on host:port")
 	proxyAddr   = flag.String("proxy", "", "Use HTTP proxy on host:port")
 	proxyAuth   = flag.String("proxy-auth", "", "user:password Basic proxy auth")
-	mtu         = flag.Int("mtu", 1452, "MTU for outgoing packets")
+	mtu         = flag.Int("mtu", govpn.MTUDefault, "MTU of TAP interface")
 	timeoutP    = flag.Int("timeout", 60, "Timeout seconds")
 	noisy       = flag.Bool("noise", false, "Enable noise appending")
 	encless     = flag.Bool("encless", false, "Encryptionless mode")
@@ -62,8 +62,6 @@ func main() {
 	var err error
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
-	govpn.MTU = *mtu
-
 	if *egdPath != "" {
 		log.Println("Using", *egdPath, "EGD")
 		govpn.EGDInit(*egdPath)
@@ -83,6 +81,7 @@ func main() {
 	conf = &govpn.PeerConf{
 		Id:       verifier.Id,
 		Iface:    *ifaceName,
+		MTU:      *mtu,
 		Timeout:  time.Second * time.Duration(timeout),
 		Noise:    *noisy,
 		CPR:      *cpr,
@@ -93,12 +92,11 @@ func main() {
 	idsCache = govpn.NewCipherCache([]govpn.PeerId{*verifier.Id})
 	log.Println(govpn.VersionGet())
 
-	tap, err = govpn.TAPListen(*ifaceName)
+	tap, err = govpn.TAPListen(*ifaceName, *mtu)
 	if err != nil {
 		log.Fatalln("Can not listen on TAP interface:", err)
 	}
 
-	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
 		statsPort, err := net.Listen("tcp", *stats)

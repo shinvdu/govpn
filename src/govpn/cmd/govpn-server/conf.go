@@ -56,11 +56,15 @@ func confRead() map[govpn.PeerId]*govpn.PeerConf {
 		if pc.EncLess {
 			pc.Noise = true
 		}
+		if pc.MTU == 0 {
+			pc.MTU = govpn.MTUDefault
+		}
 		conf := govpn.PeerConf{
 			Verifier: verifier,
 			Id:       verifier.Id,
 			Name:     name,
 			Iface:    pc.Iface,
+			MTU:      pc.MTU,
 			Up:       pc.Up,
 			Down:     pc.Down,
 			Noise:    pc.Noise,

@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
+	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -72,6 +73,7 @@ type Peer struct {
 	CPR         int
 	CPRCycle    time.Duration `json:"-"`
 	EncLess     bool
+	MTU         int
 
 	// Cryptography related
 	Key          *[SSize]byte `json:"-"`
@@ -156,7 +158,7 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		timeout = timeout / TimeoutHeartbeat
 	}
 
-	bufSize := S20BS + MTU + NonceSize
+	bufSize := S20BS + 2*conf.MTU
 	if conf.EncLess {
 		bufSize += EncLessEnlargeSize
 		noiseEnable = true
@@ -170,6 +172,7 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		CPR:         conf.CPR,
 		CPRCycle:    cprCycle,
 		EncLess:     conf.EncLess,
+		MTU:         conf.MTU,
 
 		Key:          key,
 		NonceCipher:  newNonceCipher(key),
@@ -203,6 +206,10 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 // that he is free to receive new packets. Encrypted and authenticated
 // packets will be sent to remote Peer side immediately.
 func (p *Peer) EthProcess(data []byte) {
+	if len(data) > p.MTU-1 { // 1 is for padding byte
+		log.Println("Padded data packet size", len(data)+1, "is bigger than MTU", p.MTU, p)
+		return
+	}
 	p.now = time.Now()
 	p.BusyT.Lock()
 
@@ -225,9 +232,9 @@ func (p *Peer) EthProcess(data []byte) {
 	}
 
 	if p.NoiseEnable && !p.EncLess {
-		p.frameT = p.bufT[S20BS : S20BS+MTU-TagSize]
+		p.frameT = p.bufT[S20BS : S20BS+p.MTU-TagSize]
 	} else if p.EncLess {
-		p.frameT = p.bufT[S20BS : S20BS+MTU]
+		p.frameT = p.bufT[S20BS : S20BS+p.MTU]
 	} else {
 		p.frameT = p.bufT[S20BS : S20BS+len(data)+1+NonceSize]
 	}

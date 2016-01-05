@@ -1,12 +1,11 @@
 @node MTU
 @section Maximum Transmission Unit
 
-MTU command line argument is maximum allowable size of outgoing GoVPN's
-packets. It varies and depends on your environment, so probably has to
-be tuned. By default MTU equals to 1452 bytes: 40 bytes per IPv6 and 8
-bytes per UDP.
+MTU option tells what maximum transmission unit is expected to get from
+TAP interface. It is per-user configuration. If the program gets bigger
+size packet (including the padding byte), then it will ignore that
+packet. If either @ref{Noise, noise}, or @ref{CPR} are enabled, then all
+outgoing packets are filled up to that MTU value.
 
-Underlying TAP interface has lower MTU value -- 42 bytes smaller: 26
-bytes overhead on transport message and 14 bytes for Ethernet frame.
-Client and server will print what MTU value should be used on TAP
-interface.
+Default MTU equals to 1514 bytes (1500 bytes of Ethernet payload, 14
+bytes of Ethernet header).

@@ -161,7 +161,7 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 	}
 	var enc []byte
 	if conf.Noise {
-		enc = make([]byte, MTU-xtea.BlockSize-RSize)
+		enc = make([]byte, conf.MTU-xtea.BlockSize-RSize)
 	} else {
 		enc = make([]byte, 32)
 	}
@@ -189,7 +189,7 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 func (h *Handshake) Server(data []byte) *Peer {
 	// R + ENC(H(DSAPub), R, El(CDHPub)) + IDtag
 	if h.rNonce == nil && ((!h.Conf.EncLess && len(data) >= 48) ||
-		(h.Conf.EncLess && len(data) == EncLessEnlargeSize+MTU)) {
+		(h.Conf.EncLess && len(data) == EncLessEnlargeSize+h.Conf.MTU)) {
 		h.rNonce = new([RSize]byte)
 		copy(h.rNonce[:], data[:RSize])
 
@@ -227,7 +227,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 		var encPub []byte
 		var err error
 		if h.Conf.EncLess {
-			encPub = make([]byte, MTU)
+			encPub = make([]byte, h.Conf.MTU)
 			copy(encPub, dhPubRepr[:])
 			encPub, err = EncLessEncode(h.dsaPubH, h.rNonceNext(1), encPub)
 			if err != nil {
@@ -249,9 +249,9 @@ func (h *Handshake) Server(data []byte) *Peer {
 		}
 		var encRs []byte
 		if h.Conf.Noise && !h.Conf.EncLess {
-			encRs = make([]byte, MTU-len(encPub)-xtea.BlockSize)
+			encRs = make([]byte, h.Conf.MTU-len(encPub)-xtea.BlockSize)
 		} else if h.Conf.EncLess {
-			encRs = make([]byte, MTU-xtea.BlockSize)
+			encRs = make([]byte, h.Conf.MTU-xtea.BlockSize)
 		} else {
 			encRs = make([]byte, RSize+SSize)
 		}
@@ -271,7 +271,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 	} else
 	// ENC(K, R+1, RS + RC + SC + Sign(DSAPriv, K)) + IDtag
 	if h.rClient == nil && ((!h.Conf.EncLess && len(data) >= 120) ||
-		(h.Conf.EncLess && len(data) == EncLessEnlargeSize+MTU)) {
+		(h.Conf.EncLess && len(data) == EncLessEnlargeSize+h.Conf.MTU)) {
 		var dec []byte
 		var err error
 		if h.Conf.EncLess {
@@ -308,7 +308,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 		// Send final answer to client
 		var enc []byte
 		if h.Conf.Noise {
-			enc = make([]byte, MTU-xtea.BlockSize)
+			enc = make([]byte, h.Conf.MTU-xtea.BlockSize)
 		} else {
 			enc = make([]byte, RSize)
 		}
@@ -347,7 +347,7 @@ func (h *Handshake) Client(data []byte) *Peer {
 	// ENC(H(DSAPub), R+1, El(SDHPub)) + ENC(K, R, RS + SS) + IDtag
 	if h.rServer == nil && h.key == nil &&
 		((!h.Conf.EncLess && len(data) >= 80) ||
-			(h.Conf.EncLess && len(data) == 2*(EncLessEnlargeSize+MTU))) {
+			(h.Conf.EncLess && len(data) == 2*(EncLessEnlargeSize+h.Conf.MTU))) {
 		// Decrypt remote public key
 		sDHRepr := new([32]byte)
 		var tmp []byte
@@ -417,7 +417,7 @@ func (h *Handshake) Client(data []byte) *Peer {
 
 		var enc []byte
 		if h.Conf.Noise {
-			enc = make([]byte, MTU-xtea.BlockSize)
+			enc = make([]byte, h.Conf.MTU-xtea.BlockSize)
 		} else {
 			enc = make([]byte, RSize+RSize+SSize+ed25519.SignatureSize)
 		}
@@ -440,7 +440,7 @@ func (h *Handshake) Client(data []byte) *Peer {
 	} else
 	// ENC(K, R+2, RC) + IDtag
 	if h.key != nil && ((!h.Conf.EncLess && len(data) >= 16) ||
-		(h.Conf.EncLess && len(data) == EncLessEnlargeSize+MTU)) {
+		(h.Conf.EncLess && len(data) == EncLessEnlargeSize+h.Conf.MTU)) {
 		var err error
 		// Decrypt rClient
 		var dec []byte

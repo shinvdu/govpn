@@ -36,7 +36,6 @@ var (
 	confPath = flag.String("conf", "peers.json", "Path to configuration JSON")
 	stats    = flag.String("stats", "", "Enable stats retrieving on host:port")
 	proxy    = flag.String("proxy", "", "Enable HTTP proxy on host:port")
-	mtu      = flag.Int("mtu", 1452, "MTU for outgoing packets")
 	egdPath  = flag.String("egd", "", "Optional path to EGD socket")
 )
 
@@ -46,7 +45,6 @@ func main() {
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 	log.Println(govpn.VersionGet())
 
-	govpn.MTU = *mtu
 	confInit()
 	knownPeers = govpn.KnownPeers(make(map[string]**govpn.Peer))
 
@@ -73,7 +71,6 @@ func main() {
 	hsHeartbeat := time.Tick(timeout)
 	go func() { <-hsHeartbeat }()
 
-	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
 		statsPort, err := net.Listen("tcp", *stats)

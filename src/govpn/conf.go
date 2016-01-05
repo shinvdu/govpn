@@ -28,6 +28,7 @@ type PeerConf struct {
 	Id          *PeerId       `json:"-"`
 	Name        string        `json:"name"`
 	Iface       string        `json:"iface"`
+	MTU         int           `json:"mtu"`
 	Up          string        `json:"up"`
 	Down        string        `json:"down"`
 	TimeoutInt  int           `json:"timeout"`

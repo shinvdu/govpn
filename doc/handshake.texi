@@ -9,7 +9,7 @@ a key. It is used to transmit identity and to mark packet as handshake
 message.
 
 If @ref{Noise} is enabled, then junk data is inserted before
-@code{IDtag} to full up packet to MTU's size.
+@code{IDtag} to fill up packet to MTU's size.
 
 @strong{Preparation stage}:
 

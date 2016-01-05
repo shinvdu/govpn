@@ -51,7 +51,7 @@ func startTCP() {
 
 func handleTCP(conn net.Conn) {
 	addr := conn.RemoteAddr().String()
-	buf := make([]byte, govpn.EncLessEnlargeSize+2*govpn.MTU)
+	buf := make([]byte, govpn.EncLessEnlargeSize+2*govpn.MTUMax)
 	var n int
 	var err error
 	var prev int
@@ -120,7 +120,7 @@ func handleTCP(conn net.Conn) {
 				peer = nil
 				break
 			}
-			tap, err = govpn.TAPListen(ifaceName)
+			tap, err = govpn.TAPListen(ifaceName, peer.MTU)
 			if err != nil {
 				log.Println("Unable to create TAP:", err)
 				peer = nil
