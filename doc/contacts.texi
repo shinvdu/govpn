@@ -2,7 +2,7 @@
 @unnumbered Contacts
 
 Please send questions regarding the use of GoVPN, bug reports and patches to
-@url{https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel, govpn-devel}
+@url{https://lists.cypherpunks.ru/pipermail/govpn-devel/, govpn-devel}
 mailing list. Announcements also go to this mailing list.
 
 Official website is @url{http://www.cypherpunks.ru/govpn/}

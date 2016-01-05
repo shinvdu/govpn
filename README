@@ -17,7 +17,7 @@ also available as Tor hidden service: http://vabu56j2ep2rwv3b.onion/govpn/
 
 Please send questions regarding the use of GoVPN, bug reports and
 patches to govpn-devel mailing list:
-https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel
+https://lists.cypherpunks.ru/pipermail/govpn-devel/
 
 Development Git source code repository currently is located here:
 http://git.cypherpunks.ru/cgit.cgi/govpn.git/

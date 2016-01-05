@@ -100,7 +100,7 @@ GPG key ID: 0xF2F59045FFE2F4A1 GoVPN release signing key
 Fingerprint: D269 9B73 3C41 2068 D8DA  656E F2F5 9045 FFE2 F4A1
 
 Please send questions regarding the use of GoVPN, bug reports and patches
-to mailing list: https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel/
+to mailing list: https://lists.cypherpunks.ru/pipermail/govpn-devel/
 EOF
 
 cat <<EOF
@@ -147,5 +147,5 @@ SHA256 хэш: $hash
 
 Пожалуйста все вопросы касающиеся использования GoVPN, отчёты об ошибках
 и патчи отправляйте в govpn-devel почтовую рассылку:
-https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel/
+https://lists.cypherpunks.ru/pipermail/govpn-devel/
 EOF
