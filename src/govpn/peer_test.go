@@ -28,7 +28,7 @@ var (
 	peer       *Peer
 	plaintext  []byte
 	ciphertext []byte
-	peerId     *PeerId
+	peerId     PeerId
 	conf       *PeerConf
 )
 
@@ -45,7 +45,7 @@ func (d Dummy) Write(b []byte) (int, error) {
 
 func init() {
 	id := new([IDSize]byte)
-	peerId := PeerId(*id)
+	peerId = PeerId(*id)
 	conf = &PeerConf{
 		Id:      &peerId,
 		MTU:     MTUDefault,
@@ -55,7 +55,7 @@ func init() {
 	plaintext = make([]byte, 789)
 }
 
-func TestSymmetric(t *testing.T) {
+func TestTransportSymmetric(t *testing.T) {
 	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
 	f := func(payload []byte) bool {
 		if len(payload) == 0 {
@@ -69,7 +69,7 @@ func TestSymmetric(t *testing.T) {
 	}
 }
 
-func TestSymmetricNoise(t *testing.T) {
+func TestTransportSymmetricNoise(t *testing.T) {
 	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
 	peer.NoiseEnable = true
 	peerd.NoiseEnable = true
@@ -86,7 +86,7 @@ func TestSymmetricNoise(t *testing.T) {
 	peer.NoiseEnable = true
 }
 
-func TestSymmetricEncLess(t *testing.T) {
+func TestTransportSymmetricEncLess(t *testing.T) {
 	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
 	peer.EncLess = true
 	peer.NoiseEnable = true
