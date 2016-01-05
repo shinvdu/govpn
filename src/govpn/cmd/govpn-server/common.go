@@ -67,15 +67,23 @@ Processor:
 }
 
 func callUp(peerId *govpn.PeerId) (string, error) {
-	result, err := govpn.ScriptCall(confs[*peerId].Up, "")
-	if err != nil {
-		log.Println("Script", confs[*peerId].Up, "call failed", err)
-		return "", err
+	ifaceName := confs[*peerId].Iface
+	if confs[*peerId].Up != "" {
+		result, err := govpn.ScriptCall(confs[*peerId].Up, "")
+		if err != nil {
+			log.Println("Script", confs[*peerId].Up, "call failed", err)
+			return "", err
+		}
+		if ifaceName == "" {
+			sepIndex := bytes.Index(result, []byte{'\n'})
+			if sepIndex < 0 {
+				sepIndex = len(result)
+			}
+			ifaceName = string(result[:sepIndex])
+		}
 	}
-	sepIndex := bytes.Index(result, []byte{'\n'})
-	if sepIndex < 0 {
-		sepIndex = len(result)
+	if ifaceName == "" {
+		log.Println("Can not obtain interface name for", *peerId)
 	}
-	ifaceName := string(result[:sepIndex])
 	return ifaceName, nil
 }

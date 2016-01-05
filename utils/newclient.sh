@@ -30,6 +30,7 @@ Place the following JSON configuration entry on the server's side:
 
     "$username": {
         "up": "/path/to/up.sh",
+        "iface": "or TAP interface name",
         "verifier": "$verifierS"
     }
 

@@ -60,6 +60,7 @@ func confRead() map[govpn.PeerId]*govpn.PeerConf {
 			Verifier: verifier,
 			Id:       verifier.Id,
 			Name:     name,
+			Iface:    pc.Iface,
 			Up:       pc.Up,
 			Down:     pc.Down,
 			Noise:    pc.Noise,

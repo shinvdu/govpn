@@ -27,6 +27,7 @@ import (
 type PeerConf struct {
 	Id          *PeerId       `json:"-"`
 	Name        string        `json:"name"`
+	Iface       string        `json:"iface"`
 	Up          string        `json:"up"`
 	Down        string        `json:"down"`
 	TimeoutInt  int           `json:"timeout"`

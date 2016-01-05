@@ -82,6 +82,7 @@ func main() {
 	}
 	conf = &govpn.PeerConf{
 		Id:       verifier.Id,
+		Iface:    *ifaceName,
 		Timeout:  time.Second * time.Duration(timeout),
 		Noise:    *noisy,
 		CPR:      *cpr,
