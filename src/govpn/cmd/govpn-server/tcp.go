@@ -51,7 +51,7 @@ func startTCP() {
 
 func handleTCP(conn net.Conn) {
 	addr := conn.RemoteAddr().String()
-	buf := make([]byte, govpn.MTU)
+	buf := make([]byte, govpn.EncLessEnlargeSize+2*govpn.MTU)
 	var n int
 	var err error
 	var prev int
@@ -61,7 +61,7 @@ func handleTCP(conn net.Conn) {
 	var tap *govpn.TAP
 	var conf *govpn.PeerConf
 	for {
-		if prev == govpn.MTU {
+		if prev == len(buf) {
 			break
 		}
 		conn.SetReadDeadline(time.Now().Add(time.Duration(govpn.TimeoutDefault) * time.Second))
@@ -157,7 +157,7 @@ func handleTCP(conn net.Conn) {
 	prev = 0
 	var i int
 	for {
-		if prev == govpn.MTU {
+		if prev == len(buf) {
 			break
 		}
 		conn.SetReadDeadline(time.Now().Add(conf.Timeout))

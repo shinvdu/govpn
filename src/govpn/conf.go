@@ -33,6 +33,7 @@ type PeerConf struct {
 	Timeout     time.Duration `json:"-"`
 	Noise       bool          `json:"noise"`
 	CPR         int           `json:"cpr"`
+	EncLess     bool          `json:"encless"`
 	VerifierRaw string        `json:"verifier"`
 
 	// This is passphrase verifier

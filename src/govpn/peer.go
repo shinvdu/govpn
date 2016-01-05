@@ -70,6 +70,7 @@ type Peer struct {
 	NoiseEnable bool
 	CPR         int
 	CPRCycle    time.Duration `json:"-"`
+	EncLess     bool
 
 	// Cryptography related
 	Key          *[SSize]byte `json:"-"`
@@ -154,6 +155,11 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		timeout = timeout / TimeoutHeartbeat
 	}
 
+	bufSize := S20BS + MTU + NonceSize
+	if conf.EncLess {
+		bufSize += EncLessEnlargeSize
+		noiseEnable = true
+	}
 	peer := Peer{
 		Addr: addr,
 		Id:   conf.Id,
@@ -162,6 +168,7 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		NoiseEnable: noiseEnable,
 		CPR:         conf.CPR,
 		CPRCycle:    cprCycle,
+		EncLess:     conf.EncLess,
 
 		Key:          key,
 		NonceCipher:  newNonceCipher(key),
@@ -172,8 +179,8 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		Established: now,
 		LastPing:    now,
 
-		bufR:     make([]byte, S20BS+MTU+NonceSize),
-		bufT:     make([]byte, S20BS+MTU+NonceSize),
+		bufR:     make([]byte, bufSize),
+		bufT:     make([]byte, bufSize),
 		tagR:     new([TagSize]byte),
 		tagT:     new([TagSize]byte),
 		keyAuthR: new([SSize]byte),
@@ -205,8 +212,8 @@ func (p *Peer) EthProcess(data []byte) {
 			p.BusyT.Unlock()
 			return
 		}
-		p.bufT[S20BS+0] = byte(0)
-		p.bufT[S20BS+1] = byte(0)
+		p.bufT[S20BS+0] = 0
+		p.bufT[S20BS+1] = 0
 		p.HeartbeatSent++
 	} else {
 		// Copy payload to our internal buffer and we are ready to
@@ -219,8 +226,10 @@ func (p *Peer) EthProcess(data []byte) {
 		p.BytesPayloadOut += int64(len(data))
 	}
 
-	if p.NoiseEnable {
+	if p.NoiseEnable && !p.EncLess {
 		p.frameT = p.bufT[S20BS : S20BS+MTU-TagSize]
+	} else if p.EncLess {
+		p.frameT = p.bufT[S20BS : S20BS+MTU]
 	} else {
 		p.frameT = p.bufT[S20BS : S20BS+PktSizeSize+len(data)+NonceSize]
 	}
@@ -230,20 +239,33 @@ func (p *Peer) EthProcess(data []byte) {
 		p.frameT[len(p.frameT)-NonceSize:],
 		p.frameT[len(p.frameT)-NonceSize:],
 	)
-	for i := 0; i < SSize; i++ {
-		p.bufT[i] = byte(0)
+	var out []byte
+	if p.EncLess {
+		var err error
+		out, err = EncLessEncode(
+			p.Key,
+			p.frameT[len(p.frameT)-NonceSize:],
+			p.frameT[:len(p.frameT)-NonceSize],
+		)
+		if err != nil {
+			panic(err)
+		}
+		out = append(out, p.frameT[len(p.frameT)-NonceSize:]...)
+	} else {
+		for i := 0; i < SSize; i++ {
+			p.bufT[i] = 0
+		}
+		salsa20.XORKeyStream(
+			p.bufT[:S20BS+len(p.frameT)-NonceSize],
+			p.bufT[:S20BS+len(p.frameT)-NonceSize],
+			p.frameT[len(p.frameT)-NonceSize:],
+			p.Key,
+		)
+		copy(p.keyAuthT[:], p.bufT[:SSize])
+		poly1305.Sum(p.tagT, p.frameT, p.keyAuthT)
+		atomic.AddInt64(&p.BytesOut, int64(len(p.frameT)+TagSize))
+		out = append(p.tagT[:], p.frameT...)
 	}
-	salsa20.XORKeyStream(
-		p.bufT[:S20BS+len(p.frameT)-NonceSize],
-		p.bufT[:S20BS+len(p.frameT)-NonceSize],
-		p.frameT[len(p.frameT)-NonceSize:],
-		p.Key,
-	)
-
-	copy(p.keyAuthT[:], p.bufT[:SSize])
-	poly1305.Sum(p.tagT, p.frameT, p.keyAuthT)
-
-	atomic.AddInt64(&p.BytesOut, int64(len(p.frameT)+TagSize))
 	p.FramesOut++
 
 	if p.CPRCycle != time.Duration(0) {
@@ -255,7 +277,7 @@ func (p *Peer) EthProcess(data []byte) {
 	}
 
 	p.LastSent = p.now
-	p.Conn.Write(append(p.tagT[:], p.frameT...))
+	p.Conn.Write(out)
 	p.BusyT.Unlock()
 }
 
@@ -263,24 +285,39 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 	if len(data) < MinPktLength {
 		return false
 	}
+	var out []byte
 	p.BusyR.Lock()
-	for i := 0; i < SSize; i++ {
-		p.bufR[i] = byte(0)
-	}
-	copy(p.bufR[S20BS:], data[TagSize:])
-	salsa20.XORKeyStream(
-		p.bufR[:S20BS+len(data)-TagSize-NonceSize],
-		p.bufR[:S20BS+len(data)-TagSize-NonceSize],
-		data[len(data)-NonceSize:],
-		p.Key,
-	)
-
-	copy(p.keyAuthR[:], p.bufR[:SSize])
-	copy(p.tagR[:], data[:TagSize])
-	if !poly1305.Verify(p.tagR, data[TagSize:], p.keyAuthR) {
-		p.FramesUnauth++
-		p.BusyR.Unlock()
-		return false
+	if p.EncLess {
+		var err error
+		out, err = EncLessDecode(
+			p.Key,
+			data[len(data)-NonceSize:],
+			data[:len(data)-NonceSize],
+		)
+		if err != nil {
+			p.FramesUnauth++
+			p.BusyR.Unlock()
+			return false
+		}
+	} else {
+		for i := 0; i < SSize; i++ {
+			p.bufR[i] = 0
+		}
+		copy(p.bufR[S20BS:], data[TagSize:])
+		salsa20.XORKeyStream(
+			p.bufR[:S20BS+len(data)-TagSize-NonceSize],
+			p.bufR[:S20BS+len(data)-TagSize-NonceSize],
+			data[len(data)-NonceSize:],
+			p.Key,
+		)
+		copy(p.keyAuthR[:], p.bufR[:SSize])
+		copy(p.tagR[:], data[:TagSize])
+		if !poly1305.Verify(p.tagR, data[TagSize:], p.keyAuthR) {
+			p.FramesUnauth++
+			p.BusyR.Unlock()
+			return false
+		}
+		out = p.bufR[S20BS:]
 	}
 
 	// Check if received nonce is known to us in either of two buckets.
@@ -323,7 +360,7 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 	p.FramesIn++
 	atomic.AddInt64(&p.BytesIn, int64(len(data)))
 	p.LastPing = time.Now()
-	p.pktSizeR = binary.BigEndian.Uint16(p.bufR[S20BS : S20BS+PktSizeSize])
+	p.pktSizeR = binary.BigEndian.Uint16(out[:PktSizeSize])
 
 	if p.pktSizeR == 0 {
 		p.HeartbeatRecv++
@@ -334,7 +371,7 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 		return false
 	}
 	p.BytesPayloadIn += int64(p.pktSizeR)
-	tap.Write(p.bufR[S20BS+PktSizeSize : S20BS+PktSizeSize+p.pktSizeR])
+	tap.Write(out[PktSizeSize : PktSizeSize+p.pktSizeR])
 	p.BusyR.Unlock()
 	return true
 }

@@ -43,7 +43,7 @@ func startTCP(timeouted, rehandshaking, termination chan struct{}) {
 
 func handleTCP(conn *net.TCPConn, timeouted, rehandshaking, termination chan struct{}) {
 	hs := govpn.HandshakeStart(*remoteAddr, conn, conf)
-	buf := make([]byte, govpn.MTU)
+	buf := make([]byte, 2*(govpn.EncLessEnlargeSize+govpn.MTU)+govpn.MTU)
 	var n int
 	var err error
 	var prev int
@@ -56,7 +56,7 @@ HandshakeCycle:
 			break HandshakeCycle
 		default:
 		}
-		if prev == govpn.MTU {
+		if prev == len(buf) {
 			log.Println("Timeouted waiting for the packet")
 			timeouted <- struct{}{}
 			break HandshakeCycle
@@ -125,7 +125,7 @@ TransportCycle:
 			break TransportCycle
 		default:
 		}
-		if prev == govpn.MTU {
+		if prev == len(buf) {
 			log.Println("Timeouted waiting for the packet")
 			timeouted <- struct{}{}
 			break TransportCycle

@@ -20,6 +20,7 @@ package govpn
 
 import (
 	"testing"
+	"testing/quick"
 	"time"
 )
 
@@ -54,6 +55,40 @@ func init() {
 	}
 	peer = newPeer(true, "foo", Dummy{&ciphertext}, conf, new([SSize]byte))
 	plaintext = make([]byte, 789)
+}
+
+func TestSymmetric(t *testing.T) {
+	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
+	f := func(payload []byte) bool {
+		if len(payload) == 0 {
+			return true
+		}
+		peer.EthProcess(payload)
+		return peerd.PktProcess(ciphertext, Dummy{nil}, true)
+	}
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestSymmetricEncLess(t *testing.T) {
+	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
+	peer.NoiseEnable = true
+	peer.EncLess = true
+	peerd.EncLess = true
+	peerd.NoiseEnable = true
+	f := func(payload []byte) bool {
+		if len(payload) == 0 {
+			return true
+		}
+		peer.EthProcess(payload)
+		return peerd.PktProcess(ciphertext, Dummy{nil}, true)
+	}
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
+	peer.NoiseEnable = false
+	peer.EncLess = false
 }
 
 func BenchmarkEnc(b *testing.B) {

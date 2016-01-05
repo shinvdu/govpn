@@ -44,6 +44,7 @@ var (
 	mtu         = flag.Int("mtu", 1452, "MTU for outgoing packets")
 	timeoutP    = flag.Int("timeout", 60, "Timeout seconds")
 	noisy       = flag.Bool("noise", false, "Enable noise appending")
+	encless     = flag.Bool("encless", false, "Encryptionless mode")
 	cpr         = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
 	egdPath     = flag.String("egd", "", "Optional path to EGD socket")
 
@@ -73,11 +74,18 @@ func main() {
 		log.Fatalln(err)
 	}
 	priv := verifier.PasswordApply(govpn.StringFromFile(*keyPath))
+	if *encless {
+		if *proto != "tcp" {
+			log.Fatalln("Currently encryptionless mode works only with TCP")
+		}
+		*noisy = true
+	}
 	conf = &govpn.PeerConf{
 		Id:       verifier.Id,
 		Timeout:  time.Second * time.Duration(timeout),
 		Noise:    *noisy,
 		CPR:      *cpr,
+		EncLess:  *encless,
 		Verifier: verifier,
 		DSAPriv:  priv,
 	}
