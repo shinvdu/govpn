@@ -62,6 +62,9 @@ func main() {
 	var err error
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
+	if *mtu > govpn.MTUMax {
+		log.Fatalln("Maximum allowable MTU is", govpn.MTUMax)
+	}
 	if *egdPath != "" {
 		log.Println("Using", *egdPath, "EGD")
 		govpn.EGDInit(*egdPath)

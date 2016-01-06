@@ -59,6 +59,10 @@ func confRead() map[govpn.PeerId]*govpn.PeerConf {
 		if pc.MTU == 0 {
 			pc.MTU = govpn.MTUDefault
 		}
+		if pc.MTU > govpn.MTUMax {
+			log.Println("MTU value", pc.MTU, "is too high, overriding to", govpn.MTUMax)
+			pc.MTU = govpn.MTUMax
+		}
 		conf := govpn.PeerConf{
 			Verifier: verifier,
 			Id:       verifier.Id,
