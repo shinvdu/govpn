@@ -52,7 +52,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //     ...
 //     prefix || 0x0000000000000001 || 0x0000000000000000
 //     prefix || 0x0000000000000001 || 0x0100000000000000
-package chaffing
+package cnw
 
 import (
 	"crypto/subtle"

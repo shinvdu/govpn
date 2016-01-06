@@ -20,11 +20,11 @@ package govpn
 
 import (
 	"govpn/aont"
-	"govpn/chaffing"
+	"govpn/cnw"
 )
 
 const (
-	EncLessEnlargeSize = aont.HSize + aont.RSize*chaffing.EnlargeFactor
+	EncLessEnlargeSize = aont.HSize + aont.RSize*cnw.EnlargeFactor
 )
 
 // Confidentiality preserving (but encryptionless) encoding.
@@ -44,7 +44,7 @@ func EncLessEncode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
 		return nil, err
 	}
 	out := append(
-		chaffing.Chaff(authKey, nonce, aonted[:aont.RSize]),
+		cnw.Chaff(authKey, nonce, aonted[:aont.RSize]),
 		aonted[aont.RSize:]...,
 	)
 	SliceZero(aonted[:aont.RSize])
@@ -54,14 +54,14 @@ func EncLessEncode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
 // Decode EncLessEncode-ed data.
 func EncLessDecode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
 	var err error
-	winnowed, err := chaffing.Winnow(
-		authKey, nonce, in[:aont.RSize*chaffing.EnlargeFactor],
+	winnowed, err := cnw.Winnow(
+		authKey, nonce, in[:aont.RSize*cnw.EnlargeFactor],
 	)
 	if err != nil {
 		return nil, err
 	}
 	out, err := aont.Decode(append(
-		winnowed, in[aont.RSize*chaffing.EnlargeFactor:]...,
+		winnowed, in[aont.RSize*cnw.EnlargeFactor:]...,
 	))
 	SliceZero(winnowed)
 	if err != nil {
