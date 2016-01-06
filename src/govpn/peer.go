@@ -145,6 +145,13 @@ func (p *Peer) NonceExpectation(buf []byte) {
 	p.NonceCipher.Encrypt(buf, buf)
 }
 
+func cprCycleCalculate(rate int) time.Duration {
+	if rate == 0 {
+		return time.Duration(0)
+	}
+	return time.Second / time.Duration(rate*(1<<10)/MTUMax)
+}
+
 func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[SSize]byte) *Peer {
 	now := time.Now()
 	timeout := conf.Timeout
