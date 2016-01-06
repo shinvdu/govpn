@@ -85,7 +85,7 @@ func main() {
 		Timeout:  time.Second * time.Duration(timeout),
 		Noise:    *noisy,
 		CPR:      *cpr,
-		EncLess:  *encless,
+		Encless:  *encless,
 		Verifier: verifier,
 		DSAPriv:  priv,
 	}

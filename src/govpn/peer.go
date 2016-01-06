@@ -72,7 +72,7 @@ type Peer struct {
 	NoiseEnable bool
 	CPR         int
 	CPRCycle    time.Duration `json:"-"`
-	EncLess     bool
+	Encless     bool
 	MTU         int
 
 	// Cryptography related
@@ -166,8 +166,8 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 	}
 
 	bufSize := S20BS + 2*conf.MTU
-	if conf.EncLess {
-		bufSize += EncLessEnlargeSize
+	if conf.Encless {
+		bufSize += EnclessEnlargeSize
 		noiseEnable = true
 	}
 	peer := Peer{
@@ -178,7 +178,7 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		NoiseEnable: noiseEnable,
 		CPR:         conf.CPR,
 		CPRCycle:    cprCycle,
-		EncLess:     conf.EncLess,
+		Encless:     conf.Encless,
 		MTU:         conf.MTU,
 
 		Key:          key,
@@ -238,9 +238,9 @@ func (p *Peer) EthProcess(data []byte) {
 		p.BytesPayloadOut += int64(len(data))
 	}
 
-	if p.NoiseEnable && !p.EncLess {
+	if p.NoiseEnable && !p.Encless {
 		p.frameT = p.bufT[S20BS : S20BS+p.MTU-TagSize]
-	} else if p.EncLess {
+	} else if p.Encless {
 		p.frameT = p.bufT[S20BS : S20BS+p.MTU]
 	} else {
 		p.frameT = p.bufT[S20BS : S20BS+len(data)+1+NonceSize]
@@ -252,9 +252,9 @@ func (p *Peer) EthProcess(data []byte) {
 		p.frameT[len(p.frameT)-NonceSize:],
 	)
 	var out []byte
-	if p.EncLess {
+	if p.Encless {
 		var err error
-		out, err = EncLessEncode(
+		out, err = EnclessEncode(
 			p.Key,
 			p.frameT[len(p.frameT)-NonceSize:],
 			p.frameT[:len(p.frameT)-NonceSize],
@@ -296,9 +296,9 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 	}
 	var out []byte
 	p.BusyR.Lock()
-	if p.EncLess {
+	if p.Encless {
 		var err error
-		out, err = EncLessDecode(
+		out, err = EnclessDecode(
 			p.Key,
 			data[len(data)-NonceSize:],
 			data[:len(data)-NonceSize],

@@ -53,7 +53,7 @@ func confRead() map[govpn.PeerId]*govpn.PeerConf {
 		if err != nil {
 			log.Fatalln("Unable to decode the key:", err.Error(), pc.VerifierRaw)
 		}
-		if pc.EncLess {
+		if pc.Encless {
 			pc.Noise = true
 		}
 		if pc.MTU == 0 {
@@ -69,7 +69,7 @@ func confRead() map[govpn.PeerId]*govpn.PeerConf {
 			Down:     pc.Down,
 			Noise:    pc.Noise,
 			CPR:      pc.CPR,
-			EncLess:  pc.EncLess,
+			Encless:  pc.Encless,
 		}
 		if pc.TimeoutInt <= 0 {
 			pc.TimeoutInt = govpn.TimeoutDefault

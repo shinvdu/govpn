@@ -166,9 +166,9 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 		enc = make([]byte, 32)
 	}
 	copy(enc, dhPubRepr[:])
-	if conf.EncLess {
+	if conf.Encless {
 		var err error
-		enc, err = EncLessEncode(state.dsaPubH, state.rNonce[:], enc)
+		enc, err = EnclessEncode(state.dsaPubH, state.rNonce[:], enc)
 		if err != err {
 			panic(err)
 		}
@@ -188,15 +188,15 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 // authenticated Peer is ready, then return nil.
 func (h *Handshake) Server(data []byte) *Peer {
 	// R + ENC(H(DSAPub), R, El(CDHPub)) + IDtag
-	if h.rNonce == nil && ((!h.Conf.EncLess && len(data) >= 48) ||
-		(h.Conf.EncLess && len(data) == EncLessEnlargeSize+h.Conf.MTU)) {
+	if h.rNonce == nil && ((!h.Conf.Encless && len(data) >= 48) ||
+		(h.Conf.Encless && len(data) == EnclessEnlargeSize+h.Conf.MTU)) {
 		h.rNonce = new([RSize]byte)
 		copy(h.rNonce[:], data[:RSize])
 
 		// Decrypt remote public key
 		cDHRepr := new([32]byte)
-		if h.Conf.EncLess {
-			out, err := EncLessDecode(
+		if h.Conf.Encless {
+			out, err := EnclessDecode(
 				h.dsaPubH,
 				h.rNonce[:],
 				data[RSize:len(data)-xtea.BlockSize],
@@ -226,10 +226,10 @@ func (h *Handshake) Server(data []byte) *Peer {
 
 		var encPub []byte
 		var err error
-		if h.Conf.EncLess {
+		if h.Conf.Encless {
 			encPub = make([]byte, h.Conf.MTU)
 			copy(encPub, dhPubRepr[:])
-			encPub, err = EncLessEncode(h.dsaPubH, h.rNonceNext(1), encPub)
+			encPub, err = EnclessEncode(h.dsaPubH, h.rNonceNext(1), encPub)
 			if err != nil {
 				panic(err)
 			}
@@ -248,16 +248,16 @@ func (h *Handshake) Server(data []byte) *Peer {
 			log.Fatalln("Error reading random for S:", err)
 		}
 		var encRs []byte
-		if h.Conf.Noise && !h.Conf.EncLess {
+		if h.Conf.Noise && !h.Conf.Encless {
 			encRs = make([]byte, h.Conf.MTU-len(encPub)-xtea.BlockSize)
-		} else if h.Conf.EncLess {
+		} else if h.Conf.Encless {
 			encRs = make([]byte, h.Conf.MTU-xtea.BlockSize)
 		} else {
 			encRs = make([]byte, RSize+SSize)
 		}
 		copy(encRs, append(h.rServer[:], h.sServer[:]...))
-		if h.Conf.EncLess {
-			encRs, err = EncLessEncode(h.key, h.rNonce[:], encRs)
+		if h.Conf.Encless {
+			encRs, err = EnclessEncode(h.key, h.rNonce[:], encRs)
 			if err != nil {
 				panic(err)
 			}
@@ -270,12 +270,12 @@ func (h *Handshake) Server(data []byte) *Peer {
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+1, RS + RC + SC + Sign(DSAPriv, K)) + IDtag
-	if h.rClient == nil && ((!h.Conf.EncLess && len(data) >= 120) ||
-		(h.Conf.EncLess && len(data) == EncLessEnlargeSize+h.Conf.MTU)) {
+	if h.rClient == nil && ((!h.Conf.Encless && len(data) >= 120) ||
+		(h.Conf.Encless && len(data) == EnclessEnlargeSize+h.Conf.MTU)) {
 		var dec []byte
 		var err error
-		if h.Conf.EncLess {
-			dec, err = EncLessDecode(
+		if h.Conf.Encless {
+			dec, err = EnclessDecode(
 				h.key,
 				h.rNonceNext(1),
 				data[:len(data)-xtea.BlockSize],
@@ -313,8 +313,8 @@ func (h *Handshake) Server(data []byte) *Peer {
 			enc = make([]byte, RSize)
 		}
 		copy(enc, dec[RSize:RSize+RSize])
-		if h.Conf.EncLess {
-			enc, err = EncLessEncode(h.key, h.rNonceNext(2), enc)
+		if h.Conf.Encless {
+			enc, err = EnclessEncode(h.key, h.rNonceNext(2), enc)
 			if err != nil {
 				panic(err)
 			}
@@ -346,14 +346,14 @@ func (h *Handshake) Server(data []byte) *Peer {
 func (h *Handshake) Client(data []byte) *Peer {
 	// ENC(H(DSAPub), R+1, El(SDHPub)) + ENC(K, R, RS + SS) + IDtag
 	if h.rServer == nil && h.key == nil &&
-		((!h.Conf.EncLess && len(data) >= 80) ||
-			(h.Conf.EncLess && len(data) == 2*(EncLessEnlargeSize+h.Conf.MTU))) {
+		((!h.Conf.Encless && len(data) >= 80) ||
+			(h.Conf.Encless && len(data) == 2*(EnclessEnlargeSize+h.Conf.MTU))) {
 		// Decrypt remote public key
 		sDHRepr := new([32]byte)
 		var tmp []byte
 		var err error
-		if h.Conf.EncLess {
-			tmp, err = EncLessDecode(
+		if h.Conf.Encless {
+			tmp, err = EnclessDecode(
 				h.dsaPubH,
 				h.rNonceNext(1),
 				data[:len(data)/2],
@@ -380,8 +380,8 @@ func (h *Handshake) Client(data []byte) *Peer {
 		// Decrypt Rs
 		h.rServer = new([RSize]byte)
 		h.sServer = new([SSize]byte)
-		if h.Conf.EncLess {
-			tmp, err = EncLessDecode(
+		if h.Conf.Encless {
+			tmp, err = EnclessDecode(
 				h.key,
 				h.rNonce[:],
 				data[len(data)/2:len(data)-xtea.BlockSize],
@@ -425,8 +425,8 @@ func (h *Handshake) Client(data []byte) *Peer {
 		copy(enc[RSize:], h.rClient[:])
 		copy(enc[RSize+RSize:], h.sClient[:])
 		copy(enc[RSize+RSize+SSize:], sign[:])
-		if h.Conf.EncLess {
-			enc, err = EncLessEncode(h.key, h.rNonceNext(1), enc)
+		if h.Conf.Encless {
+			enc, err = EnclessEncode(h.key, h.rNonceNext(1), enc)
 			if err != nil {
 				panic(err)
 			}
@@ -439,13 +439,13 @@ func (h *Handshake) Client(data []byte) *Peer {
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+2, RC) + IDtag
-	if h.key != nil && ((!h.Conf.EncLess && len(data) >= 16) ||
-		(h.Conf.EncLess && len(data) == EncLessEnlargeSize+h.Conf.MTU)) {
+	if h.key != nil && ((!h.Conf.Encless && len(data) >= 16) ||
+		(h.Conf.Encless && len(data) == EnclessEnlargeSize+h.Conf.MTU)) {
 		var err error
 		// Decrypt rClient
 		var dec []byte
-		if h.Conf.EncLess {
-			dec, err = EncLessDecode(
+		if h.Conf.Encless {
+			dec, err = EnclessDecode(
 				h.key,
 				h.rNonceNext(2),
 				data[:len(data)-xtea.BlockSize],

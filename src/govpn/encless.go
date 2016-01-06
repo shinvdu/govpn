@@ -24,16 +24,16 @@ import (
 )
 
 const (
-	EncLessEnlargeSize = aont.HSize + aont.RSize*cnw.EnlargeFactor
+	EnclessEnlargeSize = aont.HSize + aont.RSize*cnw.EnlargeFactor
 )
 
 // Confidentiality preserving (but encryptionless) encoding.
 //
 // It uses Chaffing-and-Winnowing technology (it is neither
 // encryption nor steganography) over All-Or-Nothing-Transformed data.
-// nonce is 64-bit nonce. Output data will be EncLessEnlargeSize larger.
+// nonce is 64-bit nonce. Output data will be EnclessEnlargeSize larger.
 // It also consumes 64-bits of entropy.
-func EncLessEncode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
+func EnclessEncode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
 	r := new([aont.RSize]byte)
 	var err error
 	if _, err = Rand.Read(r[:]); err != nil {
@@ -51,8 +51,8 @@ func EncLessEncode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
 	return out, nil
 }
 
-// Decode EncLessEncode-ed data.
-func EncLessDecode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
+// Decode EnclessEncode-ed data.
+func EnclessDecode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
 	var err error
 	winnowed, err := cnw.Winnow(
 		authKey, nonce, in[:aont.RSize*cnw.EnlargeFactor],

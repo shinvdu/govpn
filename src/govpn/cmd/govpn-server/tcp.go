@@ -51,7 +51,7 @@ func startTCP() {
 
 func handleTCP(conn net.Conn) {
 	addr := conn.RemoteAddr().String()
-	buf := make([]byte, govpn.EncLessEnlargeSize+2*govpn.MTUMax)
+	buf := make([]byte, govpn.EnclessEnlargeSize+2*govpn.MTUMax)
 	var n int
 	var err error
 	var prev int

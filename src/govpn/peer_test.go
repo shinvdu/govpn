@@ -86,11 +86,11 @@ func TestTransportSymmetricNoise(t *testing.T) {
 	peer.NoiseEnable = true
 }
 
-func TestTransportSymmetricEncLess(t *testing.T) {
+func TestTransportSymmetricEncless(t *testing.T) {
 	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
-	peer.EncLess = true
+	peer.Encless = true
 	peer.NoiseEnable = true
-	peerd.EncLess = true
+	peerd.Encless = true
 	peerd.NoiseEnable = true
 	f := func(payload []byte) bool {
 		if len(payload) == 0 {
@@ -103,7 +103,7 @@ func TestTransportSymmetricEncLess(t *testing.T) {
 		t.Error(err)
 	}
 	peer.NoiseEnable = false
-	peer.EncLess = false
+	peer.Encless = false
 }
 
 func BenchmarkEnc(b *testing.B) {

@@ -34,15 +34,15 @@ func init() {
 	rand.Read(testKey[:])
 }
 
-func TestEncLessSymmetric(t *testing.T) {
+func TestEnclessSymmetric(t *testing.T) {
 	nonce := make([]byte, 8)
 	f := func(pktNum uint64, in []byte) bool {
 		binary.BigEndian.PutUint64(nonce, pktNum)
-		encoded, err := EncLessEncode(testKey, nonce, in)
+		encoded, err := EnclessEncode(testKey, nonce, in)
 		if err != nil {
 			return false
 		}
-		decoded, err := EncLessDecode(testKey, nonce, encoded)
+		decoded, err := EnclessDecode(testKey, nonce, encoded)
 		if err != nil {
 			return false
 		}
@@ -53,25 +53,25 @@ func TestEncLessSymmetric(t *testing.T) {
 	}
 }
 
-func BenchmarkEncLessEncode(b *testing.B) {
+func BenchmarkEnclessEncode(b *testing.B) {
 	nonce := make([]byte, 8)
 	data := make([]byte, 128)
 	rand.Read(nonce)
 	rand.Read(data)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		EncLessEncode(testKey, nonce, data)
+		EnclessEncode(testKey, nonce, data)
 	}
 }
 
-func BenchmarkEncLessDecode(b *testing.B) {
+func BenchmarkEnclessDecode(b *testing.B) {
 	nonce := make([]byte, 8)
 	data := make([]byte, 128)
 	rand.Read(nonce)
 	rand.Read(data)
-	encoded, _ := EncLessEncode(testKey, nonce, data)
+	encoded, _ := EnclessEncode(testKey, nonce, data)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		EncLessDecode(testKey, nonce, encoded)
+		EnclessDecode(testKey, nonce, encoded)
 	}
 }

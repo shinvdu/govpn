@@ -62,7 +62,7 @@ func TestHandshakeEnclessSymmetric(t *testing.T) {
 	v := VerifierNew(DefaultM, DefaultT, DefaultP, &peerId)
 	conf.Verifier = v
 	conf.DSAPriv = v.PasswordApply("does not matter")
-	conf.EncLess = true
+	conf.Encless = true
 	conf.Noise = true
 	hsS := NewHandshake("server", Dummy{&ciphertext}, conf)
 	hsC := HandshakeStart("client", Dummy{&ciphertext}, conf)
@@ -74,6 +74,6 @@ func TestHandshakeEnclessSymmetric(t *testing.T) {
 	if hsC.Client(ciphertext) == nil {
 		t.Fail()
 	}
-	conf.EncLess = false
+	conf.Encless = false
 	conf.Noise = false
 }
