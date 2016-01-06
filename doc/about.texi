@@ -23,11 +23,11 @@ cryptography.
 @item
 Optional @ref{Encless, encryptionless mode} of operation: no encryption
 functions are applied for outgoing traffic, but still confidentiality
-preserving encoding. Jurisdictions and courts can force you to reveal
-encryption keys or sue for encryption usage.
+preserving encoding. Jurisdictions and courts can not either force you
+to reveal encryption keys or sue for encryption usage.
 @item
 Censorship resistant handshake and transport messages: fully
-indistinguishable from the noise with optionally hidden packets lengths.
+indistinguishable from the noise with optionally hidden packets length.
 @item
 @url{https://en.wikipedia.org/wiki/Forward_secrecy, Perfect forward secrecy}
 property.
@@ -60,9 +60,9 @@ Optional built-in HTTP-server for retrieving real-time
 @ref{Stats, statistics} information about known connected peers in
 @url{http://json.org/, JSON} format.
 @item
-Written on @url{http://golang.org/, Go} programming language with
+Written on @url{https://golang.org/, Go} programming language with
 simple code that can be read and reviewed.
 @item
 @url{https://www.gnu.org/, GNU}/Linux and
-@url{http://www.freebsd.org/, FreeBSD} support.
+@url{https://www.freebsd.org/, FreeBSD} support.
 @end itemize

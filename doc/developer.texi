@@ -5,7 +5,7 @@ Pay attention how to get @ref{Sources, development source code}.
 
 @table @asis
 @item Nonce and identity encryption
-    @url{http://143.53.36.235:8080/tea.htm, XTEA}.
+    @url{http://www.cix.co.uk/~klockstone/xtea.pdf, XTEA}.
 @item Data encryption
     @url{http://cr.yp.to/snuffle.html, Salsa20}.
 @item Message authentication

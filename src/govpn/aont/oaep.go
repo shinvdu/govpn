@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // (http://cseweb.ucsd.edu/~mihir/papers/oaep.html)
 // used there as All-Or-Nothing-Transformation
 // (http://theory.lcs.mit.edu/~cis/pubs/rivest/fusion.ps).
-// We do not fix OAEP parts lengths, instead we add hash-based
+// We do not fix OAEP parts length, instead we add hash-based
 // checksum like in SAEP+
 // (http://crypto.stanford.edu/~dabo/abstracts/saep.html).
 //

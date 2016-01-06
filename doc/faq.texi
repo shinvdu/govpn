@@ -67,7 +67,7 @@ kinds of it.
 
 @item When should I use @ref{Encless, encryptionless mode}?
 If you are operating under jurisdiction where courts can either sue you
-for encryption usage or can force you to somehow reveal you encryption
+for encryption usage or force you to somehow reveal you encryption
 keys (however new session encryption keys are generated each session).
 Those courts can not demand for authentication and signing keys in most
 cases. @strong{Do not} let mode's name to confuse you: it still

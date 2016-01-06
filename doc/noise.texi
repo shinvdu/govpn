@@ -1,7 +1,7 @@
 @node Noise
 @subsection Noise
 
-So-called noise is used to hide underlying payload packets lengths.
+So-called noise is used to hide underlying payload packets length.
 Without it GoVPN provides confidentiality and authenticity of messages,
 but not their timestamps of appearance and sizes.
 
