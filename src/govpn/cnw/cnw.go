@@ -30,28 +30,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //     MAC of 1st byte, 2nd bit, 1 possible value
 //     ...
 //
-// MAC is taken over the "V" string for the valid (enabled) bit value
-// and over "I" for invalid one.
+// If bit value is 0, then first MAC is taken over "1" and the second
+// one is over "0". If bit value is 1, then first is taken over "0" and
+// second is over "1".
 //
-// Poly1305 uses 256-bit one-time key. We generate it using XSalsa20.
+// Poly1305 uses 256-bit one-time key. We generate it using XSalsa20 for
+// for the whole byte at once (16 MACs).
 //
-//     MACKey = XSalsa20(authKey, nonce, 0x00...)
-//     nonce = prefix || byte-num || bit-val
-//     bit-val = (0x00|0x01) || 0x00... || bit sequence number
-//
-// 64-bit prefix is explicitly provided during the chaffing. byte-num is
-// big-endian 64-bit byte's sequence number. So 24-bit nonces for
-// XSalsa20 will be the following:
-//
-//     prefix || 0x0000000000000000 || 0x0000000000000000
-//     prefix || 0x0000000000000000 || 0x0100000000000000
-//     prefix || 0x0000000000000000 || 0x0000000000000001
-//     prefix || 0x0000000000000000 || 0x0100000000000001
-//     prefix || 0x0000000000000000 || 0x0000000000000002
-//     prefix || 0x0000000000000000 || 0x0100000000000002
-//     ...
-//     prefix || 0x0000000000000001 || 0x0000000000000000
-//     prefix || 0x0000000000000001 || 0x0100000000000000
+//     MACKey1, MACKey2, ... = XSalsa20(authKey, nonce, 0x00...)
+//     nonce = prefix || 0x00... || big endian byte number
 package cnw
 
 import (
@@ -67,15 +54,9 @@ const (
 	EnlargeFactor = 16 * poly1305.TagSize
 )
 
-var (
-	markInvld []byte = []byte("I")
-	markValid []byte = []byte("V")
-	macZero   []byte = make([]byte, 32)
-)
-
-func zero(macKey *[32]byte) {
-	for i := 0; i < 32; i++ {
-		macKey[i] = 0
+func zero(in []byte) {
+	for i := 0; i < len(in); i++ {
+		in[i] = 0
 	}
 }
 
@@ -83,36 +64,36 @@ func zero(macKey *[32]byte) {
 // larger: 256 bytes for each input byte.
 func Chaff(authKey *[32]byte, noncePrfx, in []byte) []byte {
 	out := make([]byte, len(in)*EnlargeFactor)
-	macKey := new([32]byte)
+	keys := make([]byte, 8*64)
 	nonce := make([]byte, 24)
 	copy(nonce[:8], noncePrfx)
 	var i int
 	var v byte
 	tag := new([16]byte)
+	macKey := new([32]byte)
 	for n, b := range in {
-		binary.BigEndian.PutUint64(nonce[8:16], uint64(n))
+		binary.BigEndian.PutUint64(nonce[16:], uint64(n))
+		salsa20.XORKeyStream(keys, keys, nonce, authKey)
 		for i = 0; i < 8; i++ {
-			v = b >> uint8(i) & 1
-			nonce[23] = byte(i)
-			nonce[16] = 0
-			salsa20.XORKeyStream(macKey[:], macZero, nonce, authKey)
+			v = (b >> uint8(i)) & 1
+			copy(macKey[:], keys[64*i:64*i+32])
 			if v == 0 {
-				poly1305.Sum(tag, markValid, macKey)
+				poly1305.Sum(tag, []byte("1"), macKey)
 			} else {
-				poly1305.Sum(tag, markInvld, macKey)
+				poly1305.Sum(tag, []byte("0"), macKey)
 			}
-			copy(out[poly1305.TagSize*(n*16+i*2):], tag[:])
-			nonce[16] = 1
-			salsa20.XORKeyStream(macKey[:], macZero, nonce, authKey)
+			copy(out[16*(n*16+i*2):], tag[:])
+			copy(macKey[:], keys[64*i+32:64*i+64])
 			if v == 1 {
-				poly1305.Sum(tag, markValid, macKey)
+				poly1305.Sum(tag, []byte("1"), macKey)
 			} else {
-				poly1305.Sum(tag, markInvld, macKey)
+				poly1305.Sum(tag, []byte("0"), macKey)
 			}
-			copy(out[poly1305.TagSize*(n*16+i*2+1):], tag[:])
+			copy(out[16*(n*16+i*2+1):], tag[:])
 		}
+		zero(keys)
 	}
-	zero(macKey)
+	zero(macKey[:])
 	return out
 }
 
@@ -122,44 +103,55 @@ func Winnow(authKey *[32]byte, noncePrfx, in []byte) ([]byte, error) {
 		return nil, errors.New("Invalid data size")
 	}
 	out := make([]byte, len(in)/EnlargeFactor)
-	macKey := new([32]byte)
-	defer zero(macKey)
+	keys := make([]byte, 8*64)
 	nonce := make([]byte, 24)
 	copy(nonce[:8], noncePrfx)
-	tag := new([16]byte)
 	var i int
-	var is0 bool
-	var is1 bool
 	var v byte
+	tag := new([16]byte)
+	macKey := new([32]byte)
+	defer zero(macKey[:])
+	var is01 bool
+	var is00 bool
+	var is11 bool
+	var is10 bool
 	for n := 0; n < len(out); n++ {
-		binary.BigEndian.PutUint64(nonce[8:16], uint64(n))
+		binary.BigEndian.PutUint64(nonce[16:], uint64(n))
+		salsa20.XORKeyStream(keys, keys, nonce, authKey)
 		v = 0
 		for i = 0; i < 8; i++ {
-			is0 = false
-			is1 = false
-			nonce[23] = byte(i)
-			nonce[16] = 0
-			salsa20.XORKeyStream(macKey[:], macZero, nonce, authKey)
-			poly1305.Sum(tag, markValid, macKey)
-			is0 = subtle.ConstantTimeCompare(
+			copy(macKey[:], keys[64*i:64*i+32])
+			poly1305.Sum(tag, []byte("1"), macKey)
+			is01 = subtle.ConstantTimeCompare(
 				tag[:],
-				in[poly1305.TagSize*(n*16+i*2):poly1305.TagSize*(n*16+i*2+1)],
+				in[16*(n*16+i*2):16*(n*16+i*2+1)],
 			) == 1
-			nonce[16] = 1
-			salsa20.XORKeyStream(macKey[:], macZero, nonce, authKey)
-			poly1305.Sum(tag, markValid, macKey)
-			is1 = subtle.ConstantTimeCompare(
+			poly1305.Sum(tag, []byte("0"), macKey)
+			is00 = subtle.ConstantTimeCompare(
 				tag[:],
-				in[poly1305.TagSize*(n*16+i*2+1):poly1305.TagSize*(n*16+i*2+2)],
+				in[16*(n*16+i*2):16*(n*16+i*2+1)],
 			) == 1
-			if is0 == is1 {
+			copy(macKey[:], keys[64*i+32:64*i+64])
+			poly1305.Sum(tag, []byte("1"), macKey)
+			is11 = subtle.ConstantTimeCompare(
+				tag[:],
+				in[16*(n*16+i*2+1):16*(n*16+i*2+2)],
+			) == 1
+			poly1305.Sum(tag, []byte("0"), macKey)
+			is10 = subtle.ConstantTimeCompare(
+				tag[:],
+				in[16*(n*16+i*2+1):16*(n*16+i*2+2)],
+			) == 1
+			if !((is01 && is10) || (is00 && is11)) {
+				zero(keys)
 				return nil, errors.New("Invalid authenticator received")
 			}
-			if is1 {
+			if is11 {
 				v = v | 1<<uint8(i)
 			}
 		}
 		out[n] = v
+		zero(keys)
 	}
 	return out, nil
 }
