@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // package PKG:
 //
 //     PKG = P1 || P2
-//      P1 = HKDF(BLAKE2b, r) XOR (M || BLAKE2b(r || M)) ||
+//      P1 = Salsa20(key=r, nonce=0x00, 0x00) XOR (M || BLAKE2b(r || M))
 //      P2 = BLAKE2b(P1) XOR r
 package aont
 
@@ -39,7 +39,7 @@ import (
 	"errors"
 
 	"github.com/dchest/blake2b"
-	"golang.org/x/crypto/hkdf"
+	"golang.org/x/crypto/salsa20"
 )
 
 const (
@@ -47,30 +47,26 @@ const (
 	RSize = 16
 )
 
+var (
+	dummyNonce []byte = make([]byte, 8)
+)
+
 // Encode the data, produce AONT package. Data size will be larger than
 // the original one for 48 bytes.
 func Encode(r *[RSize]byte, in []byte) ([]byte, error) {
 	out := make([]byte, len(in)+HSize+RSize)
-	hr := hkdf.New(blake2b.New512, r[:], nil, nil)
-	if _, err := hr.Read(out[:len(in)+HSize]); err != nil {
-		return nil, err
-	}
-	var i int
-	for i = 0; i < len(in); i++ {
-		out[i] ^= in[i]
-	}
+	copy(out, in)
 	h := blake2b.New256()
 	h.Write(r[:])
 	h.Write(in)
-	for _, b := range h.Sum(nil) {
-		out[i] ^= b
-		i++
-	}
+	copy(out[len(in):], h.Sum(nil))
+	salsaKey := new([32]byte)
+	copy(salsaKey[:], r[:])
+	salsa20.XORKeyStream(out, out, dummyNonce, salsaKey)
 	h.Reset()
-	h.Write(out[:i])
-	for _, b := range h.Sum(nil)[:RSize] {
-		out[i] = b ^ r[i-len(in)-HSize]
-		i++
+	h.Write(out[:len(in)+32])
+	for i, b := range h.Sum(nil)[:RSize] {
+		out[len(in)+32+i] = b ^ r[i]
 	}
 	return out, nil
 }
@@ -83,19 +79,14 @@ func Decode(in []byte) ([]byte, error) {
 	}
 	h := blake2b.New256()
 	h.Write(in[:len(in)-RSize])
-	out := make([]byte, len(in)-RSize)
+	salsaKey := new([32]byte)
 	for i, b := range h.Sum(nil)[:RSize] {
-		out[i] = b ^ in[len(in)-RSize+i]
+		salsaKey[i] = b ^ in[len(in)-RSize+i]
 	}
 	h.Reset()
-	h.Write(out[:RSize])
-	hr := hkdf.New(blake2b.New512, out[:RSize], nil, nil)
-	if _, err := hr.Read(out); err != nil {
-		return nil, err
-	}
-	for i := 0; i < len(out); i++ {
-		out[i] ^= in[i]
-	}
+	h.Write(salsaKey[:RSize])
+	out := make([]byte, len(in)-RSize)
+	salsa20.XORKeyStream(out, in[:len(in)-RSize], dummyNonce, salsaKey)
 	h.Write(out[:len(out)-HSize])
 	if subtle.ConstantTimeCompare(h.Sum(nil), out[len(out)-HSize:]) != 1 {
 		return nil, errors.New("Invalid checksum")

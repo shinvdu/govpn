@@ -24,8 +24,7 @@ Pay attention how to get @ref{Sources, development source code}.
     @url{http://theory.lcs.mit.edu/~cis/pubs/rivest/fusion.ps,
     All-Or-Nothing-Transformed} (based on
     @url{http://cseweb.ucsd.edu/~mihir/papers/oaep.html, OAEP} using
-    @url{https://en.wikipedia.org/wiki/Key_derivation_function, HKDF}
-    with @url{https://blake2.net/, BLAKE2b-512} and BLAKE2b-256 based
+    Salsa20 with @url{https://blake2.net/, BLAKE2b-256} based
     @url{http://crypto.stanford.edu/~dabo/abstracts/saep.html, SAEP+}
     checksums) data with 128-bits of feeded random.
 @item Packet overhead
