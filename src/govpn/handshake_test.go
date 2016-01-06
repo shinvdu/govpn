@@ -24,56 +24,56 @@ import (
 
 func TestHandshakeSymmetric(t *testing.T) {
 	// initial values are taken from peer_test.go's init()
-	v := VerifierNew(DefaultM, DefaultT, DefaultP, &peerId)
-	conf.Verifier = v
-	conf.DSAPriv = v.PasswordApply("does not matter")
-	hsS := NewHandshake("server", Dummy{&ciphertext}, conf)
-	hsC := HandshakeStart("client", Dummy{&ciphertext}, conf)
-	hsS.Server(ciphertext)
-	hsC.Client(ciphertext)
-	if hsS.Server(ciphertext) == nil {
+	v := VerifierNew(DefaultM, DefaultT, DefaultP, &testPeerId)
+	testConf.Verifier = v
+	testConf.DSAPriv = v.PasswordApply("does not matter")
+	hsS := NewHandshake("server", Dummy{&testCt}, testConf)
+	hsC := HandshakeStart("client", Dummy{&testCt}, testConf)
+	hsS.Server(testCt)
+	hsC.Client(testCt)
+	if hsS.Server(testCt) == nil {
 		t.Fail()
 	}
-	if hsC.Client(ciphertext) == nil {
+	if hsC.Client(testCt) == nil {
 		t.Fail()
 	}
 }
 
 func TestHandshakeNoiseSymmetric(t *testing.T) {
 	// initial values are taken from peer_test.go's init()
-	v := VerifierNew(DefaultM, DefaultT, DefaultP, &peerId)
-	conf.Verifier = v
-	conf.DSAPriv = v.PasswordApply("does not matter")
-	conf.Noise = true
-	hsS := NewHandshake("server", Dummy{&ciphertext}, conf)
-	hsC := HandshakeStart("client", Dummy{&ciphertext}, conf)
-	hsS.Server(ciphertext)
-	hsC.Client(ciphertext)
-	if hsS.Server(ciphertext) == nil {
+	v := VerifierNew(DefaultM, DefaultT, DefaultP, &testPeerId)
+	testConf.Verifier = v
+	testConf.DSAPriv = v.PasswordApply("does not matter")
+	testConf.Noise = true
+	hsS := NewHandshake("server", Dummy{&testCt}, testConf)
+	hsC := HandshakeStart("client", Dummy{&testCt}, testConf)
+	hsS.Server(testCt)
+	hsC.Client(testCt)
+	if hsS.Server(testCt) == nil {
 		t.Fail()
 	}
-	if hsC.Client(ciphertext) == nil {
+	if hsC.Client(testCt) == nil {
 		t.Fail()
 	}
-	conf.Noise = false
+	testConf.Noise = false
 }
 func TestHandshakeEnclessSymmetric(t *testing.T) {
 	// initial values are taken from peer_test.go's init()
-	v := VerifierNew(DefaultM, DefaultT, DefaultP, &peerId)
-	conf.Verifier = v
-	conf.DSAPriv = v.PasswordApply("does not matter")
-	conf.Encless = true
-	conf.Noise = true
-	hsS := NewHandshake("server", Dummy{&ciphertext}, conf)
-	hsC := HandshakeStart("client", Dummy{&ciphertext}, conf)
-	hsS.Server(ciphertext)
-	hsC.Client(ciphertext)
-	if hsS.Server(ciphertext) == nil {
+	v := VerifierNew(DefaultM, DefaultT, DefaultP, &testPeerId)
+	testConf.Verifier = v
+	testConf.DSAPriv = v.PasswordApply("does not matter")
+	testConf.Encless = true
+	testConf.Noise = true
+	hsS := NewHandshake("server", Dummy{&testCt}, testConf)
+	hsC := HandshakeStart("client", Dummy{&testCt}, testConf)
+	hsS.Server(testCt)
+	hsC.Client(testCt)
+	if hsS.Server(testCt) == nil {
 		t.Fail()
 	}
-	if hsC.Client(ciphertext) == nil {
+	if hsC.Client(testCt) == nil {
 		t.Fail()
 	}
-	conf.Encless = false
-	conf.Noise = false
+	testConf.Encless = false
+	testConf.Noise = false
 }

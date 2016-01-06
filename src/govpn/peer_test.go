@@ -25,11 +25,11 @@ import (
 )
 
 var (
-	peer       *Peer
-	plaintext  []byte
-	ciphertext []byte
-	peerId     PeerId
-	conf       *PeerConf
+	testPeer   *Peer
+	testPt     []byte
+	testCt     []byte
+	testPeerId PeerId
+	testConf   *PeerConf
 )
 
 type Dummy struct {
@@ -45,24 +45,24 @@ func (d Dummy) Write(b []byte) (int, error) {
 
 func init() {
 	id := new([IDSize]byte)
-	peerId = PeerId(*id)
-	conf = &PeerConf{
-		Id:      &peerId,
+	testPeerId = PeerId(*id)
+	testConf = &PeerConf{
+		Id:      &testPeerId,
 		MTU:     MTUDefault,
 		Timeout: time.Second * time.Duration(TimeoutDefault),
 	}
-	peer = newPeer(true, "foo", Dummy{&ciphertext}, conf, new([SSize]byte))
-	plaintext = make([]byte, 789)
+	testPeer = newPeer(true, "foo", Dummy{&testCt}, testConf, new([SSize]byte))
+	testPt = make([]byte, 789)
 }
 
 func TestTransportSymmetric(t *testing.T) {
-	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
+	peerd := newPeer(true, "foo", Dummy{nil}, testConf, new([SSize]byte))
 	f := func(payload []byte) bool {
 		if len(payload) == 0 {
 			return true
 		}
-		peer.EthProcess(payload)
-		return peerd.PktProcess(ciphertext, Dummy{nil}, true)
+		testPeer.EthProcess(payload)
+		return peerd.PktProcess(testCt, Dummy{nil}, true)
 	}
 	if err := quick.Check(f, nil); err != nil {
 		t.Error(err)
@@ -70,61 +70,61 @@ func TestTransportSymmetric(t *testing.T) {
 }
 
 func TestTransportSymmetricNoise(t *testing.T) {
-	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
-	peer.NoiseEnable = true
+	peerd := newPeer(true, "foo", Dummy{nil}, testConf, new([SSize]byte))
+	testPeer.NoiseEnable = true
 	peerd.NoiseEnable = true
 	f := func(payload []byte) bool {
 		if len(payload) == 0 {
 			return true
 		}
-		peer.EthProcess(payload)
-		return peerd.PktProcess(ciphertext, Dummy{nil}, true)
+		testPeer.EthProcess(payload)
+		return peerd.PktProcess(testCt, Dummy{nil}, true)
 	}
 	if err := quick.Check(f, nil); err != nil {
 		t.Error(err)
 	}
-	peer.NoiseEnable = true
+	testPeer.NoiseEnable = true
 }
 
 func TestTransportSymmetricEncless(t *testing.T) {
-	peerd := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
-	peer.Encless = true
-	peer.NoiseEnable = true
+	peerd := newPeer(true, "foo", Dummy{nil}, testConf, new([SSize]byte))
+	testPeer.Encless = true
+	testPeer.NoiseEnable = true
 	peerd.Encless = true
 	peerd.NoiseEnable = true
 	f := func(payload []byte) bool {
 		if len(payload) == 0 {
 			return true
 		}
-		peer.EthProcess(payload)
-		return peerd.PktProcess(ciphertext, Dummy{nil}, true)
+		testPeer.EthProcess(payload)
+		return peerd.PktProcess(testCt, Dummy{nil}, true)
 	}
 	if err := quick.Check(f, nil); err != nil {
 		t.Error(err)
 	}
-	peer.NoiseEnable = false
-	peer.Encless = false
+	testPeer.NoiseEnable = false
+	testPeer.Encless = false
 }
 
 func BenchmarkEnc(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		peer.EthProcess(plaintext)
+		testPeer.EthProcess(testPt)
 	}
 }
 
 func BenchmarkDec(b *testing.B) {
-	peer = newPeer(true, "foo", Dummy{&ciphertext}, conf, new([SSize]byte))
-	peer.EthProcess(plaintext)
-	peer = newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
-	orig := make([]byte, len(ciphertext))
-	copy(orig, ciphertext)
+	testPeer = newPeer(true, "foo", Dummy{&testCt}, testConf, new([SSize]byte))
+	testPeer.EthProcess(testPt)
+	testPeer = newPeer(true, "foo", Dummy{nil}, testConf, new([SSize]byte))
+	orig := make([]byte, len(testCt))
+	copy(orig, testCt)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		peer.nonceBucket0 = make(map[uint64]struct{}, 1)
-		peer.nonceBucket1 = make(map[uint64]struct{}, 1)
-		copy(ciphertext, orig)
-		if !peer.PktProcess(ciphertext, Dummy{nil}, true) {
+		testPeer.nonceBucket0 = make(map[uint64]struct{}, 1)
+		testPeer.nonceBucket1 = make(map[uint64]struct{}, 1)
+		copy(testCt, orig)
+		if !testPeer.PktProcess(testCt, Dummy{nil}, true) {
 			b.Fail()
 		}
 	}
@@ -133,5 +133,5 @@ func BenchmarkDec(b *testing.B) {
 func TestTransportBigger(t *testing.T) {
 	tmp := make([]byte, MTUMax*4)
 	Rand.Read(tmp)
-	peer.PktProcess(tmp, Dummy{nil}, true)
+	testPeer.PktProcess(tmp, Dummy{nil}, true)
 }
