@@ -145,18 +145,24 @@ func (p *Peer) NonceExpectation(buf []byte) {
 	p.NonceCipher.Encrypt(buf, buf)
 }
 
-func cprCycleCalculate(rate int) time.Duration {
-	if rate == 0 {
+func cprCycleCalculate(conf *PeerConf) time.Duration {
+	if conf.CPR == 0 {
 		return time.Duration(0)
 	}
-	return time.Second / time.Duration(rate*(1<<10)/MTUMax)
+	rate := conf.CPR * 1 << 10
+	if conf.Encless {
+		rate /= EnclessEnlargeSize + conf.MTU
+	} else {
+		rate /= conf.MTU
+	}
+	return time.Second / time.Duration(rate)
 }
 
 func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[SSize]byte) *Peer {
 	now := time.Now()
 	timeout := conf.Timeout
 
-	cprCycle := cprCycleCalculate(conf.CPR)
+	cprCycle := cprCycleCalculate(conf)
 	noiseEnable := conf.Noise
 	if conf.CPR > 0 {
 		noiseEnable = true
