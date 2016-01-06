@@ -53,7 +53,7 @@ var (
 	timeout     int
 	firstUpCall bool = true
 	knownPeers  govpn.KnownPeers
-	idsCache    govpn.CipherCache
+	idsCache    *govpn.CipherCache
 )
 
 func main() {

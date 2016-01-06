@@ -33,7 +33,7 @@ const (
 
 var (
 	confs    map[govpn.PeerId]*govpn.PeerConf
-	idsCache govpn.CipherCache
+	idsCache *govpn.CipherCache
 )
 
 func confRead() map[govpn.PeerId]*govpn.PeerConf {
