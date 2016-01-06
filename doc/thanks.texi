@@ -17,4 +17,7 @@ File Compromise @copyright{} Steven M. Belloving, Michael Merrit.
 @item @email{watsonbladd@@gmail.com, Watson Ladd} for suggestion of
     @url{http://elligator.cr.yp.to/, Elligator} encoding.
 @item @url{https://password-hashing.net/#argon2, PHC for Argon2}.
+@item Ronald L. Rivest for its
+@url{http://people.csail.mit.edu/rivest/chaffing-980701.txt, Chaffing
+and Winnowing: Confidentiality without Encryption}.
 @end itemize
