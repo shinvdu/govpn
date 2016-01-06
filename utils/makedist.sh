@@ -22,7 +22,6 @@ golang.org/x/crypto/LICENSE
 golang.org/x/crypto/PATENTS
 golang.org/x/crypto/README
 golang.org/x/crypto/curve25519
-golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/salsa20
 golang.org/x/crypto/xtea
@@ -73,11 +72,13 @@ be reviewable, secure, DPI/censorship-resistant, written on Go.
 It uses fast strong passphrase authenticated key agreement protocol with
 augmented zero-knowledge mutual peers authentication (PAKE DH A-EKE).
 Encrypted, authenticated data transport that hides message's length and
-timestamps. Perfect forward secrecy property. Resistance to: offline
-dictionary attacks, replay attacks, client's passphrases compromising
-and dictionary attacks on the server side. Built-in heartbeating,
-rehandshaking, real-time statistics. Ability to work through UDP, TCP
-and HTTP proxies. IPv4/IPv6-compatibility. GNU/Linux and FreeBSD support.
+timestamps. Optional encryptionless mode, that still preserves data
+confidentiality. Perfect forward secrecy property. Resistance to:
+offline dictionary attacks, replay attacks, client's passphrases
+compromising and dictionary attacks on the server side. Built-in
+heartbeating, rehandshaking, real-time statistics. Ability to work
+through UDP, TCP and HTTP proxies. IPv4/IPv6-compatibility.
+GNU/Linux and FreeBSD support.
 
 ----------------8<-----------------8<-----------------8<----------------
 
@@ -87,7 +88,7 @@ $(git cat-file -p $release | sed -n '6,/^.*BEGIN/p' | sed '$d')
 
 ----------------8<-----------------8<-----------------8<----------------
 
-GoVPN's home page is: http://govpn.info -> http://www.cypherpunks.ru/govpn/
+GoVPN's home page is: http://www.cypherpunks.ru/govpn/ (http://govpn.info/)
 also available as Tor hidden service: http://vabu56j2ep2rwv3b.onion/govpn/
 
 Source code and its signature for that version can be found here:
@@ -100,7 +101,7 @@ GPG key ID: 0xF2F59045FFE2F4A1 GoVPN release signing key
 Fingerprint: D269 9B73 3C41 2068 D8DA  656E F2F5 9045 FFE2 F4A1
 
 Please send questions regarding the use of GoVPN, bug reports and patches
-to mailing list: https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel/
+to mailing list: https://lists.cypherpunks.ru/pipermail/govpn-devel/
 EOF
 
 cat <<EOF
@@ -116,13 +117,14 @@ GoVPN это простой демон виртуальных частных с�
 несбалансированный протокол согласования ключей с двусторонней
 аутентификацией сторон (PAKE DH A-EKE). Зашифрованный, аутентифицируемый
 транспортный протокол передачи данных, скрывающий длины сообщений и их
-временные характеристики. Свойство совершенной прямой секретности.
-Устойчивость к: внесетевым (offline) атакам по словарю, атакам
-повторного воспроизведения (replay), компрометации клиентских парольных
-фраз на стороне сервера. Встроенные функции сердцебиения (heartbeat),
-пересогласования ключей, статистика реального времени. Возможность
-работы поверх UDP, TCP и HTTP прокси. Совместимость с IPv4 и IPv6.
-Поддержка GNU/Linux и FreeBSD.
+временные характеристики. Опциональный нешифрованный режим, который
+всё-равно обеспечивает конфиденциальность и аутентичность данных.
+Свойство совершенной прямой секретности. Устойчивость к: внесетевым
+(offline) атакам по словарю, атакам повторного воспроизведения (replay),
+компрометации клиентских парольных фраз на стороне сервера. Встроенные
+функции сердцебиения (heartbeat), пересогласования ключей, статистика
+реального времени. Возможность работы поверх UDP, TCP и HTTP прокси.
+Совместимость с IPv4 и IPv6. Поддержка GNU/Linux и FreeBSD.
 
 ----------------8<-----------------8<-----------------8<----------------
 
@@ -132,8 +134,8 @@ $(git cat-file -p $release | sed -n '6,/^.*BEGIN/p' | sed '$d')
 
 ----------------8<-----------------8<-----------------8<----------------
 
-Домашняя страница GoVPN: http://govpn.info -> http://www.cypherpunks.ru/govpn/
-Коротко о демоне: http://www.cypherpunks.ru/govpn/About-RU.html
+Домашняя страница GoVPN: http://www.cypherpunks.ru/govpn/ (http://govpn.info/)
+Коротко о демоне: http://www.cypherpunks.ru/govpn/O-demone.html
 также доступна как скрытый сервис Tor: http://vabu56j2ep2rwv3b.onion/govpn/
 
 Исходный код и его подпись для этой версии находится здесь:
@@ -147,5 +149,5 @@ SHA256 хэш: $hash
 
 Пожалуйста все вопросы касающиеся использования GoVPN, отчёты об ошибках
 и патчи отправляйте в govpn-devel почтовую рассылку:
-https://lists.cypherpunks.ru/mailman/listinfo/govpn-devel/
+https://lists.cypherpunks.ru/pipermail/govpn-devel/
 EOF

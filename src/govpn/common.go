@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,15 +23,15 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"time"
 )
 
 const (
 	TimeoutDefault = 60
+	MTUMax         = 9000
+	MTUDefault     = 1500 + 14
 )
 
 var (
-	MTU     int
 	Version string
 )
 
@@ -54,7 +54,7 @@ func ScriptCall(path, ifaceName string) ([]byte, error) {
 }
 
 // Zero each byte.
-func sliceZero(data []byte) {
+func SliceZero(data []byte) {
 	for i := 0; i < len(data); i++ {
 		data[i] = 0
 	}
@@ -62,11 +62,4 @@ func sliceZero(data []byte) {
 
 func VersionGet() string {
 	return "GoVPN version " + Version + " built with " + runtime.Version()
-}
-
-func cprCycleCalculate(rate int) time.Duration {
-	if rate == 0 {
-		return time.Duration(0)
-	}
-	return time.Second / time.Duration(rate*(1<<10)/MTU)
 }

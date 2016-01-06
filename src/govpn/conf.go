@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,12 +27,15 @@ import (
 type PeerConf struct {
 	Id          *PeerId       `json:"-"`
 	Name        string        `json:"name"`
+	Iface       string        `json:"iface"`
+	MTU         int           `json:"mtu"`
 	Up          string        `json:"up"`
 	Down        string        `json:"down"`
 	TimeoutInt  int           `json:"timeout"`
 	Timeout     time.Duration `json:"-"`
 	Noise       bool          `json:"noise"`
 	CPR         int           `json:"cpr"`
+	Encless     bool          `json:"encless"`
 	VerifierRaw string        `json:"verifier"`
 
 	// This is passphrase verifier

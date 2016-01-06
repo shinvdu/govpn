@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ const (
 
 var (
 	confs    map[govpn.PeerId]*govpn.PeerConf
-	idsCache govpn.CipherCache
+	idsCache *govpn.CipherCache
 )
 
 func confRead() map[govpn.PeerId]*govpn.PeerConf {
@@ -53,14 +53,27 @@ func confRead() map[govpn.PeerId]*govpn.PeerConf {
 		if err != nil {
 			log.Fatalln("Unable to decode the key:", err.Error(), pc.VerifierRaw)
 		}
+		if pc.Encless {
+			pc.Noise = true
+		}
+		if pc.MTU == 0 {
+			pc.MTU = govpn.MTUDefault
+		}
+		if pc.MTU > govpn.MTUMax {
+			log.Println("MTU value", pc.MTU, "is too high, overriding to", govpn.MTUMax)
+			pc.MTU = govpn.MTUMax
+		}
 		conf := govpn.PeerConf{
 			Verifier: verifier,
 			Id:       verifier.Id,
 			Name:     name,
+			Iface:    pc.Iface,
+			MTU:      pc.MTU,
 			Up:       pc.Up,
 			Down:     pc.Down,
 			Noise:    pc.Noise,
 			CPR:      pc.CPR,
+			Encless:  pc.Encless,
 		}
 		if pc.TimeoutInt <= 0 {
 			pc.TimeoutInt = govpn.TimeoutDefault

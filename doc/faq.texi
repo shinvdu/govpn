@@ -65,6 +65,16 @@ just @code{cat /dev/urandom | nc somehost}. If you can not differentiate
 one kind of traffic from another, then your only option is to forbid all
 kinds of it.
 
+@item When should I use @ref{Encless, encryptionless mode}?
+If you are operating under jurisdiction where courts can either sue you
+for encryption usage or force you to somehow reveal you encryption
+keys (however new session encryption keys are generated each session).
+Those courts can not demand for authentication and signing keys in most
+cases. @strong{Do not} let mode's name to confuse you: it still
+provides confidentiality and authenticity of transmitted data! But pay
+attention that this mode is traffic and resource hungry and currently
+operate only in TCP mode.
+
 @item When should I use @ref{Noise, noise} option?
 In most cases you won't need it without @ref{CPR, constant packer rate}
 turned on. Without CPR and noise options GoVPN traffic (like TLS, IPsec,

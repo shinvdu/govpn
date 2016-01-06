@@ -3,6 +3,19 @@
 
 @table @strong
 
+@item Release 5.0
+@itemize
+@item New optional @ref{Encless, encryptionless mode} of operation.
+Technically no encryption functions are applied for outgoing packets, so
+you can not be forced to reveal your encryption keys or sued for
+encryption usage.
+@item @ref{MTU}s are configured on per-user basis.
+@item Simplified payload padding scheme, saving one byte of data.
+@item Ability to specify TAP interface name explicitly without any
+up-scripts for convenience.
+@item @code{govpn-verifier} utility also can use @ref{EGD}.
+@end itemize
+
 @item Release 4.2
 @itemize
 @item Fixed non-critical bug when server may fail if up-script is not

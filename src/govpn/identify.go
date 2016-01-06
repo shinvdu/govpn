@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -46,14 +46,14 @@ type CipherCache struct {
 	l sync.RWMutex
 }
 
-func NewCipherCache(peerIds []PeerId) CipherCache {
+func NewCipherCache(peerIds []PeerId) *CipherCache {
 	cc := CipherCache{c: make(map[PeerId]*xtea.Cipher, len(peerIds))}
 	cc.Update(peerIds)
-	return cc
+	return &cc
 }
 
 // Remove disappeared keys, add missing ones with initialized ciphers.
-func (cc CipherCache) Update(peerIds []PeerId) {
+func (cc *CipherCache) Update(peerIds []PeerId) {
 	available := make(map[PeerId]struct{})
 	for _, peerId := range peerIds {
 		available[peerId] = struct{}{}
@@ -81,7 +81,7 @@ func (cc CipherCache) Update(peerIds []PeerId) {
 // Try to find peer's identity (that equals to an encryption key)
 // by taking first blocksize sized bytes from data at the beginning
 // as plaintext and last bytes as cyphertext.
-func (cc CipherCache) Find(data []byte) *PeerId {
+func (cc *CipherCache) Find(data []byte) *PeerId {
 	if len(data) < xtea.BlockSize*2 {
 		return nil
 	}

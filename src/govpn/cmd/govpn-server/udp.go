@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ func startUDP() {
 	}
 	log.Println("Listening on UDP:" + *bindAddr)
 
-	udpBufs <- make([]byte, govpn.MTU)
+	udpBufs <- make([]byte, govpn.MTUMax)
 	go func() {
 		var buf []byte
 		var raddr *net.UDPAddr
@@ -103,8 +103,8 @@ func startUDP() {
 			hsLock.Unlock()
 
 			go func() {
-				udpBufs <- make([]byte, govpn.MTU)
-				udpBufs <- make([]byte, govpn.MTU)
+				udpBufs <- make([]byte, govpn.MTUMax)
+				udpBufs <- make([]byte, govpn.MTUMax)
 			}()
 			peersByIdLock.RLock()
 			addrPrev, exists = peersById[*peer.Id]
@@ -139,7 +139,7 @@ func startUDP() {
 					if err != nil {
 						return
 					}
-					tap, err := govpn.TAPListen(ifaceName)
+					tap, err := govpn.TAPListen(ifaceName, peer.MTU)
 					if err != nil {
 						log.Println("Unable to create TAP:", err)
 						return

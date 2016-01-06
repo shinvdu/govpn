@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ func startTCP() {
 
 func handleTCP(conn net.Conn) {
 	addr := conn.RemoteAddr().String()
-	buf := make([]byte, govpn.MTU)
+	buf := make([]byte, govpn.EnclessEnlargeSize+2*govpn.MTUMax)
 	var n int
 	var err error
 	var prev int
@@ -61,7 +61,7 @@ func handleTCP(conn net.Conn) {
 	var tap *govpn.TAP
 	var conf *govpn.PeerConf
 	for {
-		if prev == govpn.MTU {
+		if prev == len(buf) {
 			break
 		}
 		conn.SetReadDeadline(time.Now().Add(time.Duration(govpn.TimeoutDefault) * time.Second))
@@ -120,7 +120,7 @@ func handleTCP(conn net.Conn) {
 				peer = nil
 				break
 			}
-			tap, err = govpn.TAPListen(ifaceName)
+			tap, err = govpn.TAPListen(ifaceName, peer.MTU)
 			if err != nil {
 				log.Println("Unable to create TAP:", err)
 				peer = nil
@@ -157,7 +157,7 @@ func handleTCP(conn net.Conn) {
 	prev = 0
 	var i int
 	for {
-		if prev == govpn.MTU {
+		if prev == len(buf) {
 			break
 		}
 		conn.SetReadDeadline(time.Now().Add(conf.Timeout))

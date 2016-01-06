@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,8 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io"
+	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -38,12 +40,12 @@ const (
 	S20BS = 64
 	// Maximal amount of bytes transfered with single key (4 GiB)
 	MaxBytesPerKey int64 = 1 << 32
-	// Size of packet's size mark in bytes
-	PktSizeSize = 2
 	// Heartbeat rate, relative to Timeout
 	TimeoutHeartbeat = 4
 	// Minimal valid packet length
-	MinPktLength = 2 + 16 + 8
+	MinPktLength = 1 + 16 + 8
+	// Padding byte
+	PadByte = byte(0x80)
 )
 
 func newNonceCipher(key *[32]byte) *xtea.Cipher {
@@ -70,6 +72,8 @@ type Peer struct {
 	NoiseEnable bool
 	CPR         int
 	CPRCycle    time.Duration `json:"-"`
+	Encless     bool
+	MTU         int
 
 	// Cryptography related
 	Key          *[SSize]byte `json:"-"`
@@ -108,7 +112,7 @@ type Peer struct {
 	bufR     []byte
 	tagR     *[TagSize]byte
 	keyAuthR *[SSize]byte
-	pktSizeR uint16
+	pktSizeR int
 
 	// Transmitter
 	BusyT    sync.Mutex `json:"-"`
@@ -127,11 +131,11 @@ func (p *Peer) String() string {
 func (p *Peer) Zero() {
 	p.BusyT.Lock()
 	p.BusyR.Lock()
-	sliceZero(p.Key[:])
-	sliceZero(p.bufR)
-	sliceZero(p.bufT)
-	sliceZero(p.keyAuthR[:])
-	sliceZero(p.keyAuthT[:])
+	SliceZero(p.Key[:])
+	SliceZero(p.bufR)
+	SliceZero(p.bufT)
+	SliceZero(p.keyAuthR[:])
+	SliceZero(p.keyAuthT[:])
 	p.BusyT.Unlock()
 	p.BusyR.Unlock()
 }
@@ -141,11 +145,24 @@ func (p *Peer) NonceExpectation(buf []byte) {
 	p.NonceCipher.Encrypt(buf, buf)
 }
 
+func cprCycleCalculate(conf *PeerConf) time.Duration {
+	if conf.CPR == 0 {
+		return time.Duration(0)
+	}
+	rate := conf.CPR * 1 << 10
+	if conf.Encless {
+		rate /= EnclessEnlargeSize + conf.MTU
+	} else {
+		rate /= conf.MTU
+	}
+	return time.Second / time.Duration(rate)
+}
+
 func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[SSize]byte) *Peer {
 	now := time.Now()
 	timeout := conf.Timeout
 
-	cprCycle := cprCycleCalculate(conf.CPR)
+	cprCycle := cprCycleCalculate(conf)
 	noiseEnable := conf.Noise
 	if conf.CPR > 0 {
 		noiseEnable = true
@@ -154,6 +171,11 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		timeout = timeout / TimeoutHeartbeat
 	}
 
+	bufSize := S20BS + 2*conf.MTU
+	if conf.Encless {
+		bufSize += EnclessEnlargeSize
+		noiseEnable = true
+	}
 	peer := Peer{
 		Addr: addr,
 		Id:   conf.Id,
@@ -162,6 +184,8 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		NoiseEnable: noiseEnable,
 		CPR:         conf.CPR,
 		CPRCycle:    cprCycle,
+		Encless:     conf.Encless,
+		MTU:         conf.MTU,
 
 		Key:          key,
 		NonceCipher:  newNonceCipher(key),
@@ -172,8 +196,8 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		Established: now,
 		LastPing:    now,
 
-		bufR:     make([]byte, S20BS+MTU+NonceSize),
-		bufT:     make([]byte, S20BS+MTU+NonceSize),
+		bufR:     make([]byte, bufSize),
+		bufT:     make([]byte, bufSize),
 		tagR:     new([TagSize]byte),
 		tagT:     new([TagSize]byte),
 		keyAuthR: new([SSize]byte),
@@ -195,34 +219,37 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 // that he is free to receive new packets. Encrypted and authenticated
 // packets will be sent to remote Peer side immediately.
 func (p *Peer) EthProcess(data []byte) {
+	if len(data) > p.MTU-1 { // 1 is for padding byte
+		log.Println("Padded data packet size", len(data)+1, "is bigger than MTU", p.MTU, p)
+		return
+	}
 	p.now = time.Now()
 	p.BusyT.Lock()
 
 	// Zero size is a heartbeat packet
+	SliceZero(p.bufT)
 	if len(data) == 0 {
 		// If this heartbeat is necessary
 		if !p.LastSent.Add(p.Timeout).Before(p.now) {
 			p.BusyT.Unlock()
 			return
 		}
-		p.bufT[S20BS+0] = byte(0)
-		p.bufT[S20BS+1] = byte(0)
+		p.bufT[S20BS+0] = PadByte
 		p.HeartbeatSent++
 	} else {
 		// Copy payload to our internal buffer and we are ready to
 		// accept the next one
-		binary.BigEndian.PutUint16(
-			p.bufT[S20BS:S20BS+PktSizeSize],
-			uint16(len(data)),
-		)
-		copy(p.bufT[S20BS+PktSizeSize:], data)
+		copy(p.bufT[S20BS:], data)
+		p.bufT[S20BS+len(data)] = PadByte
 		p.BytesPayloadOut += int64(len(data))
 	}
 
-	if p.NoiseEnable {
-		p.frameT = p.bufT[S20BS : S20BS+MTU-TagSize]
+	if p.NoiseEnable && !p.Encless {
+		p.frameT = p.bufT[S20BS : S20BS+p.MTU-TagSize]
+	} else if p.Encless {
+		p.frameT = p.bufT[S20BS : S20BS+p.MTU]
 	} else {
-		p.frameT = p.bufT[S20BS : S20BS+PktSizeSize+len(data)+NonceSize]
+		p.frameT = p.bufT[S20BS : S20BS+len(data)+1+NonceSize]
 	}
 	p.nonceOur += 2
 	binary.BigEndian.PutUint64(p.frameT[len(p.frameT)-NonceSize:], p.nonceOur)
@@ -230,20 +257,30 @@ func (p *Peer) EthProcess(data []byte) {
 		p.frameT[len(p.frameT)-NonceSize:],
 		p.frameT[len(p.frameT)-NonceSize:],
 	)
-	for i := 0; i < SSize; i++ {
-		p.bufT[i] = byte(0)
+	var out []byte
+	if p.Encless {
+		var err error
+		out, err = EnclessEncode(
+			p.Key,
+			p.frameT[len(p.frameT)-NonceSize:],
+			p.frameT[:len(p.frameT)-NonceSize],
+		)
+		if err != nil {
+			panic(err)
+		}
+		out = append(out, p.frameT[len(p.frameT)-NonceSize:]...)
+	} else {
+		salsa20.XORKeyStream(
+			p.bufT[:S20BS+len(p.frameT)-NonceSize],
+			p.bufT[:S20BS+len(p.frameT)-NonceSize],
+			p.frameT[len(p.frameT)-NonceSize:],
+			p.Key,
+		)
+		copy(p.keyAuthT[:], p.bufT[:SSize])
+		poly1305.Sum(p.tagT, p.frameT, p.keyAuthT)
+		atomic.AddInt64(&p.BytesOut, int64(len(p.frameT)+TagSize))
+		out = append(p.tagT[:], p.frameT...)
 	}
-	salsa20.XORKeyStream(
-		p.bufT[:S20BS+len(p.frameT)-NonceSize],
-		p.bufT[:S20BS+len(p.frameT)-NonceSize],
-		p.frameT[len(p.frameT)-NonceSize:],
-		p.Key,
-	)
-
-	copy(p.keyAuthT[:], p.bufT[:SSize])
-	poly1305.Sum(p.tagT, p.frameT, p.keyAuthT)
-
-	atomic.AddInt64(&p.BytesOut, int64(len(p.frameT)+TagSize))
 	p.FramesOut++
 
 	if p.CPRCycle != time.Duration(0) {
@@ -255,7 +292,7 @@ func (p *Peer) EthProcess(data []byte) {
 	}
 
 	p.LastSent = p.now
-	p.Conn.Write(append(p.tagT[:], p.frameT...))
+	p.Conn.Write(out)
 	p.BusyT.Unlock()
 }
 
@@ -263,24 +300,42 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 	if len(data) < MinPktLength {
 		return false
 	}
-	p.BusyR.Lock()
-	for i := 0; i < SSize; i++ {
-		p.bufR[i] = byte(0)
-	}
-	copy(p.bufR[S20BS:], data[TagSize:])
-	salsa20.XORKeyStream(
-		p.bufR[:S20BS+len(data)-TagSize-NonceSize],
-		p.bufR[:S20BS+len(data)-TagSize-NonceSize],
-		data[len(data)-NonceSize:],
-		p.Key,
-	)
-
-	copy(p.keyAuthR[:], p.bufR[:SSize])
-	copy(p.tagR[:], data[:TagSize])
-	if !poly1305.Verify(p.tagR, data[TagSize:], p.keyAuthR) {
-		p.FramesUnauth++
-		p.BusyR.Unlock()
+	if !p.Encless && len(data) > len(p.bufR)-S20BS {
 		return false
+	}
+	var out []byte
+	p.BusyR.Lock()
+	if p.Encless {
+		var err error
+		out, err = EnclessDecode(
+			p.Key,
+			data[len(data)-NonceSize:],
+			data[:len(data)-NonceSize],
+		)
+		if err != nil {
+			p.FramesUnauth++
+			p.BusyR.Unlock()
+			return false
+		}
+	} else {
+		for i := 0; i < SSize; i++ {
+			p.bufR[i] = 0
+		}
+		copy(p.bufR[S20BS:], data[TagSize:])
+		salsa20.XORKeyStream(
+			p.bufR[:S20BS+len(data)-TagSize-NonceSize],
+			p.bufR[:S20BS+len(data)-TagSize-NonceSize],
+			data[len(data)-NonceSize:],
+			p.Key,
+		)
+		copy(p.keyAuthR[:], p.bufR[:SSize])
+		copy(p.tagR[:], data[:TagSize])
+		if !poly1305.Verify(p.tagR, data[TagSize:], p.keyAuthR) {
+			p.FramesUnauth++
+			p.BusyR.Unlock()
+			return false
+		}
+		out = p.bufR[S20BS : S20BS+len(data)-TagSize-NonceSize]
 	}
 
 	// Check if received nonce is known to us in either of two buckets.
@@ -323,18 +378,26 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 	p.FramesIn++
 	atomic.AddInt64(&p.BytesIn, int64(len(data)))
 	p.LastPing = time.Now()
-	p.pktSizeR = binary.BigEndian.Uint16(p.bufR[S20BS : S20BS+PktSizeSize])
+	p.pktSizeR = bytes.LastIndexByte(out, PadByte)
+	if p.pktSizeR == -1 {
+		p.BusyR.Unlock()
+		return false
+	}
+	// Validate the pad
+	for i := p.pktSizeR + 1; i < len(out); i++ {
+		if out[i] != 0 {
+			p.BusyR.Unlock()
+			return false
+		}
+	}
 
 	if p.pktSizeR == 0 {
 		p.HeartbeatRecv++
 		p.BusyR.Unlock()
 		return true
 	}
-	if int(p.pktSizeR) > len(data)-MinPktLength {
-		return false
-	}
 	p.BytesPayloadIn += int64(p.pktSizeR)
-	tap.Write(p.bufR[S20BS+PktSizeSize : S20BS+PktSizeSize+p.pktSizeR])
+	tap.Write(out[:p.pktSizeR])
 	p.BusyR.Unlock()
 	return true
 }

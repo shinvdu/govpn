@@ -1,5 +1,5 @@
 @node Timeout
-@section Timeout
+@subsection Timeout
 
 Because of stateless UDP nature there is no way to reliably know if
 remote peer is alive. That is why timeouts are necessary. If no packets

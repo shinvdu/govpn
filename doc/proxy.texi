@@ -1,5 +1,5 @@
 @node Proxy
-@section Proxy
+@subsection Proxy
 
 You can proxy your requests through HTTP using CONNECT method. This can
 help if you are only allowed to access outside world through HTTP proxy

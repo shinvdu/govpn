@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ func startUDP(timeouted, rehandshaking, termination chan struct{}) {
 	log.Println("Connected to UDP:" + *remoteAddr)
 
 	hs := govpn.HandshakeStart(*remoteAddr, conn, conf)
-	buf := make([]byte, govpn.MTU)
+	buf := make([]byte, *mtu*2)
 	var n int
 	var timeouts int
 	var peer *govpn.Peer

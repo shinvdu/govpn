@@ -8,10 +8,9 @@ WiFi-reachable gateway.
 @item You have got @code{wlan0} NIC with 192.168.0/24 network on it.
 @item You want to create virtual encrypted and authenticated 172.16.0/24
 network and use it as a default transport.
-@item @code{wlan0} MTU is 1500, 20 bytes overhead per IPv4. So MTU for
-GoVPN is 1500 - 20 - 8 = 1472.
-@item During startup client and server will say that TAP interface MTU
-is 1432.
+@item Assume that outgoing GoVPN packets can be fragmented, so we do not
+bother configuring MTU of TAP interfaces. For better performance just
+lower it and check that no fragmentation of outgoing UDP packets occurs.
 @end itemize
 
 @strong{Install}. At first you must @ref{Installation, install} this
@@ -29,6 +28,7 @@ Place the following JSON configuration entry on the server's side:
 
     "Alice": {
         "up": "/path/to/up.sh",
+        "iface": "or TAP interface name",
         "verifier": "$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10"
     }
 
@@ -39,17 +39,23 @@ Verifier was generated with:
 @end verbatim
 
 @strong{Prepare the server}. Add this entry to @code{peers.json}
-configuration file.
+configuration file:
+
+@verbatim
+{
+    "Alice": {
+        "iface": "tap10",
+        "verifier": "$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10"
+    }
+}
+@end verbatim
 
 @strong{Prepare network on GNU/Linux IPv4 server}:
 
 @example
 server% umask 077
-server% echo "#!/bin/sh" > /path/to/up.sh
-server% echo "echo tap10" >> /path/to/up.sh
 server% ip addr add 192.168.0.1/24 dev wlan0
 server% tunctl -t tap10
-server% ip link set mtu 1432 dev tap10
 server% ip addr add 172.16.0.1/24 dev tap10
 server% ip link set up dev tap10
 @end example
@@ -57,7 +63,7 @@ server% ip link set up dev tap10
 @strong{Run server daemon itself}:
 
 @example
-server% govpn-server -bind 192.168.0.1:1194 -mtu 1472
+server% govpn-server -bind 192.168.0.1:1194
 @end example
 
 @strong{Prepare network on GNU/Linux IPv4 client}:
@@ -67,7 +73,6 @@ client% umask 066
 client% utils/storekey.sh key.txt
 client% ip addr add 192.168.0.2/24 dev wlan0
 client% tunctl -t tap10
-client% ip link set mtu 1432 dev tap10
 client% ip addr add 172.16.0.2/24 dev tap10
 client% ip link set up dev tap10
 client% ip route add default via 172.16.0.1
@@ -79,8 +84,7 @@ client% govpn-client \
     -key key.txt \
     -verifier '$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg' \
     -iface tap10 \
-    -remote 192.168.0.1:1194 \
-    -mtu 1472
+    -remote 192.168.0.1:1194
 @end example
 
 @strong{FreeBSD IPv6 similar client-server example}:
@@ -93,7 +97,7 @@ server% govpn-server -bind "fe80::1%em0"
 @example
 client% ifconfig me0 inet6 -ifdisabled auto_linklocal
 client% ifconfig tap10
-client% ifconfig tap10 inet6 fc00::2/96 mtu 1412 up
+client% ifconfig tap10 inet6 fc00::2/96 up
 client% route -6 add default fc00::1
 client% govpn-client \
     -key key.txt \

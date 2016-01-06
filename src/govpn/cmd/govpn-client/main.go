@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -41,9 +41,10 @@ var (
 	stats       = flag.String("stats", "", "Enable stats retrieving on host:port")
 	proxyAddr   = flag.String("proxy", "", "Use HTTP proxy on host:port")
 	proxyAuth   = flag.String("proxy-auth", "", "user:password Basic proxy auth")
-	mtu         = flag.Int("mtu", 1452, "MTU for outgoing packets")
+	mtu         = flag.Int("mtu", govpn.MTUDefault, "MTU of TAP interface")
 	timeoutP    = flag.Int("timeout", 60, "Timeout seconds")
 	noisy       = flag.Bool("noise", false, "Enable noise appending")
+	encless     = flag.Bool("encless", false, "Encryptionless mode")
 	cpr         = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
 	egdPath     = flag.String("egd", "", "Optional path to EGD socket")
 
@@ -52,7 +53,7 @@ var (
 	timeout     int
 	firstUpCall bool = true
 	knownPeers  govpn.KnownPeers
-	idsCache    govpn.CipherCache
+	idsCache    *govpn.CipherCache
 )
 
 func main() {
@@ -61,8 +62,9 @@ func main() {
 	var err error
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
-	govpn.MTU = *mtu
-
+	if *mtu > govpn.MTUMax {
+		log.Fatalln("Maximum allowable MTU is", govpn.MTUMax)
+	}
 	if *egdPath != "" {
 		log.Println("Using", *egdPath, "EGD")
 		govpn.EGDInit(*egdPath)
@@ -73,23 +75,31 @@ func main() {
 		log.Fatalln(err)
 	}
 	priv := verifier.PasswordApply(govpn.StringFromFile(*keyPath))
+	if *encless {
+		if *proto != "tcp" {
+			log.Fatalln("Currently encryptionless mode works only with TCP")
+		}
+		*noisy = true
+	}
 	conf = &govpn.PeerConf{
 		Id:       verifier.Id,
+		Iface:    *ifaceName,
+		MTU:      *mtu,
 		Timeout:  time.Second * time.Duration(timeout),
 		Noise:    *noisy,
 		CPR:      *cpr,
+		Encless:  *encless,
 		Verifier: verifier,
 		DSAPriv:  priv,
 	}
 	idsCache = govpn.NewCipherCache([]govpn.PeerId{*verifier.Id})
 	log.Println(govpn.VersionGet())
 
-	tap, err = govpn.TAPListen(*ifaceName)
+	tap, err = govpn.TAPListen(*ifaceName, *mtu)
 	if err != nil {
 		log.Fatalln("Can not listen on TAP interface:", err)
 	}
 
-	log.Println("Max MTU on TAP interface:", govpn.TAPMaxMTU())
 	if *stats != "" {
 		log.Println("Stats are going to listen on", *stats)
 		statsPort, err := net.Listen("tcp", *stats)

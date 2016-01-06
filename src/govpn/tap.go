@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,12 +20,6 @@ package govpn
 
 import (
 	"io"
-
-	"golang.org/x/crypto/poly1305"
-)
-
-const (
-	EtherSize = 14
 )
 
 type TAP struct {
@@ -41,14 +35,7 @@ var (
 	taps = make(map[string]*TAP)
 )
 
-// Return maximal acceptable TAP interface MTU. This is daemon's MTU
-// minus nonce, MAC, packet size mark and Ethernet header sizes.
-func TAPMaxMTU() int {
-	return MTU - poly1305.TagSize - NonceSize - PktSizeSize - EtherSize
-}
-
-func NewTAP(ifaceName string) (*TAP, error) {
-	maxIfacePktSize := TAPMaxMTU() + EtherSize
+func NewTAP(ifaceName string, mtu int) (*TAP, error) {
 	tapRaw, err := newTAPer(ifaceName)
 	if err != nil {
 		return nil, err
@@ -56,8 +43,8 @@ func NewTAP(ifaceName string) (*TAP, error) {
 	tap := TAP{
 		Name: ifaceName,
 		dev:  tapRaw,
-		buf0: make([]byte, maxIfacePktSize),
-		buf1: make([]byte, maxIfacePktSize),
+		buf0: make([]byte, mtu),
+		buf1: make([]byte, mtu),
 		Sink: make(chan []byte),
 	}
 	go func() {
@@ -85,12 +72,12 @@ func (t *TAP) Write(data []byte) (n int, err error) {
 	return t.dev.Write(data)
 }
 
-func TAPListen(ifaceName string) (*TAP, error) {
+func TAPListen(ifaceName string, mtu int) (*TAP, error) {
 	tap, exists := taps[ifaceName]
 	if exists {
 		return tap, nil
 	}
-	tap, err := NewTAP(ifaceName)
+	tap, err := NewTAP(ifaceName, mtu)
 	if err != nil {
 		return nil, err
 	}

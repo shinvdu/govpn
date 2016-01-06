@@ -1,5 +1,7 @@
 #!/bin/sh -e
 
+PATH=$PATH:.
+
 [ -n "$1" ] || {
     cat <<EOF
 Example script for creating new user peer for GoVPN.
@@ -28,6 +30,7 @@ Place the following JSON configuration entry on the server's side:
 
     "$username": {
         "up": "/path/to/up.sh",
+        "iface": "or TAP interface name",
         "verifier": "$verifierS"
     }
 

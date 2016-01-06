@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -58,7 +58,7 @@ func (v *Verifier) PasswordApply(password string) *[ed25519.PrivateKeySize]byte 
 	if err != nil {
 		log.Fatalln("Unable to apply Argon2d", err)
 	}
-	defer sliceZero(r)
+	defer SliceZero(r)
 	src := bytes.NewBuffer(r)
 	pub, prv, err := ed25519.GenerateKey(src)
 	if err != nil {

@@ -1,6 +1,6 @@
 /*
 GoVPN -- simple secure free software virtual private network daemon
-Copyright (C) 2014-2015 Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2014-2016 Sergey Matveev <stargrave@stargrave.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"crypto/rand"
 	"crypto/subtle"
 	"flag"
 	"fmt"
@@ -35,13 +34,17 @@ var (
 	mOpt     = flag.Int("m", govpn.DefaultM, "Argon2d memory parameter (KiBs)")
 	tOpt     = flag.Int("t", govpn.DefaultT, "Argon2d iteration parameter")
 	pOpt     = flag.Int("p", govpn.DefaultP, "Argon2d parallelizm parameter")
+	egdPath  = flag.String("egd", "", "Optional path to EGD socket")
 )
 
 func main() {
 	flag.Parse()
+	if *egdPath != "" {
+		govpn.EGDInit(*egdPath)
+	}
 	if *verifier == "" {
 		id := new([govpn.IDSize]byte)
-		if _, err := rand.Read(id[:]); err != nil {
+		if _, err := govpn.Rand.Read(id[:]); err != nil {
 			log.Fatalln(err)
 		}
 		pid := govpn.PeerId(*id)

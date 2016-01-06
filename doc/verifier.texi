@@ -1,5 +1,5 @@
 @node Verifier
-@section Verifier
+@subsection Verifier
 
 Verifier is created using @code{govpn-verifier} utility. But currently
 Go does not provide native instruments to read passwords without echoing
