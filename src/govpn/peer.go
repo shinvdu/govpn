@@ -300,6 +300,9 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 	if len(data) < MinPktLength {
 		return false
 	}
+	if !p.Encless && len(data) > len(p.bufR)-S20BS {
+		return false
+	}
 	var out []byte
 	p.BusyR.Lock()
 	if p.Encless {

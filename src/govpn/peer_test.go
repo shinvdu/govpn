@@ -129,3 +129,9 @@ func BenchmarkDec(b *testing.B) {
 		}
 	}
 }
+
+func TestTransportBigger(t *testing.T) {
+	tmp := make([]byte, MTUMax*4)
+	Rand.Read(tmp)
+	peer.PktProcess(tmp, Dummy{nil}, true)
+}
