@@ -24,7 +24,7 @@ import (
 
 func TestHandshakeSymmetric(t *testing.T) {
 	// initial values are taken from peer_test.go's init()
-	v := VerifierNew(DefaultM, DefaultT, DefaultP, &testPeerId)
+	v := VerifierNew(1<<10, 1<<4, 1, &testPeerId)
 	testConf.Verifier = v
 	testConf.DSAPriv = v.PasswordApply("does not matter")
 	hsS := NewHandshake("server", Dummy{&testCt}, testConf)
@@ -41,7 +41,7 @@ func TestHandshakeSymmetric(t *testing.T) {
 
 func TestHandshakeNoiseSymmetric(t *testing.T) {
 	// initial values are taken from peer_test.go's init()
-	v := VerifierNew(DefaultM, DefaultT, DefaultP, &testPeerId)
+	v := VerifierNew(1<<10, 1<<4, 1, &testPeerId)
 	testConf.Verifier = v
 	testConf.DSAPriv = v.PasswordApply("does not matter")
 	testConf.Noise = true
@@ -59,7 +59,7 @@ func TestHandshakeNoiseSymmetric(t *testing.T) {
 }
 func TestHandshakeEnclessSymmetric(t *testing.T) {
 	// initial values are taken from peer_test.go's init()
-	v := VerifierNew(DefaultM, DefaultT, DefaultP, &testPeerId)
+	v := VerifierNew(1<<10, 1<<4, 1, &testPeerId)
 	testConf.Verifier = v
 	testConf.DSAPriv = v.PasswordApply("does not matter")
 	testConf.Encless = true
