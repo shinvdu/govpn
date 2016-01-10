@@ -38,17 +38,4 @@ Verifier was generated with:
 
     $(dirname $0)/storekey.sh /tmp/passphrase
     govpn-verifier -key /tmp/passphrase
-
-Create up.sh script that will output on the first line TAP interface
-name that must be used for the peer. For example:
-
-    % umask 077
-    % ed /path/to/up.sh
-    a
-    #!/bin/sh
-    echo tap0
-    .
-    wq
-    20
-    % chmod +x /path/to/up.sh
 EOF
