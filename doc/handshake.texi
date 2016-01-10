@@ -8,15 +8,15 @@ encrypted first 64 bits of each message with client's @ref{Identity} as
 a key. It is used to transmit identity and to mark packet as handshake
 message.
 
-If @ref{Noise} is enabled, then junk data is inserted before
-@code{IDtag} to fill up packet to MTU's size.
+If @ref{Noise, noise} is enabled, then data is padded to fill up packet
+to MTU's size.
 
 @strong{Preparation stage}:
 
 @enumerate
 @item
 Client knows only his identity and passphrase written somewhere in the
-human. Server knows his identity and
+human readable form. Server knows his identity and
 @ref{Verifier structure, verifier}: @code{DSAPub}.
 @item
 Client computes verifier which produces @code{DSAPriv} and

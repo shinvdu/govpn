@@ -25,15 +25,16 @@ TAG || ENCRYPTED || NONCE --> PACKET
 @end verbatim
 
 @code{SERIAL} is message's serial number. Odds are reserved for
-client(->server) messages, evens for server(->client) messages.
+client (to server) messages, evens for server (to client) messages.
 
 @code{PRP} is XTEA block cipher algorithm used here as PRP (pseudo
 random permutation function) to obfuscate @code{SERIAL}. Plaintext
 @code{SERIAL} state is kept in peers internal state, but encrypted
 before transmission.
 
-XTEA's encryption key is the first 128-bit of Salsa20's output with
-established common key and zero nonce (message nonces start from 1).
+XTEA's encryption key @code{PRP_KEY} is the first 128-bit of Salsa20's
+output with established common key and zero nonce (message nonces start
+from 1).
 
 @verbatim
 PRP_KEY = 128bit(ENCRYPT(KEY, 0))
@@ -45,8 +46,7 @@ Salsa20's output is ignored and only remaining is XORed with ther data,
 encrypting it.
 
 @code{DATA} is padded with @code{PAD} (0x80 byte). Optional @code{ZEROS}
-may follow, to fillup packet with the junk to conceal pyload packet
-length.
+may follow, to fill up packet to conceal payload packet length.
 
 @code{AUTH} is Poly1305 authentication function. First 256 bits of
 Salsa20's output are used as a one-time key for @code{AUTH}.
