@@ -8,23 +8,24 @@ encrypted first 64 bits of each message with client's @ref{Identity} as
 a key. It is used to transmit identity and to mark packet as handshake
 message.
 
-If @ref{Noise} is enabled, then junk data is inserted before
-@code{IDtag} to fill up packet to MTU's size.
+If @ref{Noise, noise} is enabled, then data is padded to fill up packet
+to MTU's size.
 
 @strong{Preparation stage}:
 
 @enumerate
 @item
 Client knows only his identity and passphrase written somewhere in the
-human. Server knows his identity and
+human readable form. Server knows his identity and
 @ref{Verifier structure, verifier}: @code{DSAPub}.
 @item
 Client computes verifier which produces @code{DSAPriv} and
-@code{DSAPub}. @code{H()} is @emph{HSalsa20} hash function.
+@code{DSAPub}. @code{H()} is @emph{BLAKE2b-256} hash function.
 @item
 Client generates DH keypair: @code{CDHPub} and @code{CDHPriv}.
 Also it generates random 64-bit @code{R} that is used as a nonce for
-symmetric encryption. @code{El()} is Elligator point encoding algorithm.
+symmetric encryption. @code{El()} is Elligator point encoding (and vice
+versa) algorithm.
 @end enumerate
 
 @strong{Interaction stage}:

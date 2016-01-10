@@ -60,6 +60,8 @@ Optional built-in HTTP-server for retrieving real-time
 @ref{Stats, statistics} information about known connected peers in
 @url{http://json.org/, JSON} format.
 @item
+Server is configured through the @url{http://yaml.org/, YAML} file.
+@item
 Written on @url{https://golang.org/, Go} programming language with
 simple code that can be read and reviewed.
 @item

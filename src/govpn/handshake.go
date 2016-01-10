@@ -27,9 +27,9 @@ import (
 
 	"github.com/agl/ed25519"
 	"github.com/agl/ed25519/extra25519"
+	"github.com/dchest/blake2b"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/salsa20"
-	"golang.org/x/crypto/salsa20/salsa"
 	"golang.org/x/crypto/xtea"
 )
 
@@ -59,11 +59,6 @@ func keyFromSecrets(server, client []byte) *[SSize]byte {
 		k[i] = server[i] ^ client[i]
 	}
 	return k
-}
-
-// Apply HSalsa20 function for data. Used to hash public keys.
-func HApply(data *[32]byte) {
-	salsa.HSalsa20(data, new([16]byte), data, &salsa.Sigma)
 }
 
 // Zero handshake's memory state
@@ -118,8 +113,8 @@ func dhKeypairGen() (*[32]byte, *[32]byte) {
 func dhKeyGen(priv, pub *[32]byte) *[32]byte {
 	key := new([32]byte)
 	curve25519.ScalarMult(key, priv, pub)
-	HApply(key)
-	return key
+	hashed := blake2b.Sum256(key[:])
+	return &hashed
 }
 
 // Create new handshake state.
@@ -132,7 +127,8 @@ func NewHandshake(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 	}
 	state.dsaPubH = new([ed25519.PublicKeySize]byte)
 	copy(state.dsaPubH[:], state.Conf.Verifier.Pub[:])
-	HApply(state.dsaPubH)
+	hashed := blake2b.Sum256(state.dsaPubH[:])
+	state.dsaPubH = &hashed
 	return &state
 }
 

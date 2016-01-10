@@ -24,13 +24,12 @@ client% ./utils/newclient.sh Alice
 Enter passphrase:
 Your client verifier is: $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg
 
-Place the following JSON configuration entry on the server's side:
+Place the following YAML configuration entry on the server's side:
 
-    "Alice": {
-        "up": "/path/to/up.sh",
-        "iface": "or TAP interface name",
-        "verifier": "$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10"
-    }
+    Alice:
+        up: /path/to/up.sh
+        iface: or TAP interface name
+        verifier: $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10
 
 Verifier was generated with:
 
@@ -38,16 +37,13 @@ Verifier was generated with:
     govpn-verifier -key /tmp/passphrase
 @end verbatim
 
-@strong{Prepare the server}. Add this entry to @code{peers.json}
+@strong{Prepare the server}. Add this entry to @code{peers.yaml}
 configuration file:
 
 @verbatim
-{
-    "Alice": {
-        "iface": "tap10",
-        "verifier": "$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10"
-    }
-}
+Alice:
+    iface: tap10
+    verifier: $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10
 @end verbatim
 
 @strong{Prepare network on GNU/Linux IPv4 server}:

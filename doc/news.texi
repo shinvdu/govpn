@@ -3,6 +3,14 @@
 
 @table @strong
 
+@item Release 5.1
+@itemize
+@item Server is configured using @url{http://yaml.org/, YAML} file. It
+is very convenient to have comments and templates, comparing to JSON.
+@item Incompatible with previous versions replacement of @emph{HSalsa20}
+with @emph{BLAKE2b} in handshake code.
+@end itemize
+
 @item Release 5.0
 @itemize
 @item New optional @ref{Encless, encryptionless mode} of operation.

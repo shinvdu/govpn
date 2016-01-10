@@ -33,7 +33,7 @@ import (
 var (
 	bindAddr = flag.String("bind", "[::]:1194", "Bind to address")
 	proto    = flag.String("proto", "udp", "Protocol to use: udp, tcp or all")
-	confPath = flag.String("conf", "peers.json", "Path to configuration JSON")
+	confPath = flag.String("conf", "peers.yaml", "Path to configuration YAML")
 	stats    = flag.String("stats", "", "Enable stats retrieving on host:port")
 	proxy    = flag.String("proxy", "", "Enable HTTP proxy on host:port")
 	egdPath  = flag.String("egd", "", "Optional path to EGD socket")

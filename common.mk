@@ -1,3 +1,5 @@
+.PHONY: doc
+
 LDFLAGS = -X govpn.Version=$(VERSION)
 PREFIX ?= /usr/local
 BINDIR = $(DESTDIR)$(PREFIX)/bin

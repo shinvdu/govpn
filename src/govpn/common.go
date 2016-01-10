@@ -27,8 +27,9 @@ import (
 
 const (
 	TimeoutDefault = 60
-	MTUMax         = 9000
-	MTUDefault     = 1500 + 14
+	EtherSize      = 14
+	MTUMax         = 9000 + EtherSize
+	MTUDefault     = 1500 + EtherSize
 )
 
 var (

@@ -66,6 +66,8 @@ A-EKE (Diffie-Hellman Augmented Encrypted Key Exchange)).
 статистики} о подключённых клиентах в режиме реального времени в
 @url{http://json.org/, JSON} формате.
 @item
+Сервер конфигурируется используя @url{http://yaml.org/, YAML} файл.
+@item
 Написан на языке @url{https://golang.org/, Go} с простым кодом,
 ориентированным на лёгкость чтения и анализа.
 @item

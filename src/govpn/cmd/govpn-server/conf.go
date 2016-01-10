@@ -19,10 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"time"
+
+	"github.com/go-yaml/yaml"
 
 	"govpn"
 )
@@ -36,22 +38,22 @@ var (
 	idsCache *govpn.CipherCache
 )
 
-func confRead() map[govpn.PeerId]*govpn.PeerConf {
+func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
 	data, err := ioutil.ReadFile(*confPath)
 	if err != nil {
-		log.Fatalln("Unable to read configuration:", err)
+		return nil, err
 	}
 	confsRaw := new(map[string]govpn.PeerConf)
-	err = json.Unmarshal(data, confsRaw)
+	err = yaml.Unmarshal(data, confsRaw)
 	if err != nil {
-		log.Fatalln("Unable to parse configuration:", err)
+		return nil, err
 	}
 
 	confs := make(map[govpn.PeerId]*govpn.PeerConf, len(*confsRaw))
 	for name, pc := range *confsRaw {
 		verifier, err := govpn.VerifierFromString(pc.VerifierRaw)
 		if err != nil {
-			log.Fatalln("Unable to decode the key:", err.Error(), pc.VerifierRaw)
+			return nil, errors.New("Unable to decode verifier: " + err.Error())
 		}
 		if pc.Encless {
 			pc.Noise = true
@@ -81,21 +83,29 @@ func confRead() map[govpn.PeerId]*govpn.PeerConf {
 		conf.Timeout = time.Second * time.Duration(pc.TimeoutInt)
 		confs[*verifier.Id] = &conf
 	}
-	return confs
+	return &confs, nil
 }
 
-func confRefresh() {
-	confs = confRead()
+func confRefresh() error {
+	newConfs, err := confRead()
+	if err != nil {
+		log.Println("Unable to parse peers configuration:", err)
+		return err
+	}
+	confs = *newConfs
 	ids := make([]govpn.PeerId, 0, len(confs))
 	for peerId, _ := range confs {
 		ids = append(ids, peerId)
 	}
 	idsCache.Update(ids)
+	return nil
 }
 
 func confInit() {
 	idsCache = govpn.NewCipherCache(nil)
-	confRefresh()
+	if err := confRefresh(); err != nil {
+		log.Fatalln(err)
+	}
 	go func() {
 		for {
 			time.Sleep(RefreshRate)
