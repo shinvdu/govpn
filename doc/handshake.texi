@@ -20,7 +20,7 @@ human readable form. Server knows his identity and
 @ref{Verifier structure, verifier}: @code{DSAPub}.
 @item
 Client computes verifier which produces @code{DSAPriv} and
-@code{DSAPub}. @code{H()} is @emph{HSalsa20} hash function.
+@code{DSAPub}. @code{H()} is @emph{BLAKE2b-256} hash function.
 @item
 Client generates DH keypair: @code{CDHPub} and @code{CDHPriv}.
 Also it generates random 64-bit @code{R} that is used as a nonce for
