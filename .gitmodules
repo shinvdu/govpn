@@ -13,3 +13,6 @@
 [submodule "src/github.com/dchest/blake2b"]
 	path = src/github.com/dchest/blake2b
 	url = https://github.com/dchest/blake2b.git
+[submodule "src/github.com/go-yaml/yaml"]
+	path = src/github.com/go-yaml/yaml
+	url = https://github.com/go-yaml/yaml.git

@@ -22,11 +22,12 @@ Included required libraries:
 
 @multitable @columnfractions .40 .20 .40
 @headitem Library @tab Platform @tab Licence
-@item @code{golang.org/x/crypto} @tab All @tab BSD 3-Clause
 @item @code{github.com/agl/ed25519} @tab All @tab BSD 3-Clause
-@item @code{github.com/dchest/blake2b} @tab All @tab CC0 1.0
-@item @code{github.com/magical/argon2} @tab All @tab BSD 2-Clause
 @item @code{github.com/bigeagle/water} @tab GNU/Linux @tab BSD 3-Clause
+@item @code{github.com/dchest/blake2b} @tab All @tab CC0 1.0
+@item @code{github.com/go-yaml/yaml} @tab All @tab LGPLv3 and MIT
+@item @code{github.com/magical/argon2} @tab All @tab BSD 2-Clause
+@item @code{golang.org/x/crypto} @tab All @tab BSD 3-Clause
 @end multitable
 
 Get @ref{Tarballs, the tarball}, check its

@@ -3,6 +3,12 @@
 
 @table @strong
 
+@item Release 5.1
+@itemize
+@item Server is configured using @url{http://yaml.org/, YAML} file. It
+is very convenient to have comments and templates, comparing to JSON.
+@end itemize
+
 @item Release 5.0
 @itemize
 @item New optional @ref{Encless, encryptionless mode} of operation.

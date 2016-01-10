@@ -25,21 +25,21 @@ import (
 )
 
 type PeerConf struct {
-	Id          *PeerId       `json:"-"`
-	Name        string        `json:"name"`
-	Iface       string        `json:"iface"`
-	MTU         int           `json:"mtu"`
-	Up          string        `json:"up"`
-	Down        string        `json:"down"`
-	TimeoutInt  int           `json:"timeout"`
-	Timeout     time.Duration `json:"-"`
-	Noise       bool          `json:"noise"`
-	CPR         int           `json:"cpr"`
-	Encless     bool          `json:"encless"`
-	VerifierRaw string        `json:"verifier"`
+	Id          *PeerId       `yaml:"-"`
+	Name        string        `yaml:"name"`
+	Iface       string        `yaml:"iface"`
+	MTU         int           `yaml:"mtu"`
+	Up          string        `yaml:"up"`
+	Down        string        `yaml:"down"`
+	TimeoutInt  int           `yaml:"timeout"`
+	Timeout     time.Duration `yaml:"-"`
+	Noise       bool          `yaml:"noise"`
+	CPR         int           `yaml:"cpr"`
+	Encless     bool          `yaml:"encless"`
+	VerifierRaw string        `yaml:"verifier"`
 
 	// This is passphrase verifier
-	Verifier *Verifier
+	Verifier *Verifier `yaml:"-"`
 	// This field exists only on client's side
-	DSAPriv *[ed25519.PrivateKeySize]byte `json:"-"`
+	DSAPriv *[ed25519.PrivateKeySize]byte `yaml:"-"`
 }

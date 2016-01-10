@@ -19,11 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"log"
 	"time"
+
+	"github.com/go-yaml/yaml"
 
 	"govpn"
 )
@@ -43,7 +44,7 @@ func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
 		return nil, err
 	}
 	confsRaw := new(map[string]govpn.PeerConf)
-	err = json.Unmarshal(data, confsRaw)
+	err = yaml.Unmarshal(data, confsRaw)
 	if err != nil {
 		return nil, err
 	}
