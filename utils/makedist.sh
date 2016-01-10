@@ -143,8 +143,8 @@ $(git cat-file -p $release | sed -n '6,/^.*BEGIN/p' | sed '$d')
 ----------------8<-----------------8<-----------------8<----------------
 
 Домашняя страница GoVPN: http://www.cypherpunks.ru/govpn/ (http://govpn.info/)
-Коротко о демоне: http://www.cypherpunks.ru/govpn/O-demone.html
 также доступна как скрытый сервис Tor: http://vabu56j2ep2rwv3b.onion/govpn/
+Коротко о демоне: http://www.cypherpunks.ru/govpn/O-demone.html
 
 Исходный код и его подпись для этой версии находится здесь:
 
