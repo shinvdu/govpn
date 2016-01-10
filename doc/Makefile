@@ -10,4 +10,4 @@ govpn.info: *.texi handshake.utxt
 
 govpn.html: *.texi handshake.utxt
 	rm -f govpn.html/*.html
-	$(MAKEINFO) --html -o govpn.html govpn.texi
+	$(MAKEINFO) --html --css-include=style.css -o govpn.html govpn.texi
