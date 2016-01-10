@@ -24,7 +24,8 @@ Client computes verifier which produces @code{DSAPriv} and
 @item
 Client generates DH keypair: @code{CDHPub} and @code{CDHPriv}.
 Also it generates random 64-bit @code{R} that is used as a nonce for
-symmetric encryption. @code{El()} is Elligator point encoding algorithm.
+symmetric encryption. @code{El()} is Elligator point encoding (and vice
+versa) algorithm.
 @end enumerate
 
 @strong{Interaction stage}:
