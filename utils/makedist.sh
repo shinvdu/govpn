@@ -9,12 +9,12 @@ release=$1
 
 git clone . $tmp/govpn-$release
 repos="
-    src/github.com/bigeagle/water
     src/github.com/agl/ed25519
-    src/github.com/magical/argon2
+    src/github.com/bigeagle/water
     src/github.com/dchest/blake2b
-    src/golang.org/x/crypto
     src/github.com/go-yaml/yaml
+    src/github.com/magical/argon2
+    src/golang.org/x/crypto
 "
 for repo in $repos; do
     git clone $repo $tmp/govpn-$release/$repo
