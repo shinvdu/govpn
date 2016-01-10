@@ -1,4 +1,5 @@
 @node Thanks
+@cindex Thanks
 @unnumbered Thanks
 
 Thanks for contributions and suggestions to:

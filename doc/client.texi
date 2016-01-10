@@ -1,4 +1,10 @@
 @node Client
+@cindex Client
+@cindex Client part
+@cindex Client configuration
+@cindex Client side
+@cindex Configuring client
+@cindex govpn-client
 @section Client part
 
 Except for common @code{-stats}, @code{-egd} options client has the

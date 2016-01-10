@@ -1,4 +1,5 @@
 @node Timeout
+@cindex Timeout
 @subsection Timeout
 
 Because of stateless UDP nature there is no way to reliably know if

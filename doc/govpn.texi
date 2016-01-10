@@ -40,6 +40,7 @@ A copy of the license is included in the section entitled "Copying conditions".
 * In the media: Media.
 * TODO::
 * Copying conditions::
+* Concept index::
 @end menu
 
 @include about.ru.texi
@@ -60,4 +61,10 @@ A copy of the license is included in the section entitled "Copying conditions".
 
 @insertcopying
 @verbatiminclude fdl.txt
+
+@node Concept index
+@unnumbered Concept index
+
+@printindex cp
+
 @bye

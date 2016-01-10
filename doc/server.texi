@@ -1,4 +1,9 @@
 @node Server
+@cindex Server
+@cindex Server part
+@cindex Server configuration
+@cindex Server side
+@cindex govpn-server
 @section Server part
 
 Except for common @code{-stats}, @code{-egd} options server has the
@@ -21,6 +26,9 @@ Start trivial HTTP @ref{Proxy} server on specified @emph{host:port}.
 
 @end table
 
+@cindex YAML
+@cindex YAML configuration
+@cindex Configuration file
 Configuration file is YAML file with following example structure:
 
 @verbatim
@@ -44,6 +52,8 @@ must output interface's name to stdout (first output line).
 
 For example up-script can be just @code{echo tap10}, or more advanced
 like the following one:
+
+@cindex up-script
 
 @example
 #!/bin/sh

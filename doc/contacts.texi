@@ -1,4 +1,9 @@
 @node Contacts
+@cindex Contacts
+@cindex Feedback
+@cindex Support
+@cindex Help
+@cindex Maillist
 @unnumbered Contacts
 
 Please send questions regarding the use of GoVPN, bug reports and patches to

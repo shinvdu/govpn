@@ -1,3 +1,7 @@
+@cindex About
+@cindex Description
+@cindex Introduction
+
 GoVPN is simple free software virtual private network daemon,
 aimed to be reviewable, secure and
 @url{https://en.wikipedia.org/wiki/Deep_packet_inspection, DPI}/censorship-resistant.

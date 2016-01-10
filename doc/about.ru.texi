@@ -1,4 +1,9 @@
 @node О демоне
+@cindex About (russian)
+@cindex Description (russian)
+@cindex О демоне
+@cindex Описание
+@cindex Вступление
 @unnumbered Подробнее о демоне GoVPN
 
 GoVPN это простой демон виртуальных частных сетей, код которого нацелен

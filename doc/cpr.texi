@@ -1,4 +1,6 @@
 @node CPR
+@cindex CPR
+@cindex Constant Packet Rate
 @subsection Constant Packet Rate
 
 Constant Packet Rate is used to hide fact of underlying payload packets

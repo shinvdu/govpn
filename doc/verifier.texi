@@ -1,4 +1,7 @@
 @node Verifier
+@cindex Verifier
+@cindex storekey.sh
+@cindex govpn-verifier
 @subsection Verifier
 
 Verifier is created using @code{govpn-verifier} utility. But currently

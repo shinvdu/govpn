@@ -1,4 +1,7 @@
 @node Example
+@cindex Example
+@cindex Example usage
+@cindex Tutorial
 @section Example usage
 
 Let's assume that there is some insecure link between your computer and
@@ -18,6 +21,8 @@ software: download, @ref{Integrity, check the signature}, compile.
 
 @strong{Prepare the client}. Generate client's verifier for Alice as an
 example:
+
+@cindex newclient.sh
 
 @verbatim
 client% ./utils/newclient.sh Alice

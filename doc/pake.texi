@@ -1,4 +1,6 @@
 @node PAKE
+@cindex Password Authenticated Key Agreement
+@cindex PAKE
 @subsection Password Authenticated Key Agreement
 
 GoVPN uses strong password authentication. That means that it uses human

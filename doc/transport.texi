@@ -1,4 +1,12 @@
 @node Transport
+@cindex Transport
+@cindex Transport protocol
+@cindex Salsa20
+@cindex PRP
+@cindex Nonce
+@cindex Poly1305
+@cindex XTEA
+@cindex Serial
 @section Transport protocol
 
 @verbatim

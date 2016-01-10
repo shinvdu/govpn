@@ -1,4 +1,19 @@
 @node Handshake
+@cindex Handshake
+@cindex Handshake protocol
+@cindex Diffie-Hellman
+@cindex ed25519
+@cindex curve25519
+@cindex Elligator
+@cindex Perfect Forward Secrecy
+@cindex PFS
+@cindex IDtag
+@cindex Shared key
+@cindex DH-EKE
+@cindex DH
+@cindex EKE
+@cindex A-EKE
+@cindex DH-A-EKE
 @section Handshake protocol
 
 @verbatiminclude handshake.utxt

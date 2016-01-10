@@ -1,4 +1,10 @@
 @node Sources
+@cindex Sources
+@cindex Source code
+@cindex Development source code
+@cindex Git
+@cindex Repository
+@cindex Mirrors
 @section Development source code
 
 Development source code contains the latest version of the code. It may

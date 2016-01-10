@@ -1,4 +1,8 @@
 @node Network
+@cindex Transport
+@cindex Network transport
+@cindex TCP
+@cindex UDP
 @subsection Network transport
 
 You can use either UDP or TCP underlying network transport protocols.

@@ -1,4 +1,7 @@
 @node Developer
+@cindex Developer manual
+@cindex Developer
+@cindex Cryptography
 @unnumbered Developer manual
 
 Pay attention how to get @ref{Sources, development source code}.
