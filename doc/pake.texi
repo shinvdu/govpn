@@ -1,30 +1,22 @@
 @node PAKE
 @subsection Password Authenticated Key Agreement
 
-Previously we used pre-shared high-entropy long-term static key for
-client-server authentication. Is is secure, but not convenient for some
-user use-cases:
+GoVPN uses strong password authentication. That means that it uses human
+memorable @strong{passphrases}, instead of some small high-entropy keys
+that must be carried with himself. Passphrases differ from passwords:
+they are long string of low-entropy characters -- they are easy to
+remember and can have high overall entropy.
+
+Strong zero-knowledge authentication means that:
 
 @itemize
-@item Compromising of passphrase files on either server or client side
-allows attacker to masquerade himself a client.
-@item To prevent compromising of keys on the client side, one needs some
-kind of passphrase protected secure storage (like either PGP with
-decryption to the memory, or full-disk encryption).
+@item compromising of passphrase files on either server or client sides
+won't allow attackers to masquerade himself the client;
+@item no need of protected secure storage on the server's side to keep
+keys in safety.
 @end itemize
 
-Overall security on the client side is concentrated in passphrase
-(high-entropy password), so it is convenient to use it in GoVPN
-directly, without static on-disk keys. That is why we use passphrase
-authenticated key agreement.
-
-We use "passphrase" term instead of "password". Technically there may be
-no difference between them. But as a rule passphrases are @strong{long}
-strings with low entropy characters. Because of low entropy characters,
-they are memorable. Because of their quantity, they acts as a high
-entropy source.
-
 Passphrases are entered directly by the human on the client side. Server
-side stores previously shared so-called @ref{Verifier, verifier}. Verifier
-contains dictionary attack resistant password derivative. Attacker can not
-use it to act as a client.
+side stores pre-shared @ref{Verifier, verifier}, containing dictionary
+attack resistant passphrase derivative. Attacker can not use it to act
+as a client.
