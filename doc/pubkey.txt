@@ -1,7 +1,6 @@
-@verbatim
-pub   rsa2048/FFE2F4A1 2015-03-10
-uid       [ultimate] Sergey Matveev (GoVPN release signing key) <stargrave@stargrave.org>
-sub   rsa2048/8A6C750A 2015-03-10
+pub   rsa2048/0xF2F59045FFE2F4A1 2015-03-10
+uid   Sergey Matveev (GoVPN release signing key) <stargrave@stargrave.org>
+sub   rsa2048/0x3128EE3F8A6C750A 2015-03-10
 
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -35,4 +34,3 @@ jUbjWn+P7ARGEvgdd5utNjy/RaSwrLG8NXj3I+XuksG0/TPeG0zu9NOPzWZq9sCc
 E0itJPXMaQL+juUfiNM0i2R1O8nJo14=
 =LJzj
 -----END PGP PUBLIC KEY BLOCK-----
-@end verbatim
