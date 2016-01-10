@@ -75,10 +75,7 @@ at the traffic (transport and handshake).
 
 @cindex Censorship
 @cindex Censorship resistance
-@cindex Censorship resistant
-@cindex DPI resistant
 @cindex DPI resistance
-@cindex DPI
 @item What do you mean by censorship resistance?
 Unability to distinguish either is it GoVPN-traffic is passing by, or
 just @code{cat /dev/urandom | nc somehost}. If you can not differentiate
@@ -95,6 +92,12 @@ provides confidentiality and authenticity of transmitted data! But pay
 attention that this mode is traffic and resource hungry and currently
 operate only in TCP mode.
 
+@item Do you think encryptionless mode with all those random data helps in court?
+If anything that can not be read by anyone is considered encryption,
+then no, encryptionless mode won't help you. Imagine that either you are
+talking on another foreign language, or just use another date encoding
+scheme.
+
 @item When should I use @ref{Noise, noise} option?
 In most cases you won't need it without @ref{CPR, constant packer rate}
 turned on. Without CPR and noise options GoVPN traffic (like TLS, IPsec,
@@ -110,5 +113,13 @@ algorithm -- in most cases resource consumption of TCP/UDP layers will
 be higher then UMAC verifying. Each handshake message is processed only
 when an encrypted client's @ref{Identity, identity} is found: it uses
 fast PRP without any entropy usage.
+
+@cindex Why YAML
+@item Why YAML for configuration?
+There are not so many well-known formats that allow commenting, easy
+editing by human (XML is not human friendly at all, JSON is more or
+less). Probably the most useful feature is YAML's templates: it is very
+convenient for storing many clients sharing the same options in the
+configuration file.
 
 @end table
