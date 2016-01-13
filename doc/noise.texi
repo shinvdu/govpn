@@ -1,4 +1,6 @@
 @node Noise
+@cindex Noise
+@cindex Timestamps
 @subsection Noise
 
 So-called noise is used to hide underlying payload packets length.

@@ -1,4 +1,9 @@
 @node Proxy
+@cindex Proxy
+@cindex HTTP proxy
+@cindex HTTP authentication
+@cindex CONNECT
+@cindex HTTP
 @subsection Proxy
 
 You can proxy your requests through HTTP using CONNECT method. This can

@@ -1,4 +1,5 @@
 @node TODO
+@cindex TODO
 @unnumbered TODO
 
 @itemize

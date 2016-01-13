@@ -1,4 +1,6 @@
 @node Stats
+@cindex Stats
+@cindex Statistics
 @subsection Statistics
 
 Both client and server has ability to show statistics about known

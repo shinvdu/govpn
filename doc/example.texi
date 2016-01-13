@@ -1,4 +1,7 @@
 @node Example
+@cindex Example
+@cindex Example usage
+@cindex Tutorial
 @section Example usage
 
 Let's assume that there is some insecure link between your computer and
@@ -19,9 +22,11 @@ software: download, @ref{Integrity, check the signature}, compile.
 @strong{Prepare the client}. Generate client's verifier for Alice as an
 example:
 
+@cindex newclient.sh
+
 @verbatim
 client% ./utils/newclient.sh Alice
-Enter passphrase:
+Passphrase:
 Your client verifier is: $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg
 
 Place the following YAML configuration entry on the server's side:
@@ -30,11 +35,6 @@ Place the following YAML configuration entry on the server's side:
         up: /path/to/up.sh
         iface: or TAP interface name
         verifier: $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10
-
-Verifier was generated with:
-
-    ./utils/storekey.sh /tmp/passphrase
-    govpn-verifier -key /tmp/passphrase
 @end verbatim
 
 @strong{Prepare the server}. Add this entry to @code{peers.yaml}
@@ -49,7 +49,6 @@ Alice:
 @strong{Prepare network on GNU/Linux IPv4 server}:
 
 @example
-server% umask 077
 server% ip addr add 192.168.0.1/24 dev wlan0
 server% tunctl -t tap10
 server% ip addr add 172.16.0.1/24 dev tap10
@@ -65,8 +64,6 @@ server% govpn-server -bind 192.168.0.1:1194
 @strong{Prepare network on GNU/Linux IPv4 client}:
 
 @example
-client% umask 066
-client% utils/storekey.sh key.txt
 client% ip addr add 192.168.0.2/24 dev wlan0
 client% tunctl -t tap10
 client% ip addr add 172.16.0.2/24 dev tap10
@@ -77,7 +74,6 @@ client% ip route add default via 172.16.0.1
 @strong{Run client daemon itself}:
 @example
 client% govpn-client \
-    -key key.txt \
     -verifier '$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg' \
     -iface tap10 \
     -remote 192.168.0.1:1194
@@ -96,7 +92,6 @@ client% ifconfig tap10
 client% ifconfig tap10 inet6 fc00::2/96 up
 client% route -6 add default fc00::1
 client% govpn-client \
-    -key key.txt \
     -verifier '$argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg' \
     -iface tap10 \
     -remote "[fe80::1%me0]":1194

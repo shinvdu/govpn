@@ -1,4 +1,7 @@
 @node EGD
+@cindex EGD
+@cindex Entropy Gathering Daemon
+@cindex Entropy
 @subsection Entropy Gathering Daemon
 
 Overall security mainly depends on client side:

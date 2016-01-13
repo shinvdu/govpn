@@ -1,10 +1,17 @@
 @node Tarballs
+@cindex Download
+@cindex Tarball
+@cindex Prepared tarballs
 @section Prepared tarballs
 
 You can obtain releases source code prepared tarballs from the links below:
 
 @multitable {XXXXX} {XXXX KiB} {link sign} {xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
 @headitem Version @tab Size @tab Tarball @tab SHA256 checksum
+
+@item 5.1 @tab 287 KiB
+@tab @url{download/govpn-5.1.tar.xz, link} @url{download/govpn-5.1.tar.xz.sig, sign}
+@tab @code{0d456c5683287dca31f8c3302eb9a9329feab82bc1fbdb0098fca991513536d1}
 
 @item 5.0 @tab 237 KiB
 @tab @url{download/govpn-5.0.tar.xz, link} @url{download/govpn-5.0.tar.xz.sig, sign}

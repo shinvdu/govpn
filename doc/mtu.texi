@@ -1,4 +1,6 @@
 @node MTU
+@cindex MTU
+@cindex Maximum Transmission Unit
 @subsection Maximum Transmission Unit
 
 MTU option tells what maximum transmission unit is expected to get from

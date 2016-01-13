@@ -1,4 +1,10 @@
 @node Client
+@cindex Client
+@cindex Client part
+@cindex Client configuration
+@cindex Client side
+@cindex Configuring client
+@cindex govpn-client
 @section Client part
 
 Except for common @code{-stats}, @code{-egd} options client has the
@@ -31,8 +37,8 @@ TAP interface name.
 Our client's @ref{Verifier}.
 
 @item -key
-Path to the file with the passphrase. See @ref{Verifier} for
-how to enter passphrase from stdin silently and store it in the file.
+Path to the file with the passphrase. If omitted, then you will be asked
+to enter it in the terminal.
 
 @item -timeout
 @ref{Timeout} setting in seconds.

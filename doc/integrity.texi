@@ -1,4 +1,8 @@
 @node Integrity
+@cindex Integrity
+@cindex Tarball integrity
+@cindex PGP
+@cindex Public key
 @section Tarballs integrity check
 
 You @strong{have to} verify downloaded archives integrity and check

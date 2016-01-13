@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"crypto/subtle"
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -42,6 +42,10 @@ func main() {
 	if *egdPath != "" {
 		govpn.EGDInit(*egdPath)
 	}
+	key, err := govpn.KeyRead(*keyPath)
+	if err != nil {
+		log.Fatalln("Unable to read the key", err)
+	}
 	if *verifier == "" {
 		id := new([govpn.IDSize]byte)
 		if _, err := govpn.Rand.Read(id[:]); err != nil {
@@ -49,7 +53,7 @@ func main() {
 		}
 		pid := govpn.PeerId(*id)
 		v := govpn.VerifierNew(*mOpt, *tOpt, *pOpt, &pid)
-		v.PasswordApply(govpn.StringFromFile(*keyPath))
+		v.PasswordApply(key)
 		fmt.Println(v.LongForm())
 		fmt.Println(v.ShortForm())
 		return
@@ -62,6 +66,6 @@ func main() {
 		log.Fatalln("Verifier does not contain public key")
 	}
 	pub := *v.Pub
-	v.PasswordApply(govpn.StringFromFile(*keyPath))
-	fmt.Println(subtle.ConstantTimeCompare(v.Pub[:], pub[:]) == 1)
+	v.PasswordApply(key)
+	fmt.Println(bytes.Equal(v.Pub[:], pub[:]))
 }

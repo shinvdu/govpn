@@ -74,7 +74,11 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	priv := verifier.PasswordApply(govpn.StringFromFile(*keyPath))
+	key, err := govpn.KeyRead(*keyPath)
+	if err != nil {
+		log.Fatalln("Unable to read the key", err)
+	}
+	priv := verifier.PasswordApply(key)
 	if *encless {
 		if *proto != "tcp" {
 			log.Fatalln("Currently encryptionless mode works only with TCP")

@@ -14,11 +14,7 @@ EOF
 }
 
 username=$1
-umask 077
-passphrase=$(mktemp)
-$(dirname $0)/storekey.sh $passphrase
-verifier=$(govpn-verifier -key $passphrase)
-rm -f $passphrase
+verifier=$(govpn-verifier)
 verifierS=$(echo $verifier | sed 's/^\(.*\) .*$/\1/')
 verifierC=$(echo $verifier | sed 's/^.* \(.*\)$/\1/')
 echo
@@ -32,9 +28,4 @@ Place the following YAML configuration entry on the server's side:
         up: /path/to/up.sh
         iface: or TAP interface name
         verifier: $verifierS
-
-Verifier was generated with:
-
-    $(dirname $0)/storekey.sh /tmp/passphrase
-    govpn-verifier -key /tmp/passphrase
 EOF

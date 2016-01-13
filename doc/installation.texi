@@ -1,4 +1,13 @@
 @node Installation
+@cindex Installation
+@cindex Getting GoVPN
+@cindex Requirements
+@cindex Dependencies
+@cindex Ports
+@cindex Packages
+@cindex FreeBSD
+@cindex AUR
+@cindex Texinfo
 @unnumbered Installation
 
 Possibly GoVPN already exists in your distribution:

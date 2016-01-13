@@ -1,9 +1,19 @@
 @node News
+@cindex Releases
+@cindex News
 @unnumbered News
 
 @table @strong
 
+@item Release 5.2
+@cindex Release 5.2
+@itemize
+@item Ability to read passphrases directly from the terminal (user's
+input) without using of keyfiles. @code{storekey.sh} utility removed.
+@end itemize
+
 @item Release 5.1
+@cindex Release 5.1
 @itemize
 @item Server is configured using @url{http://yaml.org/, YAML} file. It
 is very convenient to have comments and templates, comparing to JSON.
@@ -12,6 +22,7 @@ with @emph{BLAKE2b} in handshake code.
 @end itemize
 
 @item Release 5.0
+@cindex Release 5.0
 @itemize
 @item New optional @ref{Encless, encryptionless mode} of operation.
 Technically no encryption functions are applied for outgoing packets, so
@@ -25,12 +36,14 @@ up-scripts for convenience.
 @end itemize
 
 @item Release 4.2
+@cindex Release 4.2
 @itemize
 @item Fixed non-critical bug when server may fail if up-script is not
 executed successfully.
 @end itemize
 
 @item Release 4.1
+@cindex Release 4.1
 @itemize
 @item @url{https://password-hashing.net/#argon2, Argon2d} is used instead
 of PBKDF2 for password verifier hashing.
@@ -39,6 +52,7 @@ server-side configuration and the code.
 @end itemize
 
 @item Release 4.0
+@cindex Release 4.0
 @itemize
 @item Handshake messages can be noised: their messages lengths are
 hidden. Now they are indistinguishable from transport messages.
@@ -48,6 +62,7 @@ hidden. Now they are indistinguishable from transport messages.
 @end itemize
 
 @item Release 3.5
+@cindex Release 3.5
 @itemize
 @item Ability to use @ref{Network, TCP} network transport.
 Server can listen on both UDP and TCP sockets.
@@ -59,6 +74,7 @@ reasons.
 @end itemize
 
 @item Release 3.4
+@cindex Release 3.4
 @itemize
 @item Ability to use external @ref{EGD}-compatible PRNGs. Now you are
 able to use GoVPN even on systems with the bad @code{/dev/random},
@@ -69,6 +85,7 @@ without performance degradation related to inbound packets reordering.
 @end itemize
 
 @item Release 3.3
+@cindex Release 3.3
 @itemize
 @item Compatibility with an old GNU Make 3.x. Previously only BSD Make
 and GNU Make 4.x were supported.
@@ -79,6 +96,7 @@ GNU/Linux systems. Previously /dev/random can produce less than required
 @end itemize
 
 @item Release 3.2
+@cindex Release 3.2
 @itemize
 @item
 Deterministic building: dependent libraries source code commits are
@@ -91,6 +109,7 @@ FreeBSD Make compatibility. GNU Make is not necessary anymore.
 @end itemize
 
 @item Release 3.1
+@cindex Release 3.1
 @itemize
 @item
 Diffie-Hellman public keys are encoded with Elligator algorithm when
@@ -101,6 +120,7 @@ consume twice entropy for DH key generation in average.
 @end itemize
 
 @item Release 3.0
+@cindex Release 3.0
 @itemize
 @item
 EKE protocol is replaced by Augmented-EKE and static symmetric (both
@@ -133,6 +153,7 @@ Per-peer @code{-timeout}, @code{-noncediff}, @code{-noise} and
 @end itemize
 
 @item Release 2.4
+@cindex Release 2.4
 @itemize
 @item
 Added ability to optionally run built-in HTTP-server responding with
@@ -144,6 +165,7 @@ Documentation is explicitly licenced under GNU FDL 1.3+.
 @end itemize
 
 @item Release 2.3
+@cindex Release 2.3
 @itemize
 @item
 Handshake packets became indistinguishable from the random.
@@ -159,16 +181,19 @@ consuming and resource heavy computations.
 @end itemize
 
 @item Release 2.2
+@cindex Release 2.2
 @itemize
 @item Fixed several possible channel deadlocks.
 @end itemize
 
 @item Release 2.1
+@cindex Release 2.1
 @itemize
 @item Fixed Linux-related building.
 @end itemize
 
 @item Release 2.0
+@cindex Release 2.0
 @itemize
 @item Added clients identification.
 @item Simultaneous several clients support by server.
@@ -176,16 +201,19 @@ consuming and resource heavy computations.
 @end itemize
 
 @item Release 1.5
+@cindex Release 1.5
 @itemize
 @item Nonce obfuscation/encryption.
 @end itemize
 
 @item Release 1.4
+@cindex Release 1.4
 @itemize
 @item Performance optimizations.
 @end itemize
 
 @item Release 1.3
+@cindex Release 1.3
 @itemize
 @item Heartbeat feature.
 @item Rehandshake feature.
@@ -193,11 +221,13 @@ consuming and resource heavy computations.
 @end itemize
 
 @item Release 1.1
+@cindex Release 1.1
 @itemize
 @item FreeBSD support.
 @end itemize
 
 @item Release 1.0
+@cindex Release 1.0
 @itemize
 @item Initial stable release.
 @end itemize
