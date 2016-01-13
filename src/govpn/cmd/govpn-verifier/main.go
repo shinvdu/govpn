@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"crypto/subtle"
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -63,5 +63,5 @@ func main() {
 	}
 	pub := *v.Pub
 	v.PasswordApply(govpn.StringFromFile(*keyPath))
-	fmt.Println(subtle.ConstantTimeCompare(v.Pub[:], pub[:]) == 1)
+	fmt.Println(bytes.Equal(v.Pub[:], pub[:]))
 }
