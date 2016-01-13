@@ -35,8 +35,8 @@ install: all doc
 	cp -f doc/govpn.info $(INFODIR)
 	chmod 644 $(INFODIR)/govpn.info
 	mkdir -p $(SHAREDIR)
-	cp -f utils/newclient.sh utils/storekey.sh $(SHAREDIR)
-	chmod 755 $(SHAREDIR)/newclient.sh $(SHAREDIR)/storekey.sh
+	cp -f utils/newclient.sh $(SHAREDIR)
+	chmod 755 $(SHAREDIR)/newclient.sh
 	mkdir -p $(DOCDIR)
 	cp -f -L AUTHORS INSTALL NEWS README README.RU THANKS $(DOCDIR)
 	chmod 644 $(DOCDIR)/*

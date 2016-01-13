@@ -1,18 +1,13 @@
 @node Verifier
 @cindex Verifier
-@cindex storekey.sh
 @cindex govpn-verifier
 @subsection Verifier
 
-Verifier is created using @code{govpn-verifier} utility. But currently
-Go does not provide native instruments to read passwords without echoing
-them to stdout. You can use @code{utils/storekey.sh} script to read them
-silently.
+Verifier is created using @code{govpn-verifier} utility.
 
 @example
-% utils/storekey.sh mypass.txt
-Enter passphrase:[hello world]
-% govpn-verifier -key mypass.txt
+% govpn-verifier
+Passphrase:[hello world]
 $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10
 $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg
 @end example
@@ -25,10 +20,11 @@ You can check passphrase against verifier by specifying @code{-verifier}
 option with the path to verifier file:
 
 @example
-% govpn-verifier -key mypass.txt -verifier '$argon2d...'
+% govpn-verifier -verifier '$argon2d...'
+Passphrase:[hello world]
 true
 @end example
 
-Plaintext passphrases @strong{must} be stored on volatile memory, for
-example either in memory disk, or on encrypted filesystem with
-restrictive permissions to the file.
+Optionally you can store plaintext passphrases on volatile memory
+(memory disk, encrypted filesystem with restrictive permissions to the
+file) and provide @code{-key} option.

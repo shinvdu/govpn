@@ -37,8 +37,8 @@ TAP interface name.
 Our client's @ref{Verifier}.
 
 @item -key
-Path to the file with the passphrase. See @ref{Verifier} for
-how to enter passphrase from stdin silently and store it in the file.
+Path to the file with the passphrase. If omitted, then you will be asked
+to enter it in the terminal.
 
 @item -timeout
 @ref{Timeout} setting in seconds.

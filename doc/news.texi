@@ -5,6 +5,13 @@
 
 @table @strong
 
+@item Release 5.2
+@cindex Release 5.2
+@itemize
+@item Ability to read passphrases directly from the terminal (user's
+input) without using of keyfiles. @code{storekey.sh} utility removed.
+@end itemize
+
 @item Release 5.1
 @cindex Release 5.1
 @itemize

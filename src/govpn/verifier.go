@@ -29,6 +29,7 @@ import (
 
 	"github.com/agl/ed25519"
 	"github.com/magical/argon2"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -117,11 +118,26 @@ func (v *Verifier) LongForm() string {
 	)
 }
 
-// Read string from the file, trimming newline.
-func StringFromFile(path string) string {
-	s, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Fatalln("Can not read string from", path, err)
+// Read the key either from text file (if path is specified), or
+// from the terminal.
+func KeyRead(path string) (string, error) {
+	var p []byte
+	var err error
+	var pass string
+	if path == "" {
+		fmt.Print("Passphrase:")
+		p, err = terminal.ReadPassword(0)
+		fmt.Print("\n")
+		pass = string(p)
+	} else {
+		p, err = ioutil.ReadFile(path)
+		pass = strings.TrimRight(string(p), "\n")
 	}
-	return strings.TrimRight(string(s), "\n")
+	if err != nil {
+		return "", err
+	}
+	if len(pass) == 0 {
+		return "", errors.New("Empty passphrase submitted")
+	}
+	return pass, err
 }
