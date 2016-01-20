@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"log"
 
-	"govpn"
+	"cypherpunks.ru/govpn"
 )
 
 var (

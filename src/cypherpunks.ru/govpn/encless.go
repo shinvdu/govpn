@@ -19,8 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
-	"govpn/aont"
-	"govpn/cnw"
+	"cypherpunks.ru/govpn/aont"
+	"cypherpunks.ru/govpn/cnw"
 )
 
 const (

@@ -10,16 +10,16 @@ DOCDIR = $(DESTDIR)$(PREFIX)/share/doc/govpn
 all: govpn-client govpn-server govpn-verifier
 
 govpn-client:
-	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-client
+	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" cypherpunks.ru/govpn/cmd/govpn-client
 
 govpn-server:
-	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-server
+	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" cypherpunks.ru/govpn/cmd/govpn-server
 
 govpn-verifier:
-	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" govpn/cmd/govpn-verifier
+	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" cypherpunks.ru/govpn/cmd/govpn-verifier
 
 bench:
-	GOPATH=$(GOPATH) go test -bench . govpn/...
+	GOPATH=$(GOPATH) go test -bench . cypherpunks.ru/govpn/...
 
 clean:
 	rm -f govpn-client govpn-server govpn-verifier

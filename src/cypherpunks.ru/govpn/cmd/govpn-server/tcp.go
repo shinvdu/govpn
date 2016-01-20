@@ -24,7 +24,7 @@ import (
 	"net"
 	"time"
 
-	"govpn"
+	"cypherpunks.ru/govpn"
 )
 
 func startTCP() {

@@ -22,7 +22,7 @@ import (
 	"log"
 	"net"
 
-	"govpn"
+	"cypherpunks.ru/govpn"
 )
 
 type UDPSender struct {
