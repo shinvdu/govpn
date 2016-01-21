@@ -1,6 +1,6 @@
 .PHONY: doc
 
-LDFLAGS = -X govpn.Version=$(VERSION)
+LDFLAGS = -X cypherpunks.ru/govpn.Version=$(VERSION)
 PREFIX ?= /usr/local
 BINDIR = $(DESTDIR)$(PREFIX)/bin
 INFODIR = $(DESTDIR)$(PREFIX)/info
