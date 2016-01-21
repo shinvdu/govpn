@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/agl/ed25519"
@@ -125,9 +126,9 @@ func KeyRead(path string) (string, error) {
 	var err error
 	var pass string
 	if path == "" {
-		fmt.Print("Passphrase:")
+		os.Stderr.Write([]byte("Passphrase:"))
 		p, err = terminal.ReadPassword(0)
-		fmt.Print("\n")
+		os.Stderr.Write([]byte("\n"))
 		pass = string(p)
 	} else {
 		p, err = ioutil.ReadFile(path)

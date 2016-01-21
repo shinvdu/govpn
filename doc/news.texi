@@ -5,6 +5,14 @@
 
 @table @strong
 
+@item Release 5.3
+@cindex Release 5.3
+@itemize
+@item Fixed minor bug with @code{newclient.sh} that caught
+"Passphrase:" prompt and inserted it into example YAML output.
+Just replaced stdout output to stderr for that prompt.
+@end itemize
+
 @item Release 5.2
 @cindex Release 5.2
 @itemize
