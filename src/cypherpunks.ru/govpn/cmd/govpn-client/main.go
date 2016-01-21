@@ -27,7 +27,7 @@ import (
 	"os/signal"
 	"time"
 
-	"govpn"
+	"cypherpunks.ru/govpn"
 )
 
 var (

@@ -9,6 +9,10 @@ You can obtain releases source code prepared tarballs from the links below:
 @multitable {XXXXX} {XXXX KiB} {link sign} {xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
 @headitem Version @tab Size @tab Tarball @tab SHA256 checksum
 
+@item 5.2 @tab 300 KiB
+@tab @url{download/govpn-5.2.tar.xz, link} @url{download/govpn-5.2.tar.xz.sig, sign}
+@tab @code{44e3a3265b30305a4436e172565585c327fb28d26197e61b7496c437d032c0db}
+
 @item 5.1 @tab 287 KiB
 @tab @url{download/govpn-5.1.tar.xz, link} @url{download/govpn-5.1.tar.xz.sig, sign}
 @tab @code{0d456c5683287dca31f8c3302eb9a9329feab82bc1fbdb0098fca991513536d1}

@@ -26,7 +26,7 @@ import (
 
 	"github.com/go-yaml/yaml"
 
-	"govpn"
+	"cypherpunks.ru/govpn"
 )
 
 const (

@@ -24,7 +24,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"govpn"
+	"cypherpunks.ru/govpn"
 )
 
 func startUDP(timeouted, rehandshaking, termination chan struct{}) {

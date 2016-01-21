@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"govpn"
+	"cypherpunks.ru/govpn"
 )
 
 func startTCP(timeouted, rehandshaking, termination chan struct{}) {

@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"govpn"
+	"cypherpunks.ru/govpn"
 )
 
 type PeerState struct {
