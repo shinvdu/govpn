@@ -9,75 +9,75 @@ You can obtain releases source code prepared tarballs from the links below:
 @multitable {XXXXX} {XXXX KiB} {link sign} {xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
 @headitem Version @tab Size @tab Tarball @tab SHA256 checksum
 
-@item 5.3 @tab 301 KiB
+@item @ref{Release_5.3, 5.3} @tab 301 KiB
 @tab @url{download/govpn-5.3.tar.xz, link} @url{download/govpn-5.3.tar.xz.sig, sign}
 @tab @code{50955d0a2ea41236682cb5ac245210691fb6ecbe88d138c5873e2362e547da48}
 
-@item 5.2 @tab 300 KiB
+@item @ref{Release_5.2, 5.2} @tab 300 KiB
 @tab @url{download/govpn-5.2.tar.xz, link} @url{download/govpn-5.2.tar.xz.sig, sign}
 @tab @code{44e3a3265b30305a4436e172565585c327fb28d26197e61b7496c437d032c0db}
 
-@item 5.1 @tab 287 KiB
+@item @ref{Release_5.1, 5.1} @tab 287 KiB
 @tab @url{download/govpn-5.1.tar.xz, link} @url{download/govpn-5.1.tar.xz.sig, sign}
 @tab @code{0d456c5683287dca31f8c3302eb9a9329feab82bc1fbdb0098fca991513536d1}
 
-@item 5.0 @tab 237 KiB
+@item @ref{Release_5.0, 5.0} @tab 237 KiB
 @tab @url{download/govpn-5.0.tar.xz, link} @url{download/govpn-5.0.tar.xz.sig, sign}
 @tab @code{cc186a3b800279b6f5a7c86d61b250c24cf97235f6c3e1bb05a6cb60251085c6}
 
-@item 4.2 @tab 233 KiB
+@item @ref{Release_4.2, 4.2} @tab 233 KiB
 @tab @url{download/govpn-4.2.tar.xz, link} @url{download/govpn-4.2.tar.xz.sig, sign}
 @tab @code{dc2d390b9dcfb30a3612018d410b61ddf8edd82f4d9aa5ed2691b027be10ba0a}
 
-@item 4.1 @tab 227 KiB
+@item @ref{Release_4.1, 4.1} @tab 227 KiB
 @tab @url{download/govpn-4.1.tar.xz, link} @url{download/govpn-4.1.tar.xz.sig, sign}
 @tab @code{fbc7a730afe96384827dc1e1402c53165710ade5113d90531427c39172e40aca}
 
-@item 4.0 @tab 183 KiB
+@item @ref{Release_4.0, 4.0} @tab 183 KiB
 @tab @url{download/govpn-4.0.tar.xz, link} @url{download/govpn-4.0.tar.xz.sig, sign}
 @tab @code{a791c3569c01dea8b18aa2f21d27b797ded76f2c33a8d96c2db864a9abf2615b}
 
-@item 3.5 @tab 179 KiB
+@item @ref{Release_3.5, 3.5} @tab 179 KiB
 @tab @url{download/govpn-3.5.tar.xz, link} @url{download/govpn-3.5.tar.xz.sig, sign}
 @tab @code{6b60c2cd4a8b4b2c893e52d3366510678704fd68a02a0ea24cb112bd753ea54b}
 
-@item 3.4 @tab 175 KiB
+@item @ref{Release_3.4, 3.4} @tab 175 KiB
 @tab @url{download/govpn-3.4.tar.xz, link} @url{download/govpn-3.4.tar.xz.sig, sign}
 @tab @code{266612a7f8faa6ceb2955ed611c0c21872776306f4eaad5b785145bbb0390c82}
 
-@item 3.3 @tab 175 KiB
+@item @ref{Release_3.3, 3.3} @tab 175 KiB
 @tab @url{download/govpn-3.3.tar.xz, link} @url{download/govpn-3.3.tar.xz.sig, sign}
 @tab @code{1834a057215324f49d6272b2beb89f1532105156f7e853eae855659992ac0c84}
 
-@item 3.2 @tab 174 KiB
+@item @ref{Release_3.2, 3.2} @tab 174 KiB
 @tab @url{download/govpn-3.2.tar.xz, link} @url{download/govpn-3.2.tar.xz.sig, sign}
 @tab @code{388e98d6adef5ebf3431b0d48419f54d2e2064c657de67e23c669ebcf273126d}
 
-@item 3.1 @tab 54 KiB
+@item @ref{Release_3.1, 3.1} @tab 54 KiB
 @tab @url{download/govpn-3.1.tar.xz, link} @url{download/govpn-3.1.tar.xz.sig, sign}
 @tab @code{4034a67eb472e33760ed1783ca871f531c3a6be99b9bd6213f4f83c1147c344b}
 
-@item 3.0 @tab 53 KiB
+@item @ref{Release_3.0, 3.0} @tab 53 KiB
 @tab @url{download/govpn-3.0.tar.xz, link} @url{download/govpn-3.0.tar.xz.sig, sign}
 @tab @code{12579c5c3cccfe73c66b5893335bc70c42d7b13b8e94c7751ec65d421eaff9a5}
 
-@item 2.4 @tab 42 KiB
+@item @ref{Release_2.4, 2.4} @tab 42 KiB
 @tab @url{download/govpn-2.4.tar.xz, link} @url{download/govpn-2.4.tar.xz.sig, sign}
 @tab @code{df45225bac2384c5eed73c5cdb05dc3581495e08d365317beb03a2487d46b98c}
 
-@item 2.3 @tab 34 KiB
+@item @ref{Release_2.3, 2.3} @tab 34 KiB
 @tab @url{download/govpn-2.3.tar.xz, link} @url{download/govpn-2.3.tar.xz.sig, sign}
 @tab @code{92986ec6d6da107c6cc1143659e5a154cd19b8f2ede5fa7f5ccc4525ae468e97}
 
-@item 2.2 @tab 32 KiB
+@item @ref{Release_2.2, 2.2} @tab 32 KiB
 @tab @url{download/govpn-2.2.tar.xz, link} @url{download/govpn-2.2.tar.xz.sig, sign}
 @tab @code{5745278bce8b9a3bd7ec1636507bbce8c17ba1d79f1568e2f3681b7a90bbe6e1}
 
-@item 2.0 @tab 31 KiB
+@item @ref{Release_2.0, 2.0} @tab 31 KiB
 @tab @url{download/govpn-2.0.tar.xz, link} @url{download/govpn-2.0.tar.xz.sig, sign}
 @tab @code{d43be1248d6a46ba8ca75be2fdab5e3d8b0660fb9df9b6d87cfa3973722b42be}
 
-@item 1.5 @tab 19 KiB
+@item @ref{Release_1.5, 1.5} @tab 19 KiB
 @tab @url{download/govpn-1.5.tar.xz, link} @url{download/govpn-1.5.tar.xz.sig, sign}
 @tab @code{715b07d4d1ea4396c3e37014ca65ec3768818423521f3c12e7200b6edca48c31}
 

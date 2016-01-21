@@ -5,7 +5,7 @@
 
 @table @strong
 
-@item Release 5.3
+@item @anchor{Release_5.3} Release 5.3
 @cindex Release 5.3
 @itemize
 @item Fixed minor bug with @code{newclient.sh} that caught
@@ -13,14 +13,14 @@
 Just replaced stdout output to stderr for that prompt.
 @end itemize
 
-@item Release 5.2
+@item @anchor{Release_5.2} Release 5.2
 @cindex Release 5.2
 @itemize
 @item Ability to read passphrases directly from the terminal (user's
 input) without using of keyfiles. @code{storekey.sh} utility removed.
 @end itemize
 
-@item Release 5.1
+@item @anchor{Release_5.1} Release 5.1
 @cindex Release 5.1
 @itemize
 @item Server is configured using @url{http://yaml.org/, YAML} file. It
@@ -29,7 +29,7 @@ is very convenient to have comments and templates, comparing to JSON.
 with @emph{BLAKE2b} in handshake code.
 @end itemize
 
-@item Release 5.0
+@item @anchor{Release_5.0} Release 5.0
 @cindex Release 5.0
 @itemize
 @item New optional @ref{Encless, encryptionless mode} of operation.
@@ -43,14 +43,14 @@ up-scripts for convenience.
 @item @code{govpn-verifier} utility also can use @ref{EGD}.
 @end itemize
 
-@item Release 4.2
+@item @anchor{Release_4.2} Release 4.2
 @cindex Release 4.2
 @itemize
 @item Fixed non-critical bug when server may fail if up-script is not
 executed successfully.
 @end itemize
 
-@item Release 4.1
+@item @anchor{Release_4.1} Release 4.1
 @cindex Release 4.1
 @itemize
 @item @url{https://password-hashing.net/#argon2, Argon2d} is used instead
@@ -59,7 +59,7 @@ of PBKDF2 for password verifier hashing.
 server-side configuration and the code.
 @end itemize
 
-@item Release 4.0
+@item @anchor{Release_4.0} Release 4.0
 @cindex Release 4.0
 @itemize
 @item Handshake messages can be noised: their messages lengths are
@@ -69,7 +69,7 @@ hidden. Now they are indistinguishable from transport messages.
 @item Single JSON file server configuration.
 @end itemize
 
-@item Release 3.5
+@item @anchor{Release_3.5} Release 3.5
 @cindex Release 3.5
 @itemize
 @item Ability to use @ref{Network, TCP} network transport.
@@ -81,7 +81,7 @@ for accessing the server. Server can also emulate HTTP proxy behaviour.
 reasons.
 @end itemize
 
-@item Release 3.4
+@item @anchor{Release_3.4} Release 3.4
 @cindex Release 3.4
 @itemize
 @item Ability to use external @ref{EGD}-compatible PRNGs. Now you are
@@ -92,7 +92,7 @@ storage of seen nonces, thus eliminating possible replay attacks at all
 without performance degradation related to inbound packets reordering.
 @end itemize
 
-@item Release 3.3
+@item @anchor{Release_3.3} Release 3.3
 @cindex Release 3.3
 @itemize
 @item Compatibility with an old GNU Make 3.x. Previously only BSD Make
@@ -103,7 +103,7 @@ GNU/Linux systems. Previously /dev/random can produce less than required
 @item Updated user manual examples.
 @end itemize
 
-@item Release 3.2
+@item @anchor{Release_3.2} Release 3.2
 @cindex Release 3.2
 @itemize
 @item
@@ -116,7 +116,7 @@ required libraries are included in release tarballs.
 FreeBSD Make compatibility. GNU Make is not necessary anymore.
 @end itemize
 
-@item Release 3.1
+@item @anchor{Release_3.1} Release 3.1
 @cindex Release 3.1
 @itemize
 @item
@@ -127,7 +127,7 @@ passwords (that are used to create DSA public keys). But this will
 consume twice entropy for DH key generation in average.
 @end itemize
 
-@item Release 3.0
+@item @anchor{Release_3.0} Release 3.0
 @cindex Release 3.0
 @itemize
 @item
@@ -160,7 +160,7 @@ Per-peer @code{-timeout}, @code{-noncediff}, @code{-noise} and
 @code{-cpr} configuration options for server.
 @end itemize
 
-@item Release 2.4
+@item @anchor{Release_2.4} Release 2.4
 @cindex Release 2.4
 @itemize
 @item
@@ -172,7 +172,7 @@ statistics.
 Documentation is explicitly licenced under GNU FDL 1.3+.
 @end itemize
 
-@item Release 2.3
+@item @anchor{Release_2.3} Release 2.3
 @cindex Release 2.3
 @itemize
 @item
@@ -188,19 +188,19 @@ will force server to generate private DH key, preventing entropy
 consuming and resource heavy computations.
 @end itemize
 
-@item Release 2.2
+@item @anchor{Release_2.2} Release 2.2
 @cindex Release 2.2
 @itemize
 @item Fixed several possible channel deadlocks.
 @end itemize
 
-@item Release 2.1
+@item @anchor{Release_2.1} Release 2.1
 @cindex Release 2.1
 @itemize
 @item Fixed Linux-related building.
 @end itemize
 
-@item Release 2.0
+@item @anchor{Release_2.0} Release 2.0
 @cindex Release 2.0
 @itemize
 @item Added clients identification.
@@ -208,19 +208,19 @@ consuming and resource heavy computations.
 @item Per-client up/down scripts.
 @end itemize
 
-@item Release 1.5
+@item @anchor{Release_1.5} Release 1.5
 @cindex Release 1.5
 @itemize
 @item Nonce obfuscation/encryption.
 @end itemize
 
-@item Release 1.4
+@item @anchor{Release_1.4} Release 1.4
 @cindex Release 1.4
 @itemize
 @item Performance optimizations.
 @end itemize
 
-@item Release 1.3
+@item @anchor{Release_1.3} Release 1.3
 @cindex Release 1.3
 @itemize
 @item Heartbeat feature.
@@ -228,13 +228,13 @@ consuming and resource heavy computations.
 @item up- and down- optinal scripts.
 @end itemize
 
-@item Release 1.1
+@item @anchor{Release_1.1} Release 1.1
 @cindex Release 1.1
 @itemize
 @item FreeBSD support.
 @end itemize
 
-@item Release 1.0
+@item @anchor{Release_1.0} Release 1.0
 @cindex Release 1.0
 @itemize
 @item Initial stable release.
