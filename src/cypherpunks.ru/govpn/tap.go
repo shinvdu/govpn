@@ -26,9 +26,6 @@ type TAP struct {
 	Name string
 	Sink chan []byte
 	dev  io.ReadWriter
-	buf0 []byte
-	buf1 []byte
-	bufZ bool
 }
 
 var (
@@ -43,21 +40,22 @@ func NewTAP(ifaceName string, mtu int) (*TAP, error) {
 	tap := TAP{
 		Name: ifaceName,
 		dev:  tapRaw,
-		buf0: make([]byte, mtu),
-		buf1: make([]byte, mtu),
 		Sink: make(chan []byte),
 	}
 	go func() {
 		var n int
 		var err error
 		var buf []byte
+		buf0 := make([]byte, mtu)
+		buf1 := make([]byte, mtu)
+		bufZ := false
 		for {
-			if tap.bufZ {
-				buf = tap.buf0
+			if bufZ {
+				buf = buf0
 			} else {
-				buf = tap.buf1
+				buf = buf1
 			}
-			tap.bufZ = !tap.bufZ
+			bufZ = !bufZ
 			n, err = tap.dev.Read(buf)
 			if err != nil {
 				panic("Reading TAP:" + err.Error())
