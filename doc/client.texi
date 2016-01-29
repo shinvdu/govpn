@@ -43,6 +43,10 @@ to enter it in the terminal.
 @item -timeout
 @ref{Timeout} setting in seconds.
 
+@item -timesync
+Optional @ref{Timesync, time synchronization} requirement. If set to
+zero, then no synchronization required.
+
 @item -noise
 Enable @ref{Noise}.
 

@@ -43,6 +43,7 @@ var (
 	proxyAuth   = flag.String("proxy-auth", "", "user:password Basic proxy auth")
 	mtu         = flag.Int("mtu", govpn.MTUDefault, "MTU of TAP interface")
 	timeoutP    = flag.Int("timeout", 60, "Timeout seconds")
+	timeSync    = flag.Int("timesync", 0, "Time synchronization requirement")
 	noisy       = flag.Bool("noise", false, "Enable noise appending")
 	encless     = flag.Bool("encless", false, "Encryptionless mode")
 	cpr         = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
@@ -90,13 +91,16 @@ func main() {
 		Iface:    *ifaceName,
 		MTU:      *mtu,
 		Timeout:  time.Second * time.Duration(timeout),
+		TimeSync: *timeSync,
 		Noise:    *noisy,
 		CPR:      *cpr,
 		Encless:  *encless,
 		Verifier: verifier,
 		DSAPriv:  priv,
 	}
-	idsCache = govpn.NewCipherCache([]govpn.PeerId{*verifier.Id})
+	idsCache = govpn.NewCipherCache()
+	confs := map[govpn.PeerId]*govpn.PeerConf{*verifier.Id: conf}
+	idsCache.Update(&confs)
 	log.Println(govpn.VersionGet())
 
 	tap, err = govpn.TAPListen(*ifaceName, *mtu)

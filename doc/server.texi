@@ -38,6 +38,7 @@ stargrave: {                        <-- Peer human readable name
     up: ./stargrave-up.sh           <-- OPTIONAL up-script
     down: ./stargrave-down.sh       <-- OPTIONAL down-script
     timeout: 60                     <-- OPTIONAL overriden timeout
+    timesync: 0                     <-- OPTIONAL time synchronization requirement
     noise: No                       <-- OPTIONAL noise enabler
     cpr: 64                         <-- OPTIONAL constant packet rate, KiB/sec
     encless: No                     <-- OPTIONAL Encryptionless mode

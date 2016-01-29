@@ -106,6 +106,16 @@ timestamps and sizes. You can run traffic analysis and predict what is
 going on in the network. With CPR option enabled you can tell either
 somebody is online, or not -- nothing less, nothing more.
 
+@item When should I use @ref{Timesync, time synchronization} option?
+Without that option, if someone captured initial handshake packet from
+the valid client, then it could repeat it and receive a handshake packet
+as an answer from server. This can be used to detect if some user's
+identity is known to server and that it is exactly GoVPN server.
+Timesync option forces adding timestamps to each handshake packet
+allowing only specified time window of packet validness. If you have got
+more or less synchronized clocks between your clients and server, then
+you can use always use this option.
+
 @cindex DoS
 @item Can I DoS (denial of service) the daemon?
 Each transport packet is authenticated first with the very fast UMAC

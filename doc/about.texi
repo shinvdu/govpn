@@ -44,7 +44,8 @@ indistinguishable from the noise with optionally hidden packets length.
 property.
 
 @item
-Replay attack protection (using one-time MACs).
+Replay attack protection (using one-time MACs and optional time
+synchronization requirement).
 
 @item
 Built-in rehandshake (session key rotation) and heartbeat features.

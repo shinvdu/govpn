@@ -76,6 +76,7 @@ func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
 			Noise:    pc.Noise,
 			CPR:      pc.CPR,
 			Encless:  pc.Encless,
+			TimeSync: pc.TimeSync,
 		}
 		if pc.TimeoutInt <= 0 {
 			pc.TimeoutInt = govpn.TimeoutDefault
@@ -93,16 +94,12 @@ func confRefresh() error {
 		return err
 	}
 	confs = *newConfs
-	ids := make([]govpn.PeerId, 0, len(confs))
-	for peerId, _ := range confs {
-		ids = append(ids, peerId)
-	}
-	idsCache.Update(ids)
+	idsCache.Update(newConfs)
 	return nil
 }
 
 func confInit() {
-	idsCache = govpn.NewCipherCache(nil)
+	idsCache = govpn.NewCipherCache()
 	if err := confRefresh(); err != nil {
 		log.Fatalln(err)
 	}
