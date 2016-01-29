@@ -20,7 +20,7 @@ package govpn
 
 import (
 	"crypto/subtle"
-	"encoding/hex"
+	"encoding/base64"
 	"log"
 	"sync"
 
@@ -34,7 +34,7 @@ const (
 type PeerId [IDSize]byte
 
 func (id PeerId) String() string {
-	return hex.EncodeToString(id[:])
+	return base64.RawStdEncoding.EncodeToString(id[:])
 }
 
 func (id PeerId) MarshalJSON() ([]byte, error) {
