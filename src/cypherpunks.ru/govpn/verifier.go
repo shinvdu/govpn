@@ -73,7 +73,7 @@ func (v *Verifier) PasswordApply(password string) *[ed25519.PrivateKeySize]byte 
 // Parse either short or long verifier form.
 func VerifierFromString(input string) (*Verifier, error) {
 	s := strings.Split(input, "$")
-	if !(len(s) != 4 || len(s) != 5) || s[1] != "argon2d" {
+	if len(s) < 4 || s[1] != "argon2d" {
 		return nil, errors.New("Invalid verifier structure")
 	}
 	var m, t, p int

@@ -71,6 +71,9 @@ func main() {
 		govpn.EGDInit(*egdPath)
 	}
 
+	if *verifierRaw == "" {
+		log.Fatalln("No verifier specified")
+	}
 	verifier, err := govpn.VerifierFromString(*verifierRaw)
 	if err != nil {
 		log.Fatalln(err)
