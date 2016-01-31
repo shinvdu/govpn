@@ -1,18 +1,13 @@
 @node Server
-@cindex Server
-@cindex Server part
-@cindex Server configuration
-@cindex Server side
-@cindex govpn-server
 @section Server part
 
-Except for common @code{-stats}, @code{-egd} options server has the
-following ones:
+Except for common @ref{Stats, -stats}, @ref{EGD, -egd} options client
+has the following ones:
 
-@table @code
+@table @option
 
 @item -proto
-@ref{Network, network protocol} to use. Can be @emph{udp} (default),
+@ref{Network, Network protocol} to use. Can be @emph{udp} (default),
 @emph{tcp} or @emph{all}.
 
 @item -bind
@@ -26,9 +21,6 @@ Start trivial HTTP @ref{Proxy} server on specified @emph{host:port}.
 
 @end table
 
-@cindex YAML
-@cindex YAML configuration
-@cindex Configuration file
 Configuration file is YAML file with following example structure:
 
 @verbatim
@@ -54,19 +46,18 @@ must output interface's name to stdout (first output line).
 For example up-script can be just @code{echo tap10}, or more advanced
 like the following one:
 
-@cindex up-script
 
-@example
+@verbatim
 #!/bin/sh
 $tap=$(ifconfig tap create)
 ifconfig $tap inet6 fc00::1/96 mtu 1412 up
 echo $tap
-@end example
+@end verbatim
 
 Each minute server rereads and refreshes peers configuration and adds
 newly appeared identities, deletes an obsolete ones.
 
-You can use convenient @code{utils/newclient.sh} script for new client
+You can use convenient @command{utils/newclient.sh} script for new client
 creation:
 
 @verbatim

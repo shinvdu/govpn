@@ -1,7 +1,4 @@
 @node EGD
-@cindex EGD
-@cindex Entropy Gathering Daemon
-@cindex Entropy
 @subsection Entropy Gathering Daemon
 
 Overall security mainly depends on client side:
@@ -9,14 +6,14 @@ Overall security mainly depends on client side:
 number generator.
 
 Some operating systems do not have good enough quality PRNG, bad
-@code{/dev/urandom}. You should use separate PRNG with them. GoVPN
+@file{/dev/urandom}. You should use separate PRNG with them. GoVPN
 communicates with them using
 @url{http://egd.sourceforge.net/, Entropy Gathering Daemon} protocol.
 
 To switch using EGD-compatible daemons instead of @code{crypto/rand}
-library you provide @code{-egd PATH} command line option, where
+library you provide @option{-egd PATH} command line option, where
 @code{PATH} is the domain socket.
 
-@example
+@verbatim
 % ./govpn-server [...] -egd /var/run/egd.sock
-@end example
+@end verbatim

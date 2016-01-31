@@ -1,10 +1,4 @@
 @node Sources
-@cindex Sources
-@cindex Source code
-@cindex Development source code
-@cindex Git
-@cindex Repository
-@cindex Mirrors
 @section Development source code
 
 Development source code contains the latest version of the code. It may
@@ -16,12 +10,12 @@ You can obtain it by cloning @url{http://git-scm.com/, Git}
 @url{http://git.cypherpunks.ru/cgit.cgi/govpn.git/log/, repository}
 and fetching dependent libraries source code as git submodules:
 
-@example
+@verbatim
 % git clone git://git.cypherpunks.ru/govpn.git govpn
 % cd govpn
 % git checkout develop
 % git submodule update --init
-@end example
+@end verbatim
 
 Also there is mirror of dependent libraries for safety if their native
 repositories will be unavailable (they are seldom updated):

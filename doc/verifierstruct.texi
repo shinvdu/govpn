@@ -1,8 +1,4 @@
 @node Verifier structure
-@cindex Verifier structure
-@cindex Argon2
-@cindex Argon2d
-@cindex Salt
 @section Verifier structure
 
 Verifier is a derivative of the password. It is resistant to

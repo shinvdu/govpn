@@ -1,30 +1,28 @@
 @node Verifier
-@cindex Verifier
-@cindex govpn-verifier
 @subsection Verifier
 
-Verifier is created using @code{govpn-verifier} utility.
+Verifier is created using @command{govpn-verifier} utility.
 
-@example
+@verbatim
 % govpn-verifier
 Passphrase:[hello world]
 $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg$KCNIqfS4DGsBTtVytamAzcISgrlEWvNxan1UfBrFu10
 $argon2d$m=4096,t=128,p=1$bwR5VjeCYIQaa8SeaI3rqg
-@end example
+@end verbatim
 
 First line is the verifier for the server side. Second line is for the
 client -- it lacks generated public key. However you can use server's
 one on the client side too.
 
-You can check passphrase against verifier by specifying @code{-verifier}
+You can check passphrase against verifier by specifying @option{-verifier}
 option with the path to verifier file:
 
-@example
+@verbatim
 % govpn-verifier -verifier '$argon2d...'
 Passphrase:[hello world]
 true
-@end example
+@end verbatim
 
 Optionally you can store plaintext passphrases on volatile memory
 (memory disk, encrypted filesystem with restrictive permissions to the
-file) and provide @code{-key} option.
+file) and provide @option{-key} option.

@@ -1,6 +1,4 @@
 @node User
-@cindex User
-@cindex User manual
 @unnumbered User manual
 
 Announcements about updates and new releases can be found in
@@ -12,7 +10,6 @@ interfaces. GoVPN is just a tunnelling of Ethernet frames, nothing less,
 nothing more. All you IP-related network management is not touched by
 VPN at all. You can automate it using up and down shell scripts.
 
-@cindex Performance
 What network performance can user expect? For example single
 @emph{Intel i5-2450M 2.5 GHz} core on @emph{FreeBSD 10.2 amd64}
 with @emph{Go 1.5.1} gives 786 Mbps (UDP transport) throughput.

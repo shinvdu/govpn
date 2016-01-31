@@ -1,7 +1,0 @@
-@node TODO
-@cindex TODO
-@unnumbered TODO
-
-@itemize
-@item Randomize ports usage.
-@end itemize

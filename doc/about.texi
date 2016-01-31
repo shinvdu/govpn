@@ -1,16 +1,15 @@
-@cindex About
-@cindex Description
-@cindex Introduction
-
 GoVPN is simple free software virtual private network daemon,
 aimed to be reviewable, secure and
 @url{https://en.wikipedia.org/wiki/Deep_packet_inspection, DPI}/censorship-resistant.
 
+See also this page @ref{О демоне, on russian}.
+
 @itemize
 
 @item
-Copylefted free software: licenced under
-@url{https://www.gnu.org/licenses/gpl-3.0.html, GPLv3+}.
+@url{https://www.gnu.org/philosophy/pragmatic.html, Copylefted}
+@url{https://www.gnu.org/philosophy/free-sw.html, free software}:
+licenced under @url{https://www.gnu.org/licenses/gpl-3.0.html, GPLv3+}.
 
 @item
 Fast strong @ref{PAKE, passphrase authenticated} augmented
@@ -44,8 +43,8 @@ indistinguishable from the noise with optionally hidden packets length.
 property.
 
 @item
-Replay attack protection (using one-time MACs and optional time
-synchronization requirement).
+Replay attack protection (using one-time MACs and optional
+@ref{Timesync, time synchronization} requirement).
 
 @item
 Built-in rehandshake (session key rotation) and heartbeat features.

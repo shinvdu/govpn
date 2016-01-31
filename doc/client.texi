@@ -1,22 +1,16 @@
 @node Client
-@cindex Client
-@cindex Client part
-@cindex Client configuration
-@cindex Client side
-@cindex Configuring client
-@cindex govpn-client
 @section Client part
 
-Except for common @code{-stats}, @code{-egd} options client has the
-following ones:
+Except for common @ref{Stats, -stats}, @ref{EGD, -egd} options client
+has the following ones:
 
-@table @code
+@table @option
 
 @item -mtu
 Expected TAP interface @ref{MTU}.
 
 @item -proto
-@ref{Network, network protocol} to use. Can be either @emph{udp}
+@ref{Network, Network protocol} to use. Can be either @emph{udp}
 (default) or @emph{tcp}.
 
 @item -proxy
@@ -61,7 +55,7 @@ Optional path to script that will be executed after connection is
 established. Interface name will be given to it as a first argument.
 
 @item -down
-Same as @code{-up} above, but it is executed when connection is lost,
+Same as @option{-up} above, but it is executed when connection is lost,
 when we exit.
 
 @end table
@@ -69,11 +63,11 @@ when we exit.
 Example up-script that calls DHCP client and IPv6 advertisement
 solicitation:
 
-@example
+@verbatim
 client% cat > up.sh <<EOF
 #!/bin/sh
 dhclient $1
 rtsol $1
 EOF
 client% chmod +x up.sh
-@end example
+@end verbatim

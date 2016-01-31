@@ -24,13 +24,12 @@ A copy of the license is included in the section entitled "Copying conditions".
 
 @include about.texi
 
-@center @strong{@ref{Tarballs, Download it}}.
+@center @ref{Tarballs, @strong{Download it}}.
 
 @menu
-* About (russian): О демоне.
 * Frequently Asked Questions: FAQ.
-* Часто задаваемые вопросы: ЧАВО.
 * News::
+* Информация на русском: Русский.
 * Installation::
 * Precautions::
 * User manual: User.
@@ -38,15 +37,12 @@ A copy of the license is included in the section entitled "Copying conditions".
 * Contacts and feedback: Contacts.
 * Thanks::
 * In the media: Media.
-* TODO::
 * Copying conditions::
-* Concept index::
 @end menu
 
-@include about.ru.texi
 @include faq.texi
-@include faq.ru.texi
 @include news.texi
+@include russian.texi
 @include installation.texi
 @include precautions.texi
 @include user.texi
@@ -54,17 +50,11 @@ A copy of the license is included in the section entitled "Copying conditions".
 @include contacts.texi
 @include thanks.texi
 @include media.texi
-@include todo.texi
 
 @node Copying conditions
 @unnumbered Copying conditions
 
 @insertcopying
 @verbatiminclude fdl.txt
-
-@node Concept index
-@unnumbered Concept index
-
-@printindex cp
 
 @bye

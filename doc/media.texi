@@ -1,6 +1,4 @@
 @node Media
-@cindex In the media
-@cindex Articles
 @unnumbered In the media
 
 @itemize
