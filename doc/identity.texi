@@ -1,6 +1,4 @@
 @node Identity
-@cindex Client identity
-@cindex Identity
 @subsection Identity
 
 Client's identity is 128-bit string. It is not secret, so can be

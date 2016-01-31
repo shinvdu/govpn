@@ -1,12 +1,10 @@
 @node Stats
-@cindex Stats
-@cindex Statistics
 @subsection Statistics
 
 Both client and server has ability to show statistics about known
 connected peers. You retrieve them by downloading JSON from built-in
 background HTTP-server. You can enable it by specifying
-@code{-stats host:port} argument.
+@option{-stats host:port} argument.
 
 Actually it is not full-fledged HTTP-server: it just accepts connection,
 reads from it (does not parse anything) and writes dummy headers with

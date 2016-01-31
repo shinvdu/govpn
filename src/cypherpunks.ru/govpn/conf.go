@@ -36,6 +36,7 @@ type PeerConf struct {
 	Noise       bool          `yaml:"noise"`
 	CPR         int           `yaml:"cpr"`
 	Encless     bool          `yaml:"encless"`
+	TimeSync    int           `yaml:"timesync"`
 	VerifierRaw string        `yaml:"verifier"`
 
 	// This is passphrase verifier

@@ -1,9 +1,0 @@
-@node TODO
-@cindex TODO
-@unnumbered TODO
-
-@itemize
-@item Ability to tunnel only specified TCP connections, without full
-  featured VPN solution. Similar to ssh -R.
-@item Randomize ports usage.
-@end itemize

@@ -20,9 +20,11 @@ package govpn
 
 import (
 	"crypto/subtle"
-	"encoding/hex"
+	"encoding/base64"
+	"encoding/binary"
 	"log"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/xtea"
 )
@@ -34,48 +36,61 @@ const (
 type PeerId [IDSize]byte
 
 func (id PeerId) String() string {
-	return hex.EncodeToString(id[:])
+	return base64.RawStdEncoding.EncodeToString(id[:])
 }
 
 func (id PeerId) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + id.String() + `"`), nil
 }
 
+type CipherAndTimeSync struct {
+	c *xtea.Cipher
+	t int
+}
+
 type CipherCache struct {
-	c map[PeerId]*xtea.Cipher
+	c map[PeerId]*CipherAndTimeSync
 	l sync.RWMutex
 }
 
-func NewCipherCache(peerIds []PeerId) *CipherCache {
-	cc := CipherCache{c: make(map[PeerId]*xtea.Cipher, len(peerIds))}
-	cc.Update(peerIds)
-	return &cc
+func NewCipherCache() *CipherCache {
+	return &CipherCache{c: make(map[PeerId]*CipherAndTimeSync)}
 }
 
 // Remove disappeared keys, add missing ones with initialized ciphers.
-func (cc *CipherCache) Update(peerIds []PeerId) {
-	available := make(map[PeerId]struct{})
-	for _, peerId := range peerIds {
-		available[peerId] = struct{}{}
-	}
+func (cc *CipherCache) Update(peers *map[PeerId]*PeerConf) {
 	cc.l.Lock()
-	for k, _ := range cc.c {
-		if _, exists := available[k]; !exists {
-			log.Println("Cleaning key:", k)
-			delete(cc.c, k)
+	for pid, _ := range cc.c {
+		if _, exists := (*peers)[pid]; !exists {
+			log.Println("Cleaning key:", pid)
+			delete(cc.c, pid)
 		}
 	}
-	for peerId, _ := range available {
-		if _, exists := cc.c[peerId]; !exists {
-			log.Println("Adding key", peerId)
-			cipher, err := xtea.NewCipher(peerId[:])
+	for pid, pc := range *peers {
+		if _, exists := cc.c[pid]; exists {
+			cc.c[pid].t = pc.TimeSync
+		} else {
+			log.Println("Adding key", pid)
+			cipher, err := xtea.NewCipher(pid[:])
 			if err != nil {
 				panic(err)
 			}
-			cc.c[peerId] = cipher
+			cc.c[pid] = &CipherAndTimeSync{cipher, pc.TimeSync}
 		}
 	}
 	cc.l.Unlock()
+}
+
+// If timeSync > 0, then XOR timestamp with the data.
+func AddTimeSync(ts int, data []byte) {
+	if ts == 0 {
+		return
+	}
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(time.Now().Unix()/int64(ts)*int64(ts)))
+	for i := 0; i < 8; i++ {
+		data[i] ^= buf[i]
+	}
 }
 
 // Try to find peer's identity (that equals to an encryption key)
@@ -87,8 +102,9 @@ func (cc *CipherCache) Find(data []byte) *PeerId {
 	}
 	buf := make([]byte, xtea.BlockSize)
 	cc.l.RLock()
-	for pid, cipher := range cc.c {
-		cipher.Decrypt(buf, data[len(data)-xtea.BlockSize:])
+	for pid, ct := range cc.c {
+		ct.c.Decrypt(buf, data[len(data)-xtea.BlockSize:])
+		AddTimeSync(ct.t, buf)
 		if subtle.ConstantTimeCompare(buf, data[:xtea.BlockSize]) == 1 {
 			ppid := PeerId(pid)
 			cc.l.RUnlock()

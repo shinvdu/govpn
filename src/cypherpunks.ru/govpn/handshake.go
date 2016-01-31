@@ -133,13 +133,15 @@ func NewHandshake(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 }
 
 // Generate ID tag from client identification and data.
-func idTag(id *PeerId, data []byte) []byte {
+func idTag(id *PeerId, timeSync int, data []byte) []byte {
 	ciph, err := xtea.NewCipher(id[:])
 	if err != nil {
 		panic(err)
 	}
 	enc := make([]byte, xtea.BlockSize)
-	ciph.Encrypt(enc, data[:xtea.BlockSize])
+	copy(enc, data)
+	AddTimeSync(timeSync, enc)
+	ciph.Encrypt(enc, enc)
 	return enc
 }
 
@@ -172,7 +174,7 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 		salsa20.XORKeyStream(enc, enc, state.rNonce[:], state.dsaPubH)
 	}
 	data := append(state.rNonce[:], enc...)
-	data = append(data, idTag(state.Conf.Id, state.rNonce[:])...)
+	data = append(data, idTag(state.Conf.Id, state.Conf.TimeSync, state.rNonce[:])...)
 	state.conn.Write(data)
 	return state
 }
@@ -262,7 +264,9 @@ func (h *Handshake) Server(data []byte) *Peer {
 		}
 
 		// Send that to client
-		h.conn.Write(append(encPub, append(encRs, idTag(h.Conf.Id, encPub)...)...))
+		h.conn.Write(append(encPub, append(
+			encRs, idTag(h.Conf.Id, h.Conf.TimeSync, encPub)...,
+		)...))
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+1, RS + RC + SC + Sign(DSAPriv, K)) + IDtag
@@ -317,7 +321,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 		} else {
 			salsa20.XORKeyStream(enc, enc, h.rNonceNext(2), h.key)
 		}
-		h.conn.Write(append(enc, idTag(h.Conf.Id, enc)...))
+		h.conn.Write(append(enc, idTag(h.Conf.Id, h.Conf.TimeSync, enc)...))
 
 		// Switch peer
 		peer := newPeer(
@@ -431,7 +435,7 @@ func (h *Handshake) Client(data []byte) *Peer {
 		}
 
 		// Send that to server
-		h.conn.Write(append(enc, idTag(h.Conf.Id, enc)...))
+		h.conn.Write(append(enc, idTag(h.Conf.Id, h.Conf.TimeSync, enc)...))
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+2, RC) + IDtag

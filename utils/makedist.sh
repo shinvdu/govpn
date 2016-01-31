@@ -63,7 +63,7 @@ size=$(( $(cat $tarball | wc -c) / 1024 ))
 hash=$($SHA256 $tarball | sed 's/^.*\([0-9a-f]\{64\}\).*$/\1/')
 cat <<EOF
 An entry for documentation:
-@item $release @tab $size KiB
+@item @ref{Release_$release, $release} @tab $size KiB
 @tab @url{download/govpn-${release}.tar.xz, link} @url{download/govpn-${release}.tar.xz.sig, sign}
 @tab @code{$hash}
 EOF

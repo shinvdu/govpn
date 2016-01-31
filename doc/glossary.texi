@@ -6,6 +6,7 @@
 * Identity::
 * Password Authenticated Key Agreement: PAKE.
 * Timeout::
+* Time synchronization: Timesync.
 * Network transport: Network.
 * Proxy::
 * Maximum Transmission Unit: MTU.
@@ -20,6 +21,7 @@
 @include identity.texi
 @include pake.texi
 @include timeout.texi
+@include timesync.texi
 @include netproto.texi
 @include proxy.texi
 @include mtu.texi
