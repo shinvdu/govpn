@@ -140,7 +140,7 @@ identity is known to server and that it is exactly GoVPN server.
 Timesync option forces adding timestamps to each handshake packet
 allowing only specified time window of packet validness. If you have got
 more or less synchronized clocks between your clients and server, then
-you can use always use this option.
+you can always use this option.
 
 @node Can I DoS daemon
 @section Can I DoS (denial of service) the daemon?
