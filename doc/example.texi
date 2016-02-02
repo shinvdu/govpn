@@ -46,7 +46,7 @@ Alice:
 
 @verbatim
 server% ip addr add 192.168.0.1/24 dev wlan0
-server% tunctl -t tap10
+server% ip tuntap add dev tap10 mode tap
 server% ip addr add 172.16.0.1/24 dev tap10
 server% ip link set up dev tap10
 @end verbatim
@@ -61,7 +61,7 @@ server% govpn-server -bind 192.168.0.1:1194
 
 @verbatim
 client% ip addr add 192.168.0.2/24 dev wlan0
-client% tunctl -t tap10
+client% ip tuntap add dev tap10 mode tap
 client% ip addr add 172.16.0.2/24 dev tap10
 client% ip link set up dev tap10
 client% ip route add default via 172.16.0.1
