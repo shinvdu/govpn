@@ -10,4 +10,5 @@ Thanks for contributions and suggestions to:
 @item @email{watsonbladd@@gmail.com, Watson Ladd} for suggestion of @url{http://elligator.cr.yp.to/, Elligator} encoding.
 @item @url{https://password-hashing.net/#argon2, Password Hashing Competition for Argon2}.
 @item @url{http://people.csail.mit.edu/rivest/chaffing-980701.txt, Chaffing and Winnowing: Confidentiality without Encryption} @copyright{} Ronald L. Rivest
+@item @email{wzyboy@@wzyboy.org, Zhuoyun Wei} for @url{https://aur.archlinux.org/packages/govpn/, AUR} port maintaining and his documentation related fixes.
 @end itemize
