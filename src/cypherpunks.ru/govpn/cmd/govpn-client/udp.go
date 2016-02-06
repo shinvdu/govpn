@@ -70,7 +70,7 @@ MainCycle:
 				log.Println("Unauthenticated packet")
 				timeouts++
 			}
-			if atomic.LoadInt64(&peer.BytesIn)+atomic.LoadInt64(&peer.BytesOut) > govpn.MaxBytesPerKey {
+			if atomic.LoadUint64(&peer.BytesIn)+atomic.LoadUint64(&peer.BytesOut) > govpn.MaxBytesPerKey {
 				log.Println("Need rehandshake")
 				rehandshaking <- struct{}{}
 				break MainCycle
