@@ -1,5 +1,4 @@
 \input texinfo
-@setfilename govpn.info
 @documentencoding UTF-8
 @settitle GoVPN
 
