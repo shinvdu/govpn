@@ -39,7 +39,7 @@ const (
 	// S20BS is Salsa20's internal blocksize in bytes
 	S20BS = 64
 	// Maximal amount of bytes transfered with single key (4 GiB)
-	MaxBytesPerKey int64 = 1 << 32
+	MaxBytesPerKey uint64 = 1 << 32
 	// Heartbeat rate, relative to Timeout
 	TimeoutHeartbeat = 4
 	// Minimal valid packet length
@@ -64,6 +64,19 @@ func newNonceCipher(key *[32]byte) *xtea.Cipher {
 }
 
 type Peer struct {
+	// Statistics (they are at the beginning for correct int64 alignment)
+	BytesIn         uint64
+	BytesOut        uint64
+	BytesPayloadIn  uint64
+	BytesPayloadOut uint64
+	FramesIn        uint64
+	FramesOut       uint64
+	FramesUnauth    uint64
+	FramesDup       uint64
+	HeartbeatRecv   uint64
+	HeartbeatSent   uint64
+
+	// Basic
 	Addr string
 	Id   *PeerId
 	Conn io.Writer
@@ -94,18 +107,6 @@ type Peer struct {
 	LastPing      time.Time
 	LastSent      time.Time
 	willSentCycle time.Time
-
-	// Statistics
-	BytesIn         int64
-	BytesOut        int64
-	BytesPayloadIn  int64
-	BytesPayloadOut int64
-	FramesIn        int
-	FramesOut       int
-	FramesUnauth    int
-	FramesDup       int
-	HeartbeatRecv   int
-	HeartbeatSent   int
 
 	// Receiver
 	BusyR    sync.Mutex `json:"-"`
@@ -241,7 +242,7 @@ func (p *Peer) EthProcess(data []byte) {
 		// accept the next one
 		copy(p.bufT[S20BS:], data)
 		p.bufT[S20BS+len(data)] = PadByte
-		p.BytesPayloadOut += int64(len(data))
+		p.BytesPayloadOut += uint64(len(data))
 	}
 
 	if p.NoiseEnable && !p.Encless {
@@ -278,7 +279,7 @@ func (p *Peer) EthProcess(data []byte) {
 		)
 		copy(p.keyAuthT[:], p.bufT[:SSize])
 		poly1305.Sum(p.tagT, p.frameT, p.keyAuthT)
-		atomic.AddInt64(&p.BytesOut, int64(len(p.frameT)+TagSize))
+		atomic.AddUint64(&p.BytesOut, uint64(len(p.frameT)+TagSize))
 		out = append(p.tagT[:], p.frameT...)
 	}
 	p.FramesOut++
@@ -376,7 +377,7 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 	}
 
 	p.FramesIn++
-	atomic.AddInt64(&p.BytesIn, int64(len(data)))
+	atomic.AddUint64(&p.BytesIn, uint64(len(data)))
 	p.LastPing = time.Now()
 	p.pktSizeR = bytes.LastIndexByte(out, PadByte)
 	if p.pktSizeR == -1 {
@@ -396,7 +397,7 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 		p.BusyR.Unlock()
 		return true
 	}
-	p.BytesPayloadIn += int64(p.pktSizeR)
+	p.BytesPayloadIn += uint64(p.pktSizeR)
 	tap.Write(out[:p.pktSizeR])
 	p.BusyR.Unlock()
 	return true

@@ -4,3 +4,4 @@
 * Watson Ladd <watsonbladd@gmail.com> for suggestion of Elligator (http://elligator.cr.yp.to/) encoding.
 * Password Hashing Competition for Argon2 (https://password-hashing.net/#argon2).
 * Chaffing and Winnowing: Confidentiality without Encryption (http://people.csail.mit.edu/rivest/chaffing-980701.txt) (C) Ronald L. Rivest
+* Zhuoyun Wei <wzyboy@wzyboy.org> for AUR port maintaining and his documentation related fixes.

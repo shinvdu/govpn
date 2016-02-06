@@ -151,7 +151,7 @@ TransportCycle:
 			timeouted <- struct{}{}
 			break TransportCycle
 		}
-		if atomic.LoadInt64(&peer.BytesIn)+atomic.LoadInt64(&peer.BytesOut) > govpn.MaxBytesPerKey {
+		if atomic.LoadUint64(&peer.BytesIn)+atomic.LoadUint64(&peer.BytesOut) > govpn.MaxBytesPerKey {
 			log.Println("Need rehandshake")
 			rehandshaking <- struct{}{}
 			break TransportCycle
