@@ -4,6 +4,7 @@
 See also this page @ref{Новости, on russian}.
 
 @menu
+* Release 5.5::
 * Release 5.4::
 * Release 5.3::
 * Release 5.2::
@@ -29,6 +30,13 @@ See also this page @ref{Новости, on russian}.
 * Release 1.1::
 * Release 1.0::
 @end menu
+
+@node Release 5.5
+@section Release 5.5
+@itemize
+@item Ability to work on 32-bit platforms. @emph{sync/atomic} library
+has some specific issues that caused panics on previous versions.
+@end itemize
 
 @node Release 5.4
 @section Release 5.4

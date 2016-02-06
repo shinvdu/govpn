@@ -64,6 +64,19 @@ func newNonceCipher(key *[32]byte) *xtea.Cipher {
 }
 
 type Peer struct {
+	// Statistics (they are at the beginning for correct int64 alignment)
+	BytesIn         uint64
+	BytesOut        uint64
+	BytesPayloadIn  uint64
+	BytesPayloadOut uint64
+	FramesIn        uint64
+	FramesOut       uint64
+	FramesUnauth    uint64
+	FramesDup       uint64
+	HeartbeatRecv   uint64
+	HeartbeatSent   uint64
+
+	// Basic
 	Addr string
 	Id   *PeerId
 	Conn io.Writer
@@ -94,18 +107,6 @@ type Peer struct {
 	LastPing      time.Time
 	LastSent      time.Time
 	willSentCycle time.Time
-
-	// Statistics
-	BytesIn         uint64
-	BytesOut        uint64
-	BytesPayloadIn  uint64
-	BytesPayloadOut uint64
-	FramesIn        uint64
-	FramesOut       uint64
-	FramesUnauth    uint64
-	FramesDup       uint64
-	HeartbeatRecv   uint64
-	HeartbeatSent   uint64
 
 	// Receiver
 	BusyR    sync.Mutex `json:"-"`
