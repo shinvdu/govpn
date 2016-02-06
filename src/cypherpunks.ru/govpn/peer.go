@@ -100,12 +100,12 @@ type Peer struct {
 	BytesOut        int64
 	BytesPayloadIn  int64
 	BytesPayloadOut int64
-	FramesIn        int
-	FramesOut       int
-	FramesUnauth    int
-	FramesDup       int
-	HeartbeatRecv   int
-	HeartbeatSent   int
+	FramesIn        uint64
+	FramesOut       uint64
+	FramesUnauth    uint64
+	FramesDup       uint64
+	HeartbeatRecv   uint64
+	HeartbeatSent   uint64
 
 	// Receiver
 	BusyR    sync.Mutex `json:"-"`
