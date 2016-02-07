@@ -79,7 +79,7 @@ type Peer struct {
 	// Basic
 	Addr string
 	Id   *PeerId
-	Conn io.Writer
+	Conn io.Writer `json:"-"`
 
 	// Traffic behaviour
 	NoiseEnable bool
