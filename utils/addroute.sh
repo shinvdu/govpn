@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/sh -x
 
 # A simple script handling default routing for GoVPN,
 # inspired by vpnc-script, but much simpler.
