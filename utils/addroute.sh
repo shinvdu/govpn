@@ -23,7 +23,7 @@ tear_down_dev() {
 
 
 do_connect() {
-  local OLDGW=$(ip route show 0/0 | sed -e 's/^default//')
+  local OLDGW=$(ip route show 0/0 | sed 's/^default//')
   ip link set dev $TAPDEV up
   ip addr add $INTERNAL_IP4_ADDRESS dev $TAPDEV
   ip route add $VPNGATEWAY $OLDGW
