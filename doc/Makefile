@@ -6,7 +6,7 @@ handshake.utxt: handshake.txt
 	plantuml -tutxt handshake.txt
 
 govpn.info: *.texi handshake.utxt
-	$(MAKEINFO) index.texi
+	$(MAKEINFO) -o govpn.info index.texi
 
 govpn.html: *.texi handshake.utxt
 	rm -f govpn.html/*.html

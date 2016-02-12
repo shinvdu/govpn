@@ -64,7 +64,8 @@ client% ip addr add 192.168.0.2/24 dev wlan0
 client% ip tuntap add dev tap10 mode tap
 client% ip addr add 172.16.0.2/24 dev tap10
 client% ip link set up dev tap10
-client% ip route add default via 172.16.0.1
+client% ip route add 0/1 via 172.16.0.1
+client% ip route add 128/1 via 172.16.0.1
 @end verbatim
 
 @strong{Run client daemon itself}:
