@@ -1,6 +1,15 @@
 @node Новости
 @section Новости
 
+@node Релиз 5.6
+@subsection Релиз 5.6
+@itemize
+@item Добавлен up/down скрипт-пример для подмены маршрута по-умолчанию
+(спасибо Zhuoyun Wei).
+@item Исправлена ошибка при генерировании документации: @file{.info}
+файл не устанавливался.
+@end itemize
+
 @node Релиз 5.5
 @subsection Релиз 5.5
 @itemize
