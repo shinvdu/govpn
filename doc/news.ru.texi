@@ -1,6 +1,13 @@
 @node Новости
 @section Новости
 
+@node Релиз 5.7
+@subsection Релиз 5.7
+@itemize
+@item Имя TAP интерфейса и адрес удалённой стороны теперь передаются в
+up- и down- скрипты через переменные окружения.
+@end itemize
+
 @node Релиз 5.6
 @subsection Релиз 5.6
 @itemize

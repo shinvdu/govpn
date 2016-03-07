@@ -115,6 +115,7 @@ MainCycle:
 					go govpn.ScriptCall(
 						confs[*ps.peer.Id].Down,
 						ps.tap.Name,
+						ps.peer.Addr,
 					)
 					ps.terminator <- struct{}{}
 				}

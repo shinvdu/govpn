@@ -51,8 +51,9 @@ Set @ref{CPR} in KiB/sec.
 Enable @ref{Encless, encryptionless mode}.
 
 @item -up
-Optional path to script that will be executed after connection is
-established. Interface name will be given to it as a first argument.
+Optional path to @ref{Scripts, script} that will be executed after
+connection is established. Interface name will be given to it as a first
+argument.
 
 @item -down
 Same as @option{-up} above, but it is executed when connection is lost,
@@ -66,8 +67,8 @@ solicitation:
 @verbatim
 client% cat > up.sh <<EOF
 #!/bin/sh
-dhclient $1
-rtsol $1
+dhclient $GOVPN_IFACE
+rtsol $GOVPN_IFACE
 EOF
 client% chmod +x up.sh
 @end verbatim

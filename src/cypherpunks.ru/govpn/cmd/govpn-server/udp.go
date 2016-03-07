@@ -135,7 +135,7 @@ func startUDP() {
 				log.Println("Rehandshake processed:", peer.Id.String())
 			} else {
 				go func(addr string, peer *govpn.Peer) {
-					ifaceName, err := callUp(peer.Id)
+					ifaceName, err := callUp(peer.Id, peer.Addr)
 					if err != nil {
 						return
 					}

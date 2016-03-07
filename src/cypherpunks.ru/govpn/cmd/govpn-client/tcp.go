@@ -83,7 +83,7 @@ HandshakeCycle:
 		log.Println("Handshake completed")
 		knownPeers = govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
 		if firstUpCall {
-			go govpn.ScriptCall(*upPath, *ifaceName)
+			go govpn.ScriptCall(*upPath, *ifaceName, *remoteAddr)
 			firstUpCall = false
 		}
 		hs.Zero()

@@ -40,12 +40,12 @@ stargrave: {                        <-- Peer human readable name
 
 At least one of either @code{iface} or @code{up} must be specified. If
 you specify @code{iface}, then it will be forcefully used to determine
-what TAP interface will be used. If it is not specified, then up-script
-must output interface's name to stdout (first output line).
+what TAP interface will be used. If it is not specified, then
+up-@ref{Scripts, script} must output interface's name to stdout
+(first output line).
 
 For example up-script can be just @code{echo tap10}, or more advanced
 like the following one:
-
 
 @verbatim
 #!/bin/sh

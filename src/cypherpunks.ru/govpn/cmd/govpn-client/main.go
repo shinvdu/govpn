@@ -156,5 +156,5 @@ MainCycle:
 		close(rehandshaking)
 		close(termination)
 	}
-	govpn.ScriptCall(*downPath, *ifaceName)
+	govpn.ScriptCall(*downPath, *ifaceName, *remoteAddr)
 }

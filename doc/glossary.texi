@@ -8,6 +8,7 @@
 * Timeout::
 * Time synchronization: Timesync.
 * Network transport: Network.
+* Scripts::
 * Proxy::
 * Maximum Transmission Unit: MTU.
 * Statistics: Stats.
@@ -23,6 +24,7 @@
 @include timeout.texi
 @include timesync.texi
 @include netproto.texi
+@include scripts.texi
 @include proxy.texi
 @include mtu.texi
 @include stats.texi
