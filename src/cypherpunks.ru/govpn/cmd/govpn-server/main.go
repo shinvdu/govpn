@@ -89,6 +89,14 @@ MainCycle:
 	for {
 		select {
 		case <-termSignal:
+			log.Println("Terminating")
+			for _, ps := range peers {
+				govpn.ScriptCall(
+					confs[*ps.peer.Id].Down,
+					ps.tap.Name,
+					ps.peer.Addr,
+				)
+			}
 			break MainCycle
 		case <-hsHeartbeat:
 			now := time.Now()
