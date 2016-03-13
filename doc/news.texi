@@ -8,6 +8,7 @@ See also this page @ref{Новости, on russian}.
 @itemize
 @item TAP interface name and remote peer's address are passed to up- and
 down- scripts through environment variables.
+@item Update Argon2 library to use version 1.3 of the algorithm.
 @end itemize
 
 @node Release 5.6
