@@ -115,7 +115,7 @@ func handleTCP(conn net.Conn) {
 			kpLock.Unlock()
 			log.Println("Rehandshake processed:", peer.Id.String())
 		} else {
-			ifaceName, err := callUp(peer.Id)
+			ifaceName, err := callUp(peer.Id, peer.Addr)
 			if err != nil {
 				peer = nil
 				break

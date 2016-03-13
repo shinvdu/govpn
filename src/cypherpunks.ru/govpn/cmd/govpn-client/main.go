@@ -21,6 +21,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -48,6 +49,7 @@ var (
 	encless     = flag.Bool("encless", false, "Encryptionless mode")
 	cpr         = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
 	egdPath     = flag.String("egd", "", "Optional path to EGD socket")
+	warranty    = flag.Bool("warranty", false, "Print warranty information")
 
 	conf        *govpn.PeerConf
 	tap         *govpn.TAP
@@ -59,6 +61,10 @@ var (
 
 func main() {
 	flag.Parse()
+	if *warranty {
+		fmt.Println(govpn.Warranty)
+		return
+	}
 	timeout = *timeoutP
 	var err error
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
@@ -156,5 +162,5 @@ MainCycle:
 		close(rehandshaking)
 		close(termination)
 	}
-	govpn.ScriptCall(*downPath, *ifaceName)
+	govpn.ScriptCall(*downPath, *ifaceName, *remoteAddr)
 }

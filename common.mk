@@ -19,7 +19,7 @@ govpn-verifier:
 	GOPATH=$(GOPATH) go build -ldflags "$(LDFLAGS)" cypherpunks.ru/govpn/cmd/govpn-verifier
 
 bench:
-	GOPATH=$(GOPATH) go test -bench . cypherpunks.ru/govpn/...
+	GOPATH=$(GOPATH) go test -benchmem -bench . cypherpunks.ru/govpn/...
 
 clean:
 	rm -f govpn-client govpn-server govpn-verifier

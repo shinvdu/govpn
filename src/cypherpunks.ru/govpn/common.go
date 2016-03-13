@@ -28,8 +28,11 @@ import (
 const (
 	TimeoutDefault = 60
 	EtherSize      = 14
-	MTUMax         = 9000 + EtherSize
-	MTUDefault     = 1500 + EtherSize
+	MTUMax         = 9000 + EtherSize + 1
+	MTUDefault     = 1500 + EtherSize + 1
+
+	ENV_IFACE  = "GOVPN_IFACE"
+	ENV_REMOTE = "GOVPN_REMOTE"
 )
 
 var (
@@ -40,14 +43,17 @@ var (
 // You have to specify path to it and (inteface name as a rule) something
 // that will be the first argument when calling it. Function will return
 // it's output and possible error.
-func ScriptCall(path, ifaceName string) ([]byte, error) {
+func ScriptCall(path, ifaceName, remoteAddr string) ([]byte, error) {
 	if path == "" {
 		return nil, nil
 	}
 	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
 		return nil, err
 	}
-	out, err := exec.Command(path, ifaceName).CombinedOutput()
+	cmd := exec.Command(path)
+	cmd.Env = append(cmd.Env, ENV_IFACE+"="+ifaceName)
+	cmd.Env = append(cmd.Env, ENV_REMOTE+"="+remoteAddr)
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Println("Script error", path, err, string(out))
 	}

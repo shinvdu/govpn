@@ -21,6 +21,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -37,10 +38,15 @@ var (
 	stats    = flag.String("stats", "", "Enable stats retrieving on host:port")
 	proxy    = flag.String("proxy", "", "Enable HTTP proxy on host:port")
 	egdPath  = flag.String("egd", "", "Optional path to EGD socket")
+	warranty = flag.Bool("warranty", false, "Print warranty information")
 )
 
 func main() {
 	flag.Parse()
+	if *warranty {
+		fmt.Println(govpn.Warranty)
+		return
+	}
 	timeout := time.Second * time.Duration(govpn.TimeoutDefault)
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 	log.Println(govpn.VersionGet())
@@ -89,6 +95,14 @@ MainCycle:
 	for {
 		select {
 		case <-termSignal:
+			log.Println("Terminating")
+			for _, ps := range peers {
+				govpn.ScriptCall(
+					confs[*ps.peer.Id].Down,
+					ps.tap.Name,
+					ps.peer.Addr,
+				)
+			}
 			break MainCycle
 		case <-hsHeartbeat:
 			now := time.Now()
@@ -115,6 +129,7 @@ MainCycle:
 					go govpn.ScriptCall(
 						confs[*ps.peer.Id].Down,
 						ps.tap.Name,
+						ps.peer.Addr,
 					)
 					ps.terminator <- struct{}{}
 				}

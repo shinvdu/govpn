@@ -66,10 +66,10 @@ Processor:
 	heartbeat.Stop()
 }
 
-func callUp(peerId *govpn.PeerId) (string, error) {
+func callUp(peerId *govpn.PeerId, remoteAddr string) (string, error) {
 	ifaceName := confs[*peerId].Iface
 	if confs[*peerId].Up != "" {
-		result, err := govpn.ScriptCall(confs[*peerId].Up, "")
+		result, err := govpn.ScriptCall(confs[*peerId].Up, ifaceName, remoteAddr)
 		if err != nil {
 			log.Println("Script", confs[*peerId].Up, "call failed", err)
 			return "", err
