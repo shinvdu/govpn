@@ -102,7 +102,7 @@ func dhKeypairGen() (*[32]byte, *[32]byte) {
 	repr := new([32]byte)
 	reprFound := false
 	for !reprFound {
-		if _, err := Rand.Read(priv[:]); err != nil {
+		if _, err := io.ReadFull(Rand, priv[:]); err != nil {
 			log.Fatalln("Error reading random for DH private key:", err)
 		}
 		reprFound = extra25519.ScalarBaseMult(pub, repr, priv)
@@ -154,7 +154,7 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 	state.dhPriv, dhPubRepr = dhKeypairGen()
 
 	state.rNonce = new([RSize]byte)
-	if _, err := Rand.Read(state.rNonce[:]); err != nil {
+	if _, err := io.ReadFull(Rand, state.rNonce[:]); err != nil {
 		log.Fatalln("Error reading random for nonce:", err)
 	}
 	var enc []byte
@@ -238,11 +238,11 @@ func (h *Handshake) Server(data []byte) *Peer {
 
 		// Generate R* and encrypt them
 		h.rServer = new([RSize]byte)
-		if _, err = Rand.Read(h.rServer[:]); err != nil {
+		if _, err = io.ReadFull(Rand, h.rServer[:]); err != nil {
 			log.Fatalln("Error reading random for R:", err)
 		}
 		h.sServer = new([SSize]byte)
-		if _, err = Rand.Read(h.sServer[:]); err != nil {
+		if _, err = io.ReadFull(Rand, h.sServer[:]); err != nil {
 			log.Fatalln("Error reading random for S:", err)
 		}
 		var encRs []byte
@@ -406,11 +406,11 @@ func (h *Handshake) Client(data []byte) *Peer {
 
 		// Generate R* and signature and encrypt them
 		h.rClient = new([RSize]byte)
-		if _, err = Rand.Read(h.rClient[:]); err != nil {
+		if _, err = io.ReadFull(Rand, h.rClient[:]); err != nil {
 			log.Fatalln("Error reading random for R:", err)
 		}
 		h.sClient = new([SSize]byte)
-		if _, err = Rand.Read(h.sClient[:]); err != nil {
+		if _, err = io.ReadFull(Rand, h.sClient[:]); err != nil {
 			log.Fatalln("Error reading random for S:", err)
 		}
 		sign := ed25519.Sign(h.Conf.DSAPriv, h.key[:])

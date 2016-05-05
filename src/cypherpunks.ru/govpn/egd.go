@@ -20,7 +20,6 @@ package govpn
 
 import (
 	"crypto/rand"
-	"errors"
 	"io"
 	"net"
 )
@@ -37,18 +36,9 @@ func (egdPath EGDRand) Read(b []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	defer conn.Close()
 	conn.Write([]byte{0x02, byte(len(b))})
-	read, err := conn.Read(b)
-	if err != nil {
-		conn.Close()
-		return read, err
-	}
-	if read != len(b) {
-		conn.Close()
-		return read, errors.New("Got less bytes than expected from EGD")
-	}
-	conn.Close()
-	return read, nil
+	return io.ReadFull(conn, b)
 }
 
 func EGDInit(path string) {

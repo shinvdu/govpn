@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
+	"io"
 	"testing"
 	"testing/quick"
 )
@@ -31,7 +32,7 @@ var (
 )
 
 func init() {
-	rand.Read(testKey[:])
+	io.ReadFull(rand.Reader, testKey[:])
 }
 
 func TestSymmetric(t *testing.T) {
@@ -66,8 +67,8 @@ func TestSmallSize(t *testing.T) {
 func BenchmarkChaff(b *testing.B) {
 	nonce := make([]byte, 8)
 	data := make([]byte, 16)
-	rand.Read(nonce)
-	rand.Read(data)
+	io.ReadFull(rand.Reader, nonce)
+	io.ReadFull(rand.Reader, data)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		Chaff(testKey, nonce, data)
@@ -77,8 +78,8 @@ func BenchmarkChaff(b *testing.B) {
 func BenchmarkWinnow(b *testing.B) {
 	nonce := make([]byte, 8)
 	data := make([]byte, 16)
-	rand.Read(nonce)
-	rand.Read(data)
+	io.ReadFull(rand.Reader, nonce)
+	io.ReadFull(rand.Reader, data)
 	chaffed := Chaff(testKey, nonce, data)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
