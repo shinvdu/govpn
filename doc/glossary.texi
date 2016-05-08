@@ -15,6 +15,7 @@
 * Noise::
 * Constant Packet Rate: CPR.
 * Encryptionless mode: Encless.
+* Syslog::
 * Verifier::
 @end menu
 
@@ -31,4 +32,5 @@
 @include noise.texi
 @include cpr.texi
 @include encless.texi
+@include syslog.texi
 @include verifier.texi

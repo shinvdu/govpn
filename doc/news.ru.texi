@@ -1,6 +1,14 @@
 @node Новости
 @section Новости
 
+@node Релиз 5.8
+@subsection Релиз 5.8
+@itemize
+@item Опциональная возможность использовать syslog для журналирования,
+с @url{https://tools.ietf.org/html/rfc5424, RFC 5424}-похожими
+структурированными записями.
+@end itemize
+
 @node Релиз 5.7
 @subsection Релиз 5.7
 @itemize
