@@ -24,6 +24,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+
+	"cypherpunks.ru/govpn"
 )
 
 func proxyTCP(timeouted, rehandshaking, termination chan struct{}) {
@@ -50,6 +52,6 @@ func proxyTCP(timeouted, rehandshaking, termination chan struct{}) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		log.Fatalln("Unexpected response from proxy")
 	}
-	log.Println("Connected to proxy:", *proxyAddr)
+	govpn.Println("Connected to proxy:", *proxyAddr)
 	go handleTCP(conn, timeouted, rehandshaking, termination)
 }

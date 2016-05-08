@@ -20,7 +20,6 @@ package main
 
 import (
 	"bytes"
-	"log"
 	"sync"
 	"time"
 
@@ -71,7 +70,7 @@ func callUp(peerId *govpn.PeerId, remoteAddr string) (string, error) {
 	if confs[*peerId].Up != "" {
 		result, err := govpn.ScriptCall(confs[*peerId].Up, ifaceName, remoteAddr)
 		if err != nil {
-			log.Println("Script", confs[*peerId].Up, "call failed", err)
+			govpn.Println("Script", confs[*peerId].Up, "call failed", err)
 			return "", err
 		}
 		if ifaceName == "" {
@@ -83,7 +82,7 @@ func callUp(peerId *govpn.PeerId, remoteAddr string) (string, error) {
 		}
 	}
 	if ifaceName == "" {
-		log.Println("Can not obtain interface name for", *peerId)
+		govpn.Println("Can not obtain interface name for", *peerId)
 	}
 	return ifaceName, nil
 }

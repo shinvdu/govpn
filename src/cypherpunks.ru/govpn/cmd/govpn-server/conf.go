@@ -62,7 +62,7 @@ func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
 			pc.MTU = govpn.MTUDefault
 		}
 		if pc.MTU > govpn.MTUMax {
-			log.Println("MTU value", pc.MTU, "is too high, overriding to", govpn.MTUMax)
+			govpn.Println("MTU value", pc.MTU, "is too high, overriding to", govpn.MTUMax)
 			pc.MTU = govpn.MTUMax
 		}
 		conf := govpn.PeerConf{
@@ -90,7 +90,7 @@ func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
 func confRefresh() error {
 	newConfs, err := confRead()
 	if err != nil {
-		log.Println("Unable to parse peers configuration:", err)
+		govpn.Println("Unable to parse peers configuration:", err)
 		return err
 	}
 	confs = *newConfs

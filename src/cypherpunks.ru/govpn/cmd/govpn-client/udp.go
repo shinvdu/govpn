@@ -36,7 +36,7 @@ func startUDP(timeouted, rehandshaking, termination chan struct{}) {
 	if err != nil {
 		log.Fatalln("Can not listen on UDP:", err)
 	}
-	log.Println("Connected to UDP:" + *remoteAddr)
+	govpn.Println("Connected to UDP:" + *remoteAddr)
 
 	hs := govpn.HandshakeStart(*remoteAddr, conn, conf)
 	buf := make([]byte, *mtu*2)
@@ -55,7 +55,7 @@ MainCycle:
 		conn.SetReadDeadline(time.Now().Add(time.Second))
 		n, err = conn.Read(buf)
 		if timeouts == timeout {
-			log.Println("Timeouted")
+			govpn.Println("Timeouted")
 			timeouted <- struct{}{}
 			break
 		}
@@ -67,18 +67,18 @@ MainCycle:
 			if peer.PktProcess(buf[:n], tap, true) {
 				timeouts = 0
 			} else {
-				log.Println("Unauthenticated packet")
+				govpn.Println("Unauthenticated packet")
 				timeouts++
 			}
 			if atomic.LoadUint64(&peer.BytesIn)+atomic.LoadUint64(&peer.BytesOut) > govpn.MaxBytesPerKey {
-				log.Println("Need rehandshake")
+				govpn.Println("Need rehandshake")
 				rehandshaking <- struct{}{}
 				break MainCycle
 			}
 			continue
 		}
 		if idsCache.Find(buf[:n]) == nil {
-			log.Println("Invalid identity in handshake packet")
+			govpn.Println("Invalid identity in handshake packet")
 			continue
 		}
 		timeouts = 0
@@ -86,7 +86,7 @@ MainCycle:
 		if peer == nil {
 			continue
 		}
-		log.Println("Handshake completed")
+		govpn.Println("Handshake completed")
 		knownPeers = govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
 		if firstUpCall {
 			go govpn.ScriptCall(*upPath, *ifaceName, *remoteAddr)

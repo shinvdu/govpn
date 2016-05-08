@@ -49,6 +49,7 @@ var (
 	encless     = flag.Bool("encless", false, "Encryptionless mode")
 	cpr         = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
 	egdPath     = flag.String("egd", "", "Optional path to EGD socket")
+	syslog      = flag.Bool("syslog", false, "Enable logging to syslog")
 	warranty    = flag.Bool("warranty", false, "Print warranty information")
 
 	conf        *govpn.PeerConf
@@ -126,6 +127,10 @@ func main() {
 		go govpn.StatsProcessor(statsPort, &knownPeers)
 	}
 
+	if *syslog {
+		govpn.SyslogEnable()
+	}
+
 	termSignal := make(chan os.Signal, 1)
 	signal.Notify(termSignal, os.Interrupt, os.Kill)
 
@@ -151,7 +156,8 @@ MainCycle:
 		}
 		select {
 		case <-termSignal:
-			log.Fatalln("Finishing")
+			log.Println("Finishing")
+			govpn.Println("Finishing")
 			termination <- struct{}{}
 			break MainCycle
 		case <-timeouted:

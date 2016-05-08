@@ -37,11 +37,12 @@ func startTCP() {
 		log.Fatalln("Can not listen on TCP:", err)
 	}
 	log.Println("Listening on TCP:" + *bindAddr)
+	govpn.Println("Listening on TCP:" + *bindAddr)
 	go func() {
 		for {
 			conn, err := listener.AcceptTCP()
 			if err != nil {
-				log.Println("Error accepting TCP:", err)
+				govpn.Println("Error accepting TCP:", err)
 				continue
 			}
 			go handleTCP(conn)
@@ -78,7 +79,7 @@ func handleTCP(conn net.Conn) {
 		if hs == nil {
 			conf = confs[*peerId]
 			if conf == nil {
-				log.Println("Can not get peer configuration:", peerId.String())
+				govpn.Println("Can not get peer configuration:", peerId.String())
 				break
 			}
 			hs = govpn.NewHandshake(addr, conn, conf)
@@ -89,7 +90,7 @@ func handleTCP(conn net.Conn) {
 			continue
 		}
 		hs.Zero()
-		log.Println("Peer handshake finished:", addr, peer.Id.String())
+		govpn.Println("Peer handshake finished:", addr, peer.Id.String())
 		peersByIdLock.RLock()
 		addrPrev, exists := peersById[*peer.Id]
 		peersByIdLock.RUnlock()
@@ -113,7 +114,7 @@ func handleTCP(conn net.Conn) {
 			peersLock.Unlock()
 			peersByIdLock.Unlock()
 			kpLock.Unlock()
-			log.Println("Rehandshake processed:", peer.Id.String())
+			govpn.Println("Rehandshake processed:", peer.Id.String())
 		} else {
 			ifaceName, err := callUp(peer.Id, peer.Addr)
 			if err != nil {
@@ -122,7 +123,7 @@ func handleTCP(conn net.Conn) {
 			}
 			tap, err = govpn.TAPListen(ifaceName, peer.MTU)
 			if err != nil {
-				log.Println("Unable to create TAP:", err)
+				govpn.Println("Unable to create TAP:", err)
 				peer = nil
 				break
 			}
@@ -141,7 +142,7 @@ func handleTCP(conn net.Conn) {
 			peersLock.Unlock()
 			peersByIdLock.Unlock()
 			kpLock.Unlock()
-			log.Println("Peer created:", peer.Id.String())
+			govpn.Println("Peer created:", peer.Id.String())
 		}
 		break
 	}
@@ -176,7 +177,7 @@ func handleTCP(conn net.Conn) {
 			continue
 		}
 		if !peer.PktProcess(buf[:i+govpn.NonceSize], tap, false) {
-			log.Println(
+			govpn.Println(
 				"Unauthenticated packet, dropping connection",
 				addr, peer.Id.String(),
 			)

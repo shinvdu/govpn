@@ -16,34 +16,32 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package main
+package govpn
 
 import (
 	"log"
-	"net/http"
-
-	"cypherpunks.ru/govpn"
+	"log/syslog"
 )
 
-type proxyHandler struct{}
+var (
+	sysloger *log.Logger
+)
 
-func (p proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	conn, _, err := w.(http.Hijacker).Hijack()
+// Enable logging to syslog, instead of default stdout log.
+func SyslogEnable() {
+	var err error
+	sysloger, err = syslog.NewLogger(syslog.LOG_INFO, 0)
 	if err != nil {
-		govpn.Println("Hijacking failed:", err.Error())
-		return
+		log.Fatalln(err)
 	}
-	conn.Write([]byte("HTTP/1.0 200 OK\n\n"))
-	go handleTCP(conn)
 }
 
-func proxyStart() {
-	log.Println("HTTP proxy listening on:" + *proxy)
-	govpn.Println("HTTP proxy listening on:" + *proxy)
-	s := &http.Server{
-		Addr:    *proxy,
-		Handler: proxyHandler{},
+// Call either syslog-related logger.Println if SyslogEnabled,
+// default log.Println otherwise.
+func Println(v ...interface{}) {
+	if sysloger == nil {
+		log.Println(v...)
+	} else {
+		sysloger.Println(v...)
 	}
-	log.Println("HTTP proxy result:", s.ListenAndServe())
-	govpn.Println("HTTP proxy result:", s.ListenAndServe())
 }

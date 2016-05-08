@@ -49,6 +49,7 @@ func startUDP() {
 		log.Fatalln("Can not listen on UDP:", err)
 	}
 	log.Println("Listening on UDP:" + *bindAddr)
+	govpn.Println("Listening on UDP:" + *bindAddr)
 
 	udpBufs <- make([]byte, govpn.MTUMax)
 	go func() {
@@ -68,7 +69,7 @@ func startUDP() {
 			buf = <-udpBufs
 			n, raddr, err = conn.ReadFromUDP(buf)
 			if err != nil {
-				log.Println("Unexpected error when receiving", err)
+				govpn.Println("Unexpected error when receiving", err)
 				break
 			}
 			addr = raddr.String()
@@ -96,7 +97,7 @@ func startUDP() {
 				goto Finished
 			}
 
-			log.Println("Peer handshake finished:", addr, peer.Id.String())
+			govpn.Println("Peer handshake finished:", addr, peer.Id.String())
 			hs.Zero()
 			hsLock.Lock()
 			delete(handshakes, addr)
@@ -132,7 +133,7 @@ func startUDP() {
 				peersLock.Unlock()
 				peersByIdLock.Unlock()
 				kpLock.Unlock()
-				log.Println("Rehandshake processed:", peer.Id.String())
+				govpn.Println("Rehandshake processed:", peer.Id.String())
 			} else {
 				go func(addr string, peer *govpn.Peer) {
 					ifaceName, err := callUp(peer.Id, peer.Addr)
@@ -141,7 +142,7 @@ func startUDP() {
 					}
 					tap, err := govpn.TAPListen(ifaceName, peer.MTU)
 					if err != nil {
-						log.Println("Unable to create TAP:", err)
+						govpn.Println("Unable to create TAP:", err)
 						return
 					}
 					ps = &PeerState{
@@ -163,19 +164,19 @@ func startUDP() {
 					peersLock.Unlock()
 					peersByIdLock.Unlock()
 					kpLock.Unlock()
-					log.Println("Peer created:", peer.Id.String())
+					govpn.Println("Peer created:", peer.Id.String())
 				}(addr, peer)
 			}
 			goto Finished
 		CheckID:
 			peerId = idsCache.Find(buf[:n])
 			if peerId == nil {
-				log.Println("Unknown identity from:", addr)
+				govpn.Println("Unknown identity from:", addr)
 				goto Finished
 			}
 			conf = confs[*peerId]
 			if conf == nil {
-				log.Println("Unable to get peer configuration:", peerId.String())
+				govpn.Println("Unable to get peer configuration:", peerId.String())
 				goto Finished
 			}
 			hs = govpn.NewHandshake(
