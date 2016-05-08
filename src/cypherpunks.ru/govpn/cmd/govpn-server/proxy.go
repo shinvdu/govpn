@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"cypherpunks.ru/govpn"
@@ -30,7 +29,7 @@ type proxyHandler struct{}
 func (p proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	conn, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
-		govpn.Println("Hijacking failed:", err.Error())
+		govpn.Printf(`[proxy-hijack-failed bind="%s" err="%s"]`, *bindAddr, err)
 		return
 	}
 	conn.Write([]byte("HTTP/1.0 200 OK\n\n"))
@@ -38,12 +37,10 @@ func (p proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func proxyStart() {
-	log.Println("HTTP proxy listening on:" + *proxy)
-	govpn.Println("HTTP proxy listening on:" + *proxy)
+	govpn.BothPrintf(`[proxy-listen bind="%s" addr="%s"]`, *bindAddr, *proxy)
 	s := &http.Server{
 		Addr:    *proxy,
 		Handler: proxyHandler{},
 	}
-	log.Println("HTTP proxy result:", s.ListenAndServe())
-	govpn.Println("HTTP proxy result:", s.ListenAndServe())
+	govpn.BothPrintf(`[proxy-finished bind="%s" result="%s"]`, *bindAddr, s.ListenAndServe())
 }

@@ -52,6 +52,6 @@ func proxyTCP(timeouted, rehandshaking, termination chan struct{}) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		log.Fatalln("Unexpected response from proxy")
 	}
-	govpn.Println("Connected to proxy:", *proxyAddr)
+	govpn.Printf(`[proxy-connected remote="%s" addr="%s"]`, *remoteAddr, *proxyAddr)
 	go handleTCP(conn, timeouted, rehandshaking, termination)
 }

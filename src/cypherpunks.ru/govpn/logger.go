@@ -36,12 +36,20 @@ func SyslogEnable() {
 	}
 }
 
-// Call either syslog-related logger.Println if SyslogEnabled,
-// default log.Println otherwise.
-func Println(v ...interface{}) {
+// Call either syslog-related logger.Printf if SyslogEnabled,
+// default log.Printf otherwise.
+func Printf(f string, v ...interface{}) {
 	if sysloger == nil {
-		log.Println(v...)
+		log.Printf(f, v...)
 	} else {
-		sysloger.Println(v...)
+		sysloger.Printf(f, v...)
+	}
+}
+
+// Call both default log.Printf and syslog-related one.
+func BothPrintf(f string, v ...interface{}) {
+	log.Printf(f, v...)
+	if sysloger != nil {
+		sysloger.Printf(f, v...)
 	}
 }

@@ -48,8 +48,7 @@ func startUDP() {
 	if err != nil {
 		log.Fatalln("Can not listen on UDP:", err)
 	}
-	log.Println("Listening on UDP:" + *bindAddr)
-	govpn.Println("Listening on UDP:" + *bindAddr)
+	govpn.BothPrintf(`[udp-listen bind="%s"]`, *bindAddr)
 
 	udpBufs <- make([]byte, govpn.MTUMax)
 	go func() {
@@ -69,7 +68,7 @@ func startUDP() {
 			buf = <-udpBufs
 			n, raddr, err = conn.ReadFromUDP(buf)
 			if err != nil {
-				govpn.Println("Unexpected error when receiving", err)
+				govpn.Printf(`[receive-failed bind="%s" err="%s"]`, *bindAddr, err)
 				break
 			}
 			addr = raddr.String()
@@ -97,7 +96,10 @@ func startUDP() {
 				goto Finished
 			}
 
-			govpn.Println("Peer handshake finished:", addr, peer.Id.String())
+			govpn.Printf(
+				`[handshake-completed bind="%s" addr="%s" peer="%s"]`,
+				*bindAddr, addr, peerId.String(),
+			)
 			hs.Zero()
 			hsLock.Lock()
 			delete(handshakes, addr)
@@ -133,7 +135,10 @@ func startUDP() {
 				peersLock.Unlock()
 				peersByIdLock.Unlock()
 				kpLock.Unlock()
-				govpn.Println("Rehandshake processed:", peer.Id.String())
+				govpn.Printf(
+					`[rehandshake-completed bind="%s" peer="%s"]`,
+					*bindAddr, peer.Id.String(),
+				)
 			} else {
 				go func(addr string, peer *govpn.Peer) {
 					ifaceName, err := callUp(peer.Id, peer.Addr)
@@ -142,7 +147,10 @@ func startUDP() {
 					}
 					tap, err := govpn.TAPListen(ifaceName, peer.MTU)
 					if err != nil {
-						govpn.Println("Unable to create TAP:", err)
+						govpn.Printf(
+							`[tap-failed bind="%s" peer="%s" err="%s"]`,
+							*bindAddr, peer.Id.String(), err,
+						)
 						return
 					}
 					ps = &PeerState{
@@ -164,19 +172,22 @@ func startUDP() {
 					peersLock.Unlock()
 					peersByIdLock.Unlock()
 					kpLock.Unlock()
-					govpn.Println("Peer created:", peer.Id.String())
+					govpn.Printf(`[peer-created bind="%s" peer="%s"]`, *bindAddr, peer.Id.String())
 				}(addr, peer)
 			}
 			goto Finished
 		CheckID:
 			peerId = idsCache.Find(buf[:n])
 			if peerId == nil {
-				govpn.Println("Unknown identity from:", addr)
+				govpn.Printf(`[identity-unknown bind="%s" addr="%s"]`, *bindAddr, addr)
 				goto Finished
 			}
 			conf = confs[*peerId]
 			if conf == nil {
-				govpn.Println("Unable to get peer configuration:", peerId.String())
+				govpn.Printf(
+					`[conf-get-failed bind="%s" peer="%s"]`,
+					*bindAddr, peerId.String(),
+				)
 				goto Finished
 			}
 			hs = govpn.NewHandshake(

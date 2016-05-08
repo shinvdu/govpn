@@ -156,8 +156,7 @@ MainCycle:
 		}
 		select {
 		case <-termSignal:
-			log.Println("Finishing")
-			govpn.Println("Finishing")
+			govpn.BothPrintf(`[finish remote="%s"]`, *remoteAddr)
 			termination <- struct{}{}
 			break MainCycle
 		case <-timeouted:

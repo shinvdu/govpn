@@ -70,7 +70,7 @@ func callUp(peerId *govpn.PeerId, remoteAddr string) (string, error) {
 	if confs[*peerId].Up != "" {
 		result, err := govpn.ScriptCall(confs[*peerId].Up, ifaceName, remoteAddr)
 		if err != nil {
-			govpn.Println("Script", confs[*peerId].Up, "call failed", err)
+			govpn.Printf(`[script-failed bind="%s" path="%s" err="%s"]`, *bindAddr, confs[*peerId].Up, err)
 			return "", err
 		}
 		if ifaceName == "" {
@@ -82,7 +82,7 @@ func callUp(peerId *govpn.PeerId, remoteAddr string) (string, error) {
 		}
 	}
 	if ifaceName == "" {
-		govpn.Println("Can not obtain interface name for", *peerId)
+		govpn.Printf(`[tap-failed bind="%s" peer="%s"]`, *bindAddr, *peerId)
 	}
 	return ifaceName, nil
 }

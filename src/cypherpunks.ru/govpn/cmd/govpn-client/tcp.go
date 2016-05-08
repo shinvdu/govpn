@@ -37,7 +37,7 @@ func startTCP(timeouted, rehandshaking, termination chan struct{}) {
 	if err != nil {
 		log.Fatalln("Can not connect to address:", err)
 	}
-	govpn.Println("Connected to TCP:" + *remoteAddr)
+	govpn.Printf(`[connected remote="%s"]`, *remoteAddr)
 	handleTCP(conn, timeouted, rehandshaking, termination)
 }
 
@@ -57,7 +57,7 @@ HandshakeCycle:
 		default:
 		}
 		if prev == len(buf) {
-			govpn.Println("Timeouted waiting for the packet")
+			govpn.Printf(`[packet-timeouted remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break HandshakeCycle
 		}
@@ -65,7 +65,7 @@ HandshakeCycle:
 		conn.SetReadDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
 		n, err = conn.Read(buf[prev:])
 		if err != nil {
-			govpn.Println("Connection timeouted")
+			govpn.Printf(`[connection-timeouted remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break HandshakeCycle
 		}
@@ -80,7 +80,7 @@ HandshakeCycle:
 		if peer == nil {
 			continue
 		}
-		govpn.Println("Handshake completed")
+		govpn.Printf(`[handshake-completed remote="%s"]`, *remoteAddr)
 		knownPeers = govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
 		if firstUpCall {
 			go govpn.ScriptCall(*upPath, *ifaceName, *remoteAddr)
@@ -126,14 +126,14 @@ TransportCycle:
 		default:
 		}
 		if prev == len(buf) {
-			govpn.Println("Timeouted waiting for the packet")
+			govpn.Printf(`[packet-timeouted remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break TransportCycle
 		}
 		conn.SetReadDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
 		n, err = conn.Read(buf[prev:])
 		if err != nil {
-			govpn.Println("Connection timeouted")
+			govpn.Printf(`[connection-timeouted remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break TransportCycle
 		}
@@ -147,12 +147,12 @@ TransportCycle:
 			continue
 		}
 		if !peer.PktProcess(buf[:i+govpn.NonceSize], tap, false) {
-			govpn.Println("Unauthenticated packet, dropping connection")
+			govpn.Printf(`[packet-unauthenticated remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break TransportCycle
 		}
 		if atomic.LoadUint64(&peer.BytesIn)+atomic.LoadUint64(&peer.BytesOut) > govpn.MaxBytesPerKey {
-			govpn.Println("Need rehandshake")
+			govpn.Printf(`[rehandshake-required remote="%s"]`, *remoteAddr)
 			rehandshaking <- struct{}{}
 			break TransportCycle
 		}

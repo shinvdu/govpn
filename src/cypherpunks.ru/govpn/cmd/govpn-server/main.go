@@ -60,6 +60,10 @@ func main() {
 		govpn.EGDInit(*egdPath)
 	}
 
+	if *syslog {
+		govpn.SyslogEnable()
+	}
+
 	switch *proto {
 	case "udp":
 		startUDP()
@@ -89,20 +93,14 @@ func main() {
 	if *proxy != "" {
 		go proxyStart()
 	}
-
-	if *syslog {
-		govpn.SyslogEnable()
-	}
-	log.Println("Server started")
-	govpn.Println("Server started")
+	govpn.BothPrintf(`[started bind="%s"]`, *bindAddr)
 
 	var needsDeletion bool
 MainCycle:
 	for {
 		select {
 		case <-termSignal:
-			log.Println("Terminating")
-			govpn.Println("Terminating")
+			govpn.BothPrintf(`[terminating bind="%s"]`, *bindAddr)
 			for _, ps := range peers {
 				govpn.ScriptCall(
 					confs[*ps.peer.Id].Down,
@@ -116,7 +114,7 @@ MainCycle:
 			hsLock.Lock()
 			for addr, hs := range handshakes {
 				if hs.LastPing.Add(timeout).Before(now) {
-					govpn.Println("Deleting handshake state", addr)
+					govpn.Printf(`[handshake-delete bind="%s" addr="%s"]`, *bindAddr, addr)
 					hs.Zero()
 					delete(handshakes, addr)
 				}
@@ -129,7 +127,7 @@ MainCycle:
 				needsDeletion = ps.peer.LastPing.Add(timeout).Before(now)
 				ps.peer.BusyR.Unlock()
 				if needsDeletion {
-					govpn.Println("Deleting peer", ps.peer)
+					govpn.Printf(`[peer-delete bind="%s" peer="%s"]`, *bindAddr, ps.peer)
 					delete(peers, addr)
 					delete(knownPeers, addr)
 					delete(peersById, *ps.peer.Id)
