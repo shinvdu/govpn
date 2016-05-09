@@ -35,7 +35,7 @@ const (
 
 var (
 	confs    map[govpn.PeerId]*govpn.PeerConf
-	idsCache *govpn.CipherCache
+	idsCache *govpn.MACCache
 )
 
 func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
@@ -99,7 +99,7 @@ func confRefresh() error {
 }
 
 func confInit() {
-	idsCache = govpn.NewCipherCache()
+	idsCache = govpn.NewMACCache()
 	if err := confRefresh(); err != nil {
 		log.Fatalln(err)
 	}

@@ -4,8 +4,8 @@
 Pay attention how to get @ref{Sources, development source code}.
 
 @table @asis
-@item Nonce and identity encryption
-    @url{http://www.cix.co.uk/~klockstone/xtea.pdf, XTEA}.
+@item Nonce and identity obfuscation
+    @url{https://blake2.net/, BLAKE2b-MAC}.
 @item Data encryption
     @url{http://cr.yp.to/snuffle.html, Salsa20}.
 @item Message authentication
@@ -24,7 +24,7 @@ Pay attention how to get @ref{Sources, development source code}.
     @url{http://theory.lcs.mit.edu/~cis/pubs/rivest/fusion.ps,
     All-Or-Nothing-Transformed} (based on
     @url{http://cseweb.ucsd.edu/~mihir/papers/oaep.html, OAEP} using
-    Salsa20 with @url{https://blake2.net/, BLAKE2b-256} based
+    Salsa20 with BLAKE2b-256 based
     @url{http://crypto.stanford.edu/~dabo/abstracts/saep.html, SAEP+}
     checksums) data with 128-bits of feeded random.
 @item Packet overhead

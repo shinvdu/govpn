@@ -98,8 +98,6 @@ HandshakeCycle:
 		return
 	}
 
-	nonceExpectation := make([]byte, govpn.NonceSize)
-	peer.NonceExpectation(nonceExpectation)
 	prev = 0
 	var i int
 TransportCycle:
@@ -126,7 +124,7 @@ TransportCycle:
 		if prev < govpn.MinPktLength {
 			continue
 		}
-		i = bytes.Index(buf[:prev], nonceExpectation)
+		i = bytes.Index(buf[:prev], peer.NonceExpect)
 		if i == -1 {
 			continue
 		}
@@ -140,7 +138,6 @@ TransportCycle:
 			rehandshaking <- struct{}{}
 			break TransportCycle
 		}
-		peer.NonceExpectation(nonceExpectation)
 		copy(buf, buf[i+govpn.NonceSize:prev])
 		prev = prev - i - govpn.NonceSize
 		goto CheckMore

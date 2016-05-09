@@ -22,11 +22,12 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/binary"
+	"hash"
 	"log"
 	"sync"
 	"time"
 
-	"golang.org/x/crypto/xtea"
+	"github.com/dchest/blake2b"
 )
 
 const (
@@ -43,42 +44,42 @@ func (id PeerId) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + id.String() + `"`), nil
 }
 
-type CipherAndTimeSync struct {
-	c *xtea.Cipher
-	t int
+type MACAndTimeSync struct {
+	mac hash.Hash
+	ts  int
+	l   sync.Mutex
 }
 
-type CipherCache struct {
-	c map[PeerId]*CipherAndTimeSync
-	l sync.RWMutex
+type MACCache struct {
+	cache map[PeerId]*MACAndTimeSync
+	l     sync.RWMutex
 }
 
-func NewCipherCache() *CipherCache {
-	return &CipherCache{c: make(map[PeerId]*CipherAndTimeSync)}
+func NewMACCache() *MACCache {
+	return &MACCache{cache: make(map[PeerId]*MACAndTimeSync)}
 }
 
-// Remove disappeared keys, add missing ones with initialized ciphers.
-func (cc *CipherCache) Update(peers *map[PeerId]*PeerConf) {
-	cc.l.Lock()
-	for pid, _ := range cc.c {
+// Remove disappeared keys, add missing ones with initialized MACs.
+func (mc *MACCache) Update(peers *map[PeerId]*PeerConf) {
+	mc.l.Lock()
+	for pid, _ := range mc.cache {
 		if _, exists := (*peers)[pid]; !exists {
 			log.Println("Cleaning key:", pid)
-			delete(cc.c, pid)
+			delete(mc.cache, pid)
 		}
 	}
 	for pid, pc := range *peers {
-		if _, exists := cc.c[pid]; exists {
-			cc.c[pid].t = pc.TimeSync
+		if _, exists := mc.cache[pid]; exists {
+			mc.cache[pid].ts = pc.TimeSync
 		} else {
 			log.Println("Adding key", pid)
-			cipher, err := xtea.NewCipher(pid[:])
-			if err != nil {
-				panic(err)
+			mc.cache[pid] = &MACAndTimeSync{
+				mac: blake2b.NewMAC(8, pid[:]),
+				ts:  pc.TimeSync,
 			}
-			cc.c[pid] = &CipherAndTimeSync{cipher, pc.TimeSync}
 		}
 	}
-	cc.l.Unlock()
+	mc.l.Unlock()
 }
 
 // If timeSync > 0, then XOR timestamp with the data.
@@ -93,24 +94,29 @@ func AddTimeSync(ts int, data []byte) {
 	}
 }
 
-// Try to find peer's identity (that equals to an encryption key)
+// Try to find peer's identity (that equals to MAC)
 // by taking first blocksize sized bytes from data at the beginning
 // as plaintext and last bytes as cyphertext.
-func (cc *CipherCache) Find(data []byte) *PeerId {
-	if len(data) < xtea.BlockSize*2 {
+func (mc *MACCache) Find(data []byte) *PeerId {
+	if len(data) < 8*2 {
 		return nil
 	}
-	buf := make([]byte, xtea.BlockSize)
-	cc.l.RLock()
-	for pid, ct := range cc.c {
-		ct.c.Decrypt(buf, data[len(data)-xtea.BlockSize:])
-		AddTimeSync(ct.t, buf)
-		if subtle.ConstantTimeCompare(buf, data[:xtea.BlockSize]) == 1 {
+	buf := make([]byte, 8)
+	mc.l.RLock()
+	for pid, mt := range mc.cache {
+		copy(buf, data)
+		AddTimeSync(mt.ts, buf)
+		mt.l.Lock()
+		mt.mac.Reset()
+		mt.mac.Write(buf)
+		mt.mac.Sum(buf[:0])
+		mt.l.Unlock()
+		if subtle.ConstantTimeCompare(buf, data[len(data)-8:]) == 1 {
 			ppid := PeerId(pid)
-			cc.l.RUnlock()
+			mc.l.RUnlock()
 			return &ppid
 		}
 	}
-	cc.l.RUnlock()
+	mc.l.RUnlock()
 	return nil
 }

@@ -57,7 +57,7 @@ var (
 	timeout     int
 	firstUpCall bool = true
 	knownPeers  govpn.KnownPeers
-	idsCache    *govpn.CipherCache
+	idsCache    *govpn.MACCache
 )
 
 func main() {
@@ -108,7 +108,7 @@ func main() {
 		Verifier: verifier,
 		DSAPriv:  priv,
 	}
-	idsCache = govpn.NewCipherCache()
+	idsCache = govpn.NewMACCache()
 	confs := map[govpn.PeerId]*govpn.PeerConf{*verifier.Id: conf}
 	idsCache.Update(&confs)
 	log.Println(govpn.VersionGet())
