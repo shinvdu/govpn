@@ -108,7 +108,7 @@ func handleTCP(conn net.Conn) {
 				tap:        tap,
 				terminator: make(chan struct{}),
 			}
-			go peerReady(*ps)
+			go govpn.PeerTapProcessor(ps.peer, ps.tap, ps.terminator)
 			peersByIdLock.Lock()
 			kpLock.Lock()
 			delete(peers, addrPrev)
@@ -143,7 +143,7 @@ func handleTCP(conn net.Conn) {
 				tap:        tap,
 				terminator: make(chan struct{}, 1),
 			}
-			go peerReady(*ps)
+			go govpn.PeerTapProcessor(ps.peer, ps.tap, ps.terminator)
 			peersLock.Lock()
 			peersByIdLock.Lock()
 			kpLock.Lock()

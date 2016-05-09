@@ -21,7 +21,6 @@ package main
 import (
 	"bytes"
 	"sync"
-	"time"
 
 	"cypherpunks.ru/govpn"
 )
@@ -45,25 +44,6 @@ var (
 	knownPeers govpn.KnownPeers
 	kpLock     sync.RWMutex
 )
-
-func peerReady(ps PeerState) {
-	var data []byte
-	heartbeat := time.NewTicker(ps.peer.Timeout)
-Processor:
-	for {
-		select {
-		case <-heartbeat.C:
-			ps.peer.EthProcess(nil)
-		case <-ps.terminator:
-			break Processor
-		case data = <-ps.tap.Sink:
-			ps.peer.EthProcess(data)
-		}
-	}
-	close(ps.terminator)
-	ps.peer.Zero()
-	heartbeat.Stop()
-}
 
 func callUp(peerId *govpn.PeerId, remoteAddr string) (string, error) {
 	ifaceName := confs[*peerId].Iface

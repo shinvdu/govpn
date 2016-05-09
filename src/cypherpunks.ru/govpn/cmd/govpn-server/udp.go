@@ -121,7 +121,7 @@ func startUDP() {
 					terminator: make(chan struct{}),
 				}
 				go func(ps PeerState) {
-					peerReady(ps)
+					govpn.PeerTapProcessor(ps.peer, ps.tap, ps.terminator)
 					<-udpBufs
 					<-udpBufs
 				}(*ps)
@@ -159,7 +159,7 @@ func startUDP() {
 						terminator: make(chan struct{}),
 					}
 					go func(ps PeerState) {
-						peerReady(ps)
+						govpn.PeerTapProcessor(ps.peer, ps.tap, ps.terminator)
 						<-udpBufs
 						<-udpBufs
 					}(*ps)

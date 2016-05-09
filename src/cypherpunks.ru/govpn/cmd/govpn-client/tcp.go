@@ -88,23 +88,7 @@ HandshakeCycle:
 		}
 		hs.Zero()
 		terminator = make(chan struct{})
-		go func() {
-			heartbeat := time.NewTicker(peer.Timeout)
-			var data []byte
-		Processor:
-			for {
-				select {
-				case <-heartbeat.C:
-					peer.EthProcess(nil)
-				case <-terminator:
-					break Processor
-				case data = <-tap.Sink:
-					peer.EthProcess(data)
-				}
-			}
-			heartbeat.Stop()
-			peer.Zero()
-		}()
+		go govpn.PeerTapProcessor(peer, tap, terminator)
 		break HandshakeCycle
 	}
 	if hs != nil {
