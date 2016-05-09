@@ -2,26 +2,11 @@
 @section Transport protocol
 
 @verbatim
-TAG || ENCRYPTED || NONCE --> PACKET
- ^         ^          ^
- |         |          |
- |         |          +-------------+
- |         |                        |
- |         +-------------+          |
- |                       |          |
- +--< AUTH(AUTH_KEY, ENCRYPTED || NONCE)
-                         ^          ^
-                         |          |
-+------------------------+          |
-|                                   |
-|                   +---------------+
-|                   |
-+--< ENCRYPT(KEY, NONCE, PAYLOAD)
-                    ^       ^
-                    |       |
-                    |       +--< DATA || PAD [|| ZEROS]
-                    |
-                    +--< MAC(MAC_KEY, SERIAL)
+     NONCE = MAC(MAC_KEY, SERIAL)
+   PAYLOAD = DATA || PAD [|| ZEROS]
+CIPHERTEXT = ENCRYPT(KEY, NONCE, PAYLOAD)
+       TAG = AUTH(AUTH_KEY, CIPHERTEXT || NONCE)
+   MESSAGE = TAG || CIPHERTEXT || NONCE
 @end verbatim
 
 @code{SERIAL} is message's serial number. Odds are reserved for
