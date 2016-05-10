@@ -20,9 +20,7 @@ package main
 
 import (
 	"bytes"
-	"log"
 	"sync"
-	"time"
 
 	"cypherpunks.ru/govpn"
 )
@@ -47,31 +45,12 @@ var (
 	kpLock     sync.RWMutex
 )
 
-func peerReady(ps PeerState) {
-	var data []byte
-	heartbeat := time.NewTicker(ps.peer.Timeout)
-Processor:
-	for {
-		select {
-		case <-heartbeat.C:
-			ps.peer.EthProcess(nil)
-		case <-ps.terminator:
-			break Processor
-		case data = <-ps.tap.Sink:
-			ps.peer.EthProcess(data)
-		}
-	}
-	close(ps.terminator)
-	ps.peer.Zero()
-	heartbeat.Stop()
-}
-
 func callUp(peerId *govpn.PeerId, remoteAddr string) (string, error) {
 	ifaceName := confs[*peerId].Iface
 	if confs[*peerId].Up != "" {
 		result, err := govpn.ScriptCall(confs[*peerId].Up, ifaceName, remoteAddr)
 		if err != nil {
-			log.Println("Script", confs[*peerId].Up, "call failed", err)
+			govpn.Printf(`[script-failed bind="%s" path="%s" err="%s"]`, *bindAddr, confs[*peerId].Up, err)
 			return "", err
 		}
 		if ifaceName == "" {
@@ -83,7 +62,7 @@ func callUp(peerId *govpn.PeerId, remoteAddr string) (string, error) {
 		}
 	}
 	if ifaceName == "" {
-		log.Println("Can not obtain interface name for", *peerId)
+		govpn.Printf(`[tap-failed bind="%s" peer="%s"]`, *bindAddr, *peerId)
 	}
 	return ifaceName, nil
 }

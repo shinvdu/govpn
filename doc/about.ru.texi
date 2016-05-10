@@ -89,6 +89,9 @@ A-EKE (Diffie-Hellman Augmented Encrypted Key Exchange)).
 Сервер конфигурируется используя @url{http://yaml.org/, YAML} файл.
 
 @item
+Возможность использовать syslog для журналирования.
+
+@item
 Написан на языке @url{https://golang.org/, Go} с простым кодом,
 ориентированным на лёгкость чтения и анализа.
 

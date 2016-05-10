@@ -36,12 +36,12 @@ func startTCP() {
 	if err != nil {
 		log.Fatalln("Can not listen on TCP:", err)
 	}
-	log.Println("Listening on TCP:" + *bindAddr)
+	govpn.BothPrintf(`[tcp-listen bind="%s"]`, *bindAddr)
 	go func() {
 		for {
 			conn, err := listener.AcceptTCP()
 			if err != nil {
-				log.Println("Error accepting TCP:", err)
+				govpn.Printf(`[tcp-accept-failed bind="%s" err="%s"]`, *bindAddr, err)
 				continue
 			}
 			go handleTCP(conn)
@@ -78,7 +78,10 @@ func handleTCP(conn net.Conn) {
 		if hs == nil {
 			conf = confs[*peerId]
 			if conf == nil {
-				log.Println("Can not get peer configuration:", peerId.String())
+				govpn.Printf(
+					`[conf-get-failed bind="%s" peer="%s"]`,
+					*bindAddr, peerId.String(),
+				)
 				break
 			}
 			hs = govpn.NewHandshake(addr, conn, conf)
@@ -89,7 +92,10 @@ func handleTCP(conn net.Conn) {
 			continue
 		}
 		hs.Zero()
-		log.Println("Peer handshake finished:", addr, peer.Id.String())
+		govpn.Printf(
+			`[handshake-completed bind="%s" addr="%s" peer="%s"]`,
+			*bindAddr, addr, peerId.String(),
+		)
 		peersByIdLock.RLock()
 		addrPrev, exists := peersById[*peer.Id]
 		peersByIdLock.RUnlock()
@@ -102,7 +108,7 @@ func handleTCP(conn net.Conn) {
 				tap:        tap,
 				terminator: make(chan struct{}),
 			}
-			go peerReady(*ps)
+			go govpn.PeerTapProcessor(ps.peer, ps.tap, ps.terminator)
 			peersByIdLock.Lock()
 			kpLock.Lock()
 			delete(peers, addrPrev)
@@ -113,7 +119,10 @@ func handleTCP(conn net.Conn) {
 			peersLock.Unlock()
 			peersByIdLock.Unlock()
 			kpLock.Unlock()
-			log.Println("Rehandshake processed:", peer.Id.String())
+			govpn.Printf(
+				`[rehandshake-completed bind="%s" peer="%s"]`,
+				*bindAddr, peerId.String(),
+			)
 		} else {
 			ifaceName, err := callUp(peer.Id, peer.Addr)
 			if err != nil {
@@ -122,7 +131,10 @@ func handleTCP(conn net.Conn) {
 			}
 			tap, err = govpn.TAPListen(ifaceName, peer.MTU)
 			if err != nil {
-				log.Println("Unable to create TAP:", err)
+				govpn.Printf(
+					`[tap-failed bind="%s" peer="%s" err="%s"]`,
+					*bindAddr, peerId.String(), err,
+				)
 				peer = nil
 				break
 			}
@@ -131,7 +143,7 @@ func handleTCP(conn net.Conn) {
 				tap:        tap,
 				terminator: make(chan struct{}, 1),
 			}
-			go peerReady(*ps)
+			go govpn.PeerTapProcessor(ps.peer, ps.tap, ps.terminator)
 			peersLock.Lock()
 			peersByIdLock.Lock()
 			kpLock.Lock()
@@ -141,7 +153,7 @@ func handleTCP(conn net.Conn) {
 			peersLock.Unlock()
 			peersByIdLock.Unlock()
 			kpLock.Unlock()
-			log.Println("Peer created:", peer.Id.String())
+			govpn.Printf(`[peer-created bind="%s" peer="%s"]`, *bindAddr, peerId.String())
 		}
 		break
 	}
@@ -152,8 +164,6 @@ func handleTCP(conn net.Conn) {
 		return
 	}
 
-	nonceExpectation := make([]byte, govpn.NonceSize)
-	peer.NonceExpectation(nonceExpectation)
 	prev = 0
 	var i int
 	for {
@@ -171,18 +181,17 @@ func handleTCP(conn net.Conn) {
 		if prev < govpn.MinPktLength {
 			continue
 		}
-		i = bytes.Index(buf[:prev], nonceExpectation)
+		i = bytes.Index(buf[:prev], peer.NonceExpect)
 		if i == -1 {
 			continue
 		}
 		if !peer.PktProcess(buf[:i+govpn.NonceSize], tap, false) {
-			log.Println(
-				"Unauthenticated packet, dropping connection",
-				addr, peer.Id.String(),
+			govpn.Printf(
+				`[packet-unauthenticated bind="%s" addr="%s" peer="%s"]`,
+				*bindAddr, addr, peer.Id.String(),
 			)
 			break
 		}
-		peer.NonceExpectation(nonceExpectation)
 		copy(buf, buf[i+govpn.NonceSize:prev])
 		prev = prev - i - govpn.NonceSize
 		goto CheckMore

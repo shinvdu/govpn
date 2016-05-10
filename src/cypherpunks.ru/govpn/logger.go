@@ -16,31 +16,40 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package main
+package govpn
 
 import (
-	"net/http"
-
-	"cypherpunks.ru/govpn"
+	"log"
+	"log/syslog"
 )
 
-type proxyHandler struct{}
+var (
+	sysloger *log.Logger
+)
 
-func (p proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	conn, _, err := w.(http.Hijacker).Hijack()
+// Enable logging to syslog, instead of default stdout log.
+func SyslogEnable() {
+	var err error
+	sysloger, err = syslog.NewLogger(syslog.LOG_INFO, 0)
 	if err != nil {
-		govpn.Printf(`[proxy-hijack-failed bind="%s" err="%s"]`, *bindAddr, err)
-		return
+		log.Fatalln(err)
 	}
-	conn.Write([]byte("HTTP/1.0 200 OK\n\n"))
-	go handleTCP(conn)
 }
 
-func proxyStart() {
-	govpn.BothPrintf(`[proxy-listen bind="%s" addr="%s"]`, *bindAddr, *proxy)
-	s := &http.Server{
-		Addr:    *proxy,
-		Handler: proxyHandler{},
+// Call either syslog-related logger.Printf if SyslogEnabled,
+// default log.Printf otherwise.
+func Printf(f string, v ...interface{}) {
+	if sysloger == nil {
+		log.Printf(f, v...)
+	} else {
+		sysloger.Printf(f, v...)
 	}
-	govpn.BothPrintf(`[proxy-finished bind="%s" result="%s"]`, *bindAddr, s.ListenAndServe())
+}
+
+// Call both default log.Printf and syslog-related one.
+func BothPrintf(f string, v ...interface{}) {
+	log.Printf(f, v...)
+	if sysloger != nil {
+		sysloger.Printf(f, v...)
+	}
 }

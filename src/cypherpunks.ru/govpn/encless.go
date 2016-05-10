@@ -19,6 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
+	"io"
+
 	"cypherpunks.ru/govpn/aont"
 	"cypherpunks.ru/govpn/cnw"
 )
@@ -36,7 +38,7 @@ const (
 func EnclessEncode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
 	r := new([aont.RSize]byte)
 	var err error
-	if _, err = Rand.Read(r[:]); err != nil {
+	if _, err = io.ReadFull(Rand, r[:]); err != nil {
 		return nil, err
 	}
 	aonted, err := aont.Encode(r, in)

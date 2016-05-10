@@ -30,7 +30,6 @@ import (
 	"github.com/dchest/blake2b"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/salsa20"
-	"golang.org/x/crypto/xtea"
 )
 
 const (
@@ -102,7 +101,7 @@ func dhKeypairGen() (*[32]byte, *[32]byte) {
 	repr := new([32]byte)
 	reprFound := false
 	for !reprFound {
-		if _, err := Rand.Read(priv[:]); err != nil {
+		if _, err := io.ReadFull(Rand, priv[:]); err != nil {
 			log.Fatalln("Error reading random for DH private key:", err)
 		}
 		reprFound = extra25519.ScalarBaseMult(pub, repr, priv)
@@ -134,14 +133,12 @@ func NewHandshake(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 
 // Generate ID tag from client identification and data.
 func idTag(id *PeerId, timeSync int, data []byte) []byte {
-	ciph, err := xtea.NewCipher(id[:])
-	if err != nil {
-		panic(err)
-	}
-	enc := make([]byte, xtea.BlockSize)
+	enc := make([]byte, 8)
 	copy(enc, data)
 	AddTimeSync(timeSync, enc)
-	ciph.Encrypt(enc, enc)
+	mac := blake2b.NewMAC(8, id[:])
+	mac.Write(enc)
+	mac.Sum(enc[:0])
 	return enc
 }
 
@@ -154,12 +151,12 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 	state.dhPriv, dhPubRepr = dhKeypairGen()
 
 	state.rNonce = new([RSize]byte)
-	if _, err := Rand.Read(state.rNonce[:]); err != nil {
+	if _, err := io.ReadFull(Rand, state.rNonce[:]); err != nil {
 		log.Fatalln("Error reading random for nonce:", err)
 	}
 	var enc []byte
 	if conf.Noise {
-		enc = make([]byte, conf.MTU-xtea.BlockSize-RSize)
+		enc = make([]byte, conf.MTU-8-RSize)
 	} else {
 		enc = make([]byte, 32)
 	}
@@ -197,7 +194,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 			out, err := EnclessDecode(
 				h.dsaPubH,
 				h.rNonce[:],
-				data[RSize:len(data)-xtea.BlockSize],
+				data[RSize:len(data)-8],
 			)
 			if err != nil {
 				log.Println("Unable to decode packet from", h.addr, err)
@@ -205,12 +202,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 			}
 			copy(cDHRepr[:], out)
 		} else {
-			salsa20.XORKeyStream(
-				cDHRepr[:],
-				data[RSize:RSize+32],
-				h.rNonce[:],
-				h.dsaPubH,
-			)
+			salsa20.XORKeyStream(cDHRepr[:], data[RSize:RSize+32], h.rNonce[:], h.dsaPubH)
 		}
 
 		// Generate DH keypair
@@ -238,18 +230,18 @@ func (h *Handshake) Server(data []byte) *Peer {
 
 		// Generate R* and encrypt them
 		h.rServer = new([RSize]byte)
-		if _, err = Rand.Read(h.rServer[:]); err != nil {
+		if _, err = io.ReadFull(Rand, h.rServer[:]); err != nil {
 			log.Fatalln("Error reading random for R:", err)
 		}
 		h.sServer = new([SSize]byte)
-		if _, err = Rand.Read(h.sServer[:]); err != nil {
+		if _, err = io.ReadFull(Rand, h.sServer[:]); err != nil {
 			log.Fatalln("Error reading random for S:", err)
 		}
 		var encRs []byte
 		if h.Conf.Noise && !h.Conf.Encless {
-			encRs = make([]byte, h.Conf.MTU-len(encPub)-xtea.BlockSize)
+			encRs = make([]byte, h.Conf.MTU-len(encPub)-8)
 		} else if h.Conf.Encless {
-			encRs = make([]byte, h.Conf.MTU-xtea.BlockSize)
+			encRs = make([]byte, h.Conf.MTU-8)
 		} else {
 			encRs = make([]byte, RSize+SSize)
 		}
@@ -278,7 +270,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 			dec, err = EnclessDecode(
 				h.key,
 				h.rNonceNext(1),
-				data[:len(data)-xtea.BlockSize],
+				data[:len(data)-8],
 			)
 			if err != nil {
 				log.Println("Unable to decode packet from", h.addr, err)
@@ -308,7 +300,7 @@ func (h *Handshake) Server(data []byte) *Peer {
 		// Send final answer to client
 		var enc []byte
 		if h.Conf.Noise {
-			enc = make([]byte, h.Conf.MTU-xtea.BlockSize)
+			enc = make([]byte, h.Conf.MTU-8)
 		} else {
 			enc = make([]byte, RSize)
 		}
@@ -364,12 +356,7 @@ func (h *Handshake) Client(data []byte) *Peer {
 			}
 			copy(sDHRepr[:], tmp[:32])
 		} else {
-			salsa20.XORKeyStream(
-				sDHRepr[:],
-				data[:32],
-				h.rNonceNext(1),
-				h.dsaPubH,
-			)
+			salsa20.XORKeyStream(sDHRepr[:], data[:32], h.rNonceNext(1), h.dsaPubH)
 		}
 
 		// Compute shared key
@@ -384,7 +371,7 @@ func (h *Handshake) Client(data []byte) *Peer {
 			tmp, err = EnclessDecode(
 				h.key,
 				h.rNonce[:],
-				data[len(data)/2:len(data)-xtea.BlockSize],
+				data[len(data)/2:len(data)-8],
 			)
 			if err != nil {
 				log.Println("Unable to decode packet from", h.addr, err)
@@ -394,30 +381,25 @@ func (h *Handshake) Client(data []byte) *Peer {
 			copy(h.sServer[:], tmp[RSize:RSize+SSize])
 		} else {
 			decRs := make([]byte, RSize+SSize)
-			salsa20.XORKeyStream(
-				decRs,
-				data[SSize:SSize+RSize+SSize],
-				h.rNonce[:],
-				h.key,
-			)
+			salsa20.XORKeyStream(decRs, data[SSize:SSize+RSize+SSize], h.rNonce[:], h.key)
 			copy(h.rServer[:], decRs[:RSize])
 			copy(h.sServer[:], decRs[RSize:])
 		}
 
 		// Generate R* and signature and encrypt them
 		h.rClient = new([RSize]byte)
-		if _, err = Rand.Read(h.rClient[:]); err != nil {
+		if _, err = io.ReadFull(Rand, h.rClient[:]); err != nil {
 			log.Fatalln("Error reading random for R:", err)
 		}
 		h.sClient = new([SSize]byte)
-		if _, err = Rand.Read(h.sClient[:]); err != nil {
+		if _, err = io.ReadFull(Rand, h.sClient[:]); err != nil {
 			log.Fatalln("Error reading random for S:", err)
 		}
 		sign := ed25519.Sign(h.Conf.DSAPriv, h.key[:])
 
 		var enc []byte
 		if h.Conf.Noise {
-			enc = make([]byte, h.Conf.MTU-xtea.BlockSize)
+			enc = make([]byte, h.Conf.MTU-8)
 		} else {
 			enc = make([]byte, RSize+RSize+SSize+ed25519.SignatureSize)
 		}
@@ -445,11 +427,7 @@ func (h *Handshake) Client(data []byte) *Peer {
 		// Decrypt rClient
 		var dec []byte
 		if h.Conf.Encless {
-			dec, err = EnclessDecode(
-				h.key,
-				h.rNonceNext(2),
-				data[:len(data)-xtea.BlockSize],
-			)
+			dec, err = EnclessDecode(h.key, h.rNonceNext(2), data[:len(data)-8])
 			if err != nil {
 				log.Println("Unable to decode packet from", h.addr, err)
 				return nil

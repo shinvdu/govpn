@@ -37,7 +37,7 @@ func startTCP(timeouted, rehandshaking, termination chan struct{}) {
 	if err != nil {
 		log.Fatalln("Can not connect to address:", err)
 	}
-	log.Println("Connected to TCP:" + *remoteAddr)
+	govpn.Printf(`[connected remote="%s"]`, *remoteAddr)
 	handleTCP(conn, timeouted, rehandshaking, termination)
 }
 
@@ -57,7 +57,7 @@ HandshakeCycle:
 		default:
 		}
 		if prev == len(buf) {
-			log.Println("Timeouted waiting for the packet")
+			govpn.Printf(`[packet-timeouted remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break HandshakeCycle
 		}
@@ -65,7 +65,7 @@ HandshakeCycle:
 		conn.SetReadDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
 		n, err = conn.Read(buf[prev:])
 		if err != nil {
-			log.Println("Connection timeouted")
+			govpn.Printf(`[connection-timeouted remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break HandshakeCycle
 		}
@@ -80,7 +80,7 @@ HandshakeCycle:
 		if peer == nil {
 			continue
 		}
-		log.Println("Handshake completed")
+		govpn.Printf(`[handshake-completed remote="%s"]`, *remoteAddr)
 		knownPeers = govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
 		if firstUpCall {
 			go govpn.ScriptCall(*upPath, *ifaceName, *remoteAddr)
@@ -88,23 +88,7 @@ HandshakeCycle:
 		}
 		hs.Zero()
 		terminator = make(chan struct{})
-		go func() {
-			heartbeat := time.NewTicker(peer.Timeout)
-			var data []byte
-		Processor:
-			for {
-				select {
-				case <-heartbeat.C:
-					peer.EthProcess(nil)
-				case <-terminator:
-					break Processor
-				case data = <-tap.Sink:
-					peer.EthProcess(data)
-				}
-			}
-			heartbeat.Stop()
-			peer.Zero()
-		}()
+		go govpn.PeerTapProcessor(peer, tap, terminator)
 		break HandshakeCycle
 	}
 	if hs != nil {
@@ -114,8 +98,6 @@ HandshakeCycle:
 		return
 	}
 
-	nonceExpectation := make([]byte, govpn.NonceSize)
-	peer.NonceExpectation(nonceExpectation)
 	prev = 0
 	var i int
 TransportCycle:
@@ -126,14 +108,14 @@ TransportCycle:
 		default:
 		}
 		if prev == len(buf) {
-			log.Println("Timeouted waiting for the packet")
+			govpn.Printf(`[packet-timeouted remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break TransportCycle
 		}
 		conn.SetReadDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
 		n, err = conn.Read(buf[prev:])
 		if err != nil {
-			log.Println("Connection timeouted")
+			govpn.Printf(`[connection-timeouted remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break TransportCycle
 		}
@@ -142,21 +124,20 @@ TransportCycle:
 		if prev < govpn.MinPktLength {
 			continue
 		}
-		i = bytes.Index(buf[:prev], nonceExpectation)
+		i = bytes.Index(buf[:prev], peer.NonceExpect)
 		if i == -1 {
 			continue
 		}
 		if !peer.PktProcess(buf[:i+govpn.NonceSize], tap, false) {
-			log.Println("Unauthenticated packet, dropping connection")
+			govpn.Printf(`[packet-unauthenticated remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break TransportCycle
 		}
 		if atomic.LoadUint64(&peer.BytesIn)+atomic.LoadUint64(&peer.BytesOut) > govpn.MaxBytesPerKey {
-			log.Println("Need rehandshake")
+			govpn.Printf(`[rehandshake-required remote="%s"]`, *remoteAddr)
 			rehandshaking <- struct{}{}
 			break TransportCycle
 		}
-		peer.NonceExpectation(nonceExpectation)
 		copy(buf, buf[i+govpn.NonceSize:prev])
 		prev = prev - i - govpn.NonceSize
 		goto CheckMore

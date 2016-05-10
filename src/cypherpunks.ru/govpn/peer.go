@@ -20,6 +20,7 @@ package govpn
 
 import (
 	"bytes"
+	"crypto/subtle"
 	"encoding/binary"
 	"io"
 	"log"
@@ -27,14 +28,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/dchest/blake2b"
 	"golang.org/x/crypto/poly1305"
 	"golang.org/x/crypto/salsa20"
-	"golang.org/x/crypto/xtea"
 )
 
 const (
 	NonceSize       = 8
-	NonceBucketSize = 128
+	NonceBucketSize = 256
 	TagSize         = poly1305.TagSize
 	// S20BS is Salsa20's internal blocksize in bytes
 	S20BS = 64
@@ -48,19 +49,23 @@ const (
 	PadByte = byte(0x80)
 )
 
-func newNonceCipher(key *[32]byte) *xtea.Cipher {
-	nonceKey := make([]byte, 16)
-	salsa20.XORKeyStream(
-		nonceKey,
-		make([]byte, 32),
-		make([]byte, xtea.BlockSize),
-		key,
-	)
-	ciph, err := xtea.NewCipher(nonceKey)
-	if err != nil {
-		panic(err)
-	}
-	return ciph
+func newNonces(key *[32]byte, i uint64) chan *[NonceSize]byte {
+	macKey := make([]byte, 32)
+	salsa20.XORKeyStream(macKey, make([]byte, 32), make([]byte, 8), key)
+	mac := blake2b.NewMAC(NonceSize, macKey)
+	nonces := make(chan *[NonceSize]byte, NonceBucketSize*3)
+	go func() {
+		for {
+			buf := new([NonceSize]byte)
+			binary.BigEndian.PutUint64(buf[:], i)
+			mac.Write(buf[:])
+			mac.Sum(buf[:0])
+			nonces <- buf
+			mac.Reset()
+			i += 2
+		}
+	}()
+	return nonces
 }
 
 type Peer struct {
@@ -88,25 +93,12 @@ type Peer struct {
 	Encless     bool
 	MTU         int
 
-	// Cryptography related
-	Key          *[SSize]byte `json:"-"`
-	NonceCipher  *xtea.Cipher `json:"-"`
-	nonceRecv    uint64
-	nonceLatest  uint64
-	nonceOur     uint64
-	NonceExpect  uint64 `json:"-"`
-	nonceBucket0 map[uint64]struct{}
-	nonceBucket1 map[uint64]struct{}
-	nonceFound0  bool
-	nonceFound1  bool
-	nonceBucketN int32
+	key *[SSize]byte `json:"-"`
 
 	// Timers
-	Timeout       time.Duration `json:"-"`
-	Established   time.Time
-	LastPing      time.Time
-	LastSent      time.Time
-	willSentCycle time.Time
+	Timeout     time.Duration `json:"-"`
+	Established time.Time
+	LastPing    time.Time
 
 	// Receiver
 	BusyR    sync.Mutex `json:"-"`
@@ -115,13 +107,24 @@ type Peer struct {
 	keyAuthR *[SSize]byte
 	pktSizeR int
 
+	// UDP-related
+	noncesR      chan *[NonceSize]byte
+	nonceRecv    [NonceSize]byte
+	nonceBucketL map[[NonceSize]byte]struct{}
+	nonceBucketM map[[NonceSize]byte]struct{}
+	nonceBucketH map[[NonceSize]byte]struct{}
+
+	// TCP-related
+	NonceExpect  []byte `json:"-"`
+	noncesExpect chan *[NonceSize]byte
+
 	// Transmitter
 	BusyT    sync.Mutex `json:"-"`
 	bufT     []byte
 	tagT     *[TagSize]byte
 	keyAuthT *[SSize]byte
 	frameT   []byte
-	now      time.Time
+	noncesT  chan *[NonceSize]byte
 }
 
 func (p *Peer) String() string {
@@ -132,18 +135,13 @@ func (p *Peer) String() string {
 func (p *Peer) Zero() {
 	p.BusyT.Lock()
 	p.BusyR.Lock()
-	SliceZero(p.Key[:])
+	SliceZero(p.key[:])
 	SliceZero(p.bufR)
 	SliceZero(p.bufT)
 	SliceZero(p.keyAuthR[:])
 	SliceZero(p.keyAuthT[:])
 	p.BusyT.Unlock()
 	p.BusyR.Unlock()
-}
-
-func (p *Peer) NonceExpectation(buf []byte) {
-	binary.BigEndian.PutUint64(buf, p.NonceExpect)
-	p.NonceCipher.Encrypt(buf, buf)
 }
 
 func cprCycleCalculate(conf *PeerConf) time.Duration {
@@ -177,6 +175,7 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		bufSize += EnclessEnlargeSize
 		noiseEnable = true
 	}
+
 	peer := Peer{
 		Addr: addr,
 		Id:   conf.Id,
@@ -188,10 +187,7 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		Encless:     conf.Encless,
 		MTU:         conf.MTU,
 
-		Key:          key,
-		NonceCipher:  newNonceCipher(key),
-		nonceBucket0: make(map[uint64]struct{}, NonceBucketSize),
-		nonceBucket1: make(map[uint64]struct{}, NonceBucketSize),
+		key: key,
 
 		Timeout:     timeout,
 		Established: now,
@@ -204,15 +200,39 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		keyAuthR: new([SSize]byte),
 		keyAuthT: new([SSize]byte),
 	}
-	if isClient {
-		peer.nonceOur = 1
-		peer.NonceExpect = 0 + 2
-	} else {
-		peer.nonceOur = 0
-		peer.NonceExpect = 1 + 2
-	}
-	return &peer
 
+	if isClient {
+		peer.noncesT = newNonces(peer.key, 1 + 2)
+		peer.noncesR = newNonces(peer.key, 0 + 2)
+		peer.noncesExpect = newNonces(peer.key, 0 + 2)
+	} else {
+		peer.noncesT = newNonces(peer.key, 0 + 2)
+		peer.noncesR = newNonces(peer.key, 1 + 2)
+		peer.noncesExpect = newNonces(peer.key, 1 + 2)
+	}
+
+	peer.NonceExpect = make([]byte, NonceSize)
+	nonce := <-peer.noncesExpect
+	copy(peer.NonceExpect, nonce[:])
+
+	var i int
+	peer.nonceBucketL = make(map[[NonceSize]byte]struct{}, NonceBucketSize)
+	for i = 0; i < NonceBucketSize; i++ {
+		nonce = <-peer.noncesR
+		peer.nonceBucketL[*nonce] = struct{}{}
+	}
+	peer.nonceBucketM = make(map[[NonceSize]byte]struct{}, NonceBucketSize)
+	for i = 0; i < NonceBucketSize; i++ {
+		nonce = <-peer.noncesR
+		peer.nonceBucketM[*nonce] = struct{}{}
+	}
+	peer.nonceBucketH = make(map[[NonceSize]byte]struct{}, NonceBucketSize)
+	for i = 0; i < NonceBucketSize; i++ {
+		nonce = <-peer.noncesR
+		peer.nonceBucketH[*nonce] = struct{}{}
+	}
+
+	return &peer
 }
 
 // Process incoming Ethernet packet.
@@ -224,17 +244,11 @@ func (p *Peer) EthProcess(data []byte) {
 		log.Println("Padded data packet size", len(data)+1, "is bigger than MTU", p.MTU, p)
 		return
 	}
-	p.now = time.Now()
 	p.BusyT.Lock()
 
 	// Zero size is a heartbeat packet
 	SliceZero(p.bufT)
 	if len(data) == 0 {
-		// If this heartbeat is necessary
-		if !p.LastSent.Add(p.Timeout).Before(p.now) {
-			p.BusyT.Unlock()
-			return
-		}
 		p.bufT[S20BS+0] = PadByte
 		p.HeartbeatSent++
 	} else {
@@ -252,17 +266,12 @@ func (p *Peer) EthProcess(data []byte) {
 	} else {
 		p.frameT = p.bufT[S20BS : S20BS+len(data)+1+NonceSize]
 	}
-	p.nonceOur += 2
-	binary.BigEndian.PutUint64(p.frameT[len(p.frameT)-NonceSize:], p.nonceOur)
-	p.NonceCipher.Encrypt(
-		p.frameT[len(p.frameT)-NonceSize:],
-		p.frameT[len(p.frameT)-NonceSize:],
-	)
+	copy(p.frameT[len(p.frameT)-NonceSize:], (<-p.noncesT)[:])
 	var out []byte
 	if p.Encless {
 		var err error
 		out, err = EnclessEncode(
-			p.Key,
+			p.key,
 			p.frameT[len(p.frameT)-NonceSize:],
 			p.frameT[:len(p.frameT)-NonceSize],
 		)
@@ -275,7 +284,7 @@ func (p *Peer) EthProcess(data []byte) {
 			p.bufT[:S20BS+len(p.frameT)-NonceSize],
 			p.bufT[:S20BS+len(p.frameT)-NonceSize],
 			p.frameT[len(p.frameT)-NonceSize:],
-			p.Key,
+			p.key,
 		)
 		copy(p.keyAuthT[:], p.bufT[:SSize])
 		poly1305.Sum(p.tagT, p.frameT, p.keyAuthT)
@@ -283,16 +292,6 @@ func (p *Peer) EthProcess(data []byte) {
 		out = append(p.tagT[:], p.frameT...)
 	}
 	p.FramesOut++
-
-	if p.CPRCycle != time.Duration(0) {
-		p.willSentCycle = p.LastSent.Add(p.CPRCycle)
-		if p.willSentCycle.After(p.now) {
-			time.Sleep(p.willSentCycle.Sub(p.now))
-			p.now = p.willSentCycle
-		}
-	}
-
-	p.LastSent = p.now
 	p.Conn.Write(out)
 	p.BusyT.Unlock()
 }
@@ -309,7 +308,7 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 	if p.Encless {
 		var err error
 		out, err = EnclessDecode(
-			p.Key,
+			p.key,
 			data[len(data)-NonceSize:],
 			data[:len(data)-NonceSize],
 		)
@@ -327,7 +326,7 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 			p.bufR[:S20BS+len(data)-TagSize-NonceSize],
 			p.bufR[:S20BS+len(data)-TagSize-NonceSize],
 			data[len(data)-NonceSize:],
-			p.Key,
+			p.key,
 		)
 		copy(p.keyAuthR[:], p.bufR[:SSize])
 		copy(p.tagR[:], data[:TagSize])
@@ -339,41 +338,45 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 		out = p.bufR[S20BS : S20BS+len(data)-TagSize-NonceSize]
 	}
 
-	// Check if received nonce is known to us in either of two buckets.
-	// If yes, then this is ignored duplicate.
-	// Check from the oldest bucket, as in most cases this will result
-	// in constant time check.
-	// If Bucket0 is filled, then it becomes Bucket1.
-	p.NonceCipher.Decrypt(
-		data[len(data)-NonceSize:],
-		data[len(data)-NonceSize:],
-	)
-	p.nonceRecv = binary.BigEndian.Uint64(data[len(data)-NonceSize:])
 	if reorderable {
-		_, p.nonceFound0 = p.nonceBucket0[p.nonceRecv]
-		_, p.nonceFound1 = p.nonceBucket1[p.nonceRecv]
-		if p.nonceFound0 || p.nonceFound1 || p.nonceRecv+2*NonceBucketSize < p.nonceLatest {
+		copy(p.nonceRecv[:], data[len(data)-NonceSize:])
+		_, foundL := p.nonceBucketL[p.nonceRecv]
+		_, foundM := p.nonceBucketM[p.nonceRecv]
+		_, foundH := p.nonceBucketH[p.nonceRecv]
+		// If found is none of buckets: either it is too old,
+		// or too new (many packets were lost)
+		if !(foundL || foundM || foundH) {
 			p.FramesDup++
 			p.BusyR.Unlock()
 			return false
 		}
-		p.nonceBucket0[p.nonceRecv] = struct{}{}
-		p.nonceBucketN++
-		if p.nonceBucketN == NonceBucketSize {
-			p.nonceBucket1 = p.nonceBucket0
-			p.nonceBucket0 = make(map[uint64]struct{}, NonceBucketSize)
-			p.nonceBucketN = 0
+		// Delete seen nonce
+		if foundL {
+			delete(p.nonceBucketL, p.nonceRecv)
+		}
+		if foundM {
+			delete(p.nonceBucketM, p.nonceRecv)
+		}
+		if foundH {
+			delete(p.nonceBucketH, p.nonceRecv)
+		}
+		// If we are dealing with the latest bucket, create the new one
+		if foundH {
+			p.nonceBucketL, p.nonceBucketM = p.nonceBucketM, p.nonceBucketH
+			p.nonceBucketH = make(map[[NonceSize]byte]struct{})
+			var nonce *[NonceSize]byte
+			for i := 0; i < NonceBucketSize; i++ {
+				nonce = <-p.noncesR
+				p.nonceBucketH[*nonce] = struct{}{}
+			}
 		}
 	} else {
-		if p.nonceRecv != p.NonceExpect {
+		if subtle.ConstantTimeCompare(data[len(data)-NonceSize:], p.NonceExpect) != 1 {
 			p.FramesDup++
 			p.BusyR.Unlock()
 			return false
 		}
-		p.NonceExpect += 2
-	}
-	if p.nonceRecv > p.nonceLatest {
-		p.nonceLatest = p.nonceRecv
+		copy(p.NonceExpect, (<-p.noncesExpect)[:])
 	}
 
 	p.FramesIn++
@@ -401,4 +404,48 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 	tap.Write(out[:p.pktSizeR])
 	p.BusyR.Unlock()
 	return true
+}
+
+func PeerTapProcessor(peer *Peer, tap *TAP, terminator chan struct{}) {
+	var data []byte
+	var now time.Time
+	lastSent := time.Now()
+	heartbeat := time.NewTicker(peer.Timeout)
+	if peer.CPRCycle == time.Duration(0) {
+	RawProcessor:
+		for {
+			select {
+			case <-terminator:
+				break RawProcessor
+			case <-heartbeat.C:
+				now = time.Now()
+				if lastSent.Add(peer.Timeout).Before(now) {
+					peer.EthProcess(nil)
+					lastSent = now
+				}
+			case data = <-tap.Sink:
+				peer.EthProcess(data)
+				lastSent = time.Now()
+			}
+		}
+	} else {
+	CPRProcessor:
+		for {
+			data = nil
+			select {
+			case <-terminator:
+				break CPRProcessor
+			case data = <-tap.Sink:
+				peer.EthProcess(data)
+			default:
+			}
+			if data == nil {
+				peer.EthProcess(nil)
+			}
+			time.Sleep(peer.CPRCycle)
+		}
+	}
+	close(terminator)
+	peer.Zero()
+	heartbeat.Stop()
 }

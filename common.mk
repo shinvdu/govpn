@@ -43,3 +43,6 @@ install: all doc
 
 install-strip: install
 	strip $(BINDIR)/govpn-client $(BINDIR)/govpn-server $(BINDIR)/govpn-verifier
+
+dist:
+	./utils/makedist.sh $(VERSION)

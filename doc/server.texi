@@ -1,8 +1,8 @@
 @node Server
 @section Server part
 
-Except for common @ref{Stats, -stats}, @ref{EGD, -egd} options client
-has the following ones:
+Except for common @ref{Stats, -stats}, @ref{EGD, -egd}, @ref{Syslog, -syslog}
+options server has the following ones:
 
 @table @option
 

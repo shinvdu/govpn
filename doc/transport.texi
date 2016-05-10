@@ -2,42 +2,22 @@
 @section Transport protocol
 
 @verbatim
-TAG || ENCRYPTED || NONCE --> PACKET
- ^         ^          ^
- |         |          |
- |         |          +-------------+
- |         |                        |
- |         +-------------+          |
- |                       |          |
- +--< AUTH(AUTH_KEY, ENCRYPTED || NONCE)
-                         ^          ^
-                         |          |
-+------------------------+          |
-|                                   |
-|                   +---------------+
-|                   |
-+--< ENCRYPT(KEY, NONCE, PAYLOAD)
-                    ^       ^
-                    |       |
-                    |       +--< DATA || PAD [|| ZEROS]
-                    |
-                    +--< PRP(PRP_KEY, SERIAL)
+     NONCE = 64bit(MAC(MAC_KEY, SERIAL))
+   PAYLOAD = DATA || PAD [|| ZEROS]
+CIPHERTEXT = ENCRYPT(KEY, NONCE, PAYLOAD)
+       TAG = AUTH(AUTH_KEY, CIPHERTEXT || NONCE)
+   MESSAGE = TAG || CIPHERTEXT || NONCE
 @end verbatim
 
 @code{SERIAL} is message's serial number. Odds are reserved for
 client (to server) messages, evens for server (to client) messages.
 
-@code{PRP} is XTEA block cipher algorithm used here as PRP (pseudo
-random permutation function) to obfuscate @code{SERIAL}. Plaintext
-@code{SERIAL} state is kept in peers internal state, but encrypted
-before transmission.
-
-XTEA's encryption key @code{PRP_KEY} is the first 128-bit of Salsa20's
-output with established common key and zero nonce (message nonces start
-from 1).
+@code{MAC} is BLAKE2b-MAC used to obfuscate @code{SERIAL}. MAC's key
+@code{MAC_KEY} is the first 256-bit of Salsa20's output with established
+common key and zero nonce (message nonces start from 1).
 
 @verbatim
-PRP_KEY = 128bit(ENCRYPT(KEY, 0))
+MAC_KEY = 256bit(ENCRYPT(KEY, 0))
 @end verbatim
 
 @code{ENCRYPT} is Salsa20 stream cipher, with established session
@@ -61,9 +41,9 @@ drop when receiving duplicate ones.
 In @ref{Encless, encryptionless mode} this scheme is slightly different:
 
 @verbatim
- PACKET = ENCODED || NONCE
+  NONCE = MAC(MAC_KEY, SERIAL)
 ENCODED = ENCLESS(DATA || PAD || ZEROS)
-  NONCE = PRP(PRP_KEY, SERIAL)
+ PACKET = ENCODED || NONCE
 @end verbatim
 
 @code{ENCLESS} is AONT and chaffing function. There is no need in

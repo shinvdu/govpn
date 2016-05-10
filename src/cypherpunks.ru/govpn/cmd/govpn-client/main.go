@@ -49,6 +49,7 @@ var (
 	encless     = flag.Bool("encless", false, "Encryptionless mode")
 	cpr         = flag.Int("cpr", 0, "Enable constant KiB/sec out traffic rate")
 	egdPath     = flag.String("egd", "", "Optional path to EGD socket")
+	syslog      = flag.Bool("syslog", false, "Enable logging to syslog")
 	warranty    = flag.Bool("warranty", false, "Print warranty information")
 
 	conf        *govpn.PeerConf
@@ -56,7 +57,7 @@ var (
 	timeout     int
 	firstUpCall bool = true
 	knownPeers  govpn.KnownPeers
-	idsCache    *govpn.CipherCache
+	idsCache    *govpn.MACCache
 )
 
 func main() {
@@ -107,7 +108,7 @@ func main() {
 		Verifier: verifier,
 		DSAPriv:  priv,
 	}
-	idsCache = govpn.NewCipherCache()
+	idsCache = govpn.NewMACCache()
 	confs := map[govpn.PeerId]*govpn.PeerConf{*verifier.Id: conf}
 	idsCache.Update(&confs)
 	log.Println(govpn.VersionGet())
@@ -124,6 +125,10 @@ func main() {
 			log.Fatalln("Can not listen on stats port:", err)
 		}
 		go govpn.StatsProcessor(statsPort, &knownPeers)
+	}
+
+	if *syslog {
+		govpn.SyslogEnable()
 	}
 
 	termSignal := make(chan os.Signal, 1)
@@ -151,7 +156,7 @@ MainCycle:
 		}
 		select {
 		case <-termSignal:
-			log.Fatalln("Finishing")
+			govpn.BothPrintf(`[finish remote="%s"]`, *remoteAddr)
 			termination <- struct{}{}
 			break MainCycle
 		case <-timeouted:

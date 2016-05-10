@@ -21,6 +21,7 @@ package aont
 import (
 	"bytes"
 	"crypto/rand"
+	"io"
 	"testing"
 	"testing/quick"
 )
@@ -30,7 +31,7 @@ var (
 )
 
 func init() {
-	rand.Read(testKey[:])
+	io.ReadFull(rand.Reader, testKey[:])
 }
 
 func TestSymmetric(t *testing.T) {
@@ -80,7 +81,7 @@ func TestTampered(t *testing.T) {
 
 func BenchmarkEncode(b *testing.B) {
 	data := make([]byte, 128)
-	rand.Read(data)
+	io.ReadFull(rand.Reader, data)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		Encode(testKey, data)
@@ -89,7 +90,7 @@ func BenchmarkEncode(b *testing.B) {
 
 func BenchmarkDecode(b *testing.B) {
 	data := make([]byte, 128)
-	rand.Read(data)
+	io.ReadFull(rand.Reader, data)
 	encoded, _ := Encode(testKey, data)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

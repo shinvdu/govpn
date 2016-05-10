@@ -51,12 +51,16 @@ func init() {
 		MTU:     MTUDefault,
 		Timeout: time.Second * time.Duration(TimeoutDefault),
 	}
-	testPeer = newPeer(true, "foo", Dummy{&testCt}, testConf, new([SSize]byte))
 	testPt = make([]byte, 789)
 }
 
+func testPeerNew() {
+	testPeer = newPeer(true, "foo", Dummy{&testCt}, testConf, new([SSize]byte))
+}
+
 func TestTransportSymmetric(t *testing.T) {
-	peerd := newPeer(true, "foo", Dummy{nil}, testConf, new([SSize]byte))
+	testPeerNew()
+	peerd := newPeer(false, "foo", Dummy{nil}, testConf, new([SSize]byte))
 	f := func(payload []byte) bool {
 		if len(payload) == 0 {
 			return true
@@ -70,7 +74,8 @@ func TestTransportSymmetric(t *testing.T) {
 }
 
 func TestTransportSymmetricNoise(t *testing.T) {
-	peerd := newPeer(true, "foo", Dummy{nil}, testConf, new([SSize]byte))
+	testPeerNew()
+	peerd := newPeer(false, "foo", Dummy{nil}, testConf, new([SSize]byte))
 	testPeer.NoiseEnable = true
 	peerd.NoiseEnable = true
 	f := func(payload []byte) bool {
@@ -87,7 +92,8 @@ func TestTransportSymmetricNoise(t *testing.T) {
 }
 
 func TestTransportSymmetricEncless(t *testing.T) {
-	peerd := newPeer(true, "foo", Dummy{nil}, testConf, new([SSize]byte))
+	testPeerNew()
+	peerd := newPeer(false, "foo", Dummy{nil}, testConf, new([SSize]byte))
 	testPeer.Encless = true
 	testPeer.NoiseEnable = true
 	peerd.Encless = true
@@ -119,10 +125,14 @@ func BenchmarkDec(b *testing.B) {
 	testPeer = newPeer(true, "foo", Dummy{nil}, testConf, new([SSize]byte))
 	orig := make([]byte, len(testCt))
 	copy(orig, testCt)
+	nonce := new([NonceSize]byte)
+	copy(nonce[:], testCt[len(testCt)-NonceSize:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		testPeer.nonceBucket0 = make(map[uint64]struct{}, 1)
-		testPeer.nonceBucket1 = make(map[uint64]struct{}, 1)
+		testPeer.nonceBucketL = make(map[[NonceSize]byte]struct{}, 1)
+		testPeer.nonceBucketM = make(map[[NonceSize]byte]struct{}, 1)
+		testPeer.nonceBucketH = make(map[[NonceSize]byte]struct{}, 1)
+		testPeer.nonceBucketL[*nonce] = struct{}{}
 		copy(testCt, orig)
 		if !testPeer.PktProcess(testCt, Dummy{nil}, true) {
 			b.Fail()

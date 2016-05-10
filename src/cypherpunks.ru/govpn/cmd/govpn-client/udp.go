@@ -36,7 +36,7 @@ func startUDP(timeouted, rehandshaking, termination chan struct{}) {
 	if err != nil {
 		log.Fatalln("Can not listen on UDP:", err)
 	}
-	log.Println("Connected to UDP:" + *remoteAddr)
+	govpn.Printf(`[connected remote="%s"]`, *remoteAddr)
 
 	hs := govpn.HandshakeStart(*remoteAddr, conn, conf)
 	buf := make([]byte, *mtu*2)
@@ -55,7 +55,7 @@ MainCycle:
 		conn.SetReadDeadline(time.Now().Add(time.Second))
 		n, err = conn.Read(buf)
 		if timeouts == timeout {
-			log.Println("Timeouted")
+			govpn.Printf(`[connection-timeouted remote="%s"]`, *remoteAddr)
 			timeouted <- struct{}{}
 			break
 		}
@@ -67,18 +67,18 @@ MainCycle:
 			if peer.PktProcess(buf[:n], tap, true) {
 				timeouts = 0
 			} else {
-				log.Println("Unauthenticated packet")
+				govpn.Printf(`[packet-unauthenticated remote="%s"]`, *remoteAddr)
 				timeouts++
 			}
 			if atomic.LoadUint64(&peer.BytesIn)+atomic.LoadUint64(&peer.BytesOut) > govpn.MaxBytesPerKey {
-				log.Println("Need rehandshake")
+				govpn.Printf(`[rehandshake-required remote="%s"]`, *remoteAddr)
 				rehandshaking <- struct{}{}
 				break MainCycle
 			}
 			continue
 		}
 		if idsCache.Find(buf[:n]) == nil {
-			log.Println("Invalid identity in handshake packet")
+			govpn.Printf(`[identity-invalid remote="%s"]`, *remoteAddr)
 			continue
 		}
 		timeouts = 0
@@ -86,7 +86,7 @@ MainCycle:
 		if peer == nil {
 			continue
 		}
-		log.Println("Handshake completed")
+		govpn.Printf(`[handshake-completed remote="%s"]`, *remoteAddr)
 		knownPeers = govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
 		if firstUpCall {
 			go govpn.ScriptCall(*upPath, *ifaceName, *remoteAddr)
@@ -94,23 +94,7 @@ MainCycle:
 		}
 		hs.Zero()
 		terminator = make(chan struct{})
-		go func() {
-			heartbeat := time.NewTicker(peer.Timeout)
-			var data []byte
-		Processor:
-			for {
-				select {
-				case <-heartbeat.C:
-					peer.EthProcess(nil)
-				case <-terminator:
-					break Processor
-				case data = <-tap.Sink:
-					peer.EthProcess(data)
-				}
-			}
-			heartbeat.Stop()
-			peer.Zero()
-		}()
+		go govpn.PeerTapProcessor(peer, tap, terminator)
 	}
 	if terminator != nil {
 		terminator <- struct{}{}

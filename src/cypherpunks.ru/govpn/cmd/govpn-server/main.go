@@ -38,6 +38,7 @@ var (
 	stats    = flag.String("stats", "", "Enable stats retrieving on host:port")
 	proxy    = flag.String("proxy", "", "Enable HTTP proxy on host:port")
 	egdPath  = flag.String("egd", "", "Optional path to EGD socket")
+	syslog   = flag.Bool("syslog", false, "Enable logging to syslog")
 	warranty = flag.Bool("warranty", false, "Print warranty information")
 )
 
@@ -57,6 +58,10 @@ func main() {
 	if *egdPath != "" {
 		log.Println("Using", *egdPath, "EGD")
 		govpn.EGDInit(*egdPath)
+	}
+
+	if *syslog {
+		govpn.SyslogEnable()
 	}
 
 	switch *proto {
@@ -88,14 +93,14 @@ func main() {
 	if *proxy != "" {
 		go proxyStart()
 	}
-	log.Println("Server started")
+	govpn.BothPrintf(`[started bind="%s"]`, *bindAddr)
 
 	var needsDeletion bool
 MainCycle:
 	for {
 		select {
 		case <-termSignal:
-			log.Println("Terminating")
+			govpn.BothPrintf(`[terminating bind="%s"]`, *bindAddr)
 			for _, ps := range peers {
 				govpn.ScriptCall(
 					confs[*ps.peer.Id].Down,
@@ -109,7 +114,7 @@ MainCycle:
 			hsLock.Lock()
 			for addr, hs := range handshakes {
 				if hs.LastPing.Add(timeout).Before(now) {
-					log.Println("Deleting handshake state", addr)
+					govpn.Printf(`[handshake-delete bind="%s" addr="%s"]`, *bindAddr, addr)
 					hs.Zero()
 					delete(handshakes, addr)
 				}
@@ -122,7 +127,7 @@ MainCycle:
 				needsDeletion = ps.peer.LastPing.Add(timeout).Before(now)
 				ps.peer.BusyR.Unlock()
 				if needsDeletion {
-					log.Println("Deleting peer", ps.peer)
+					govpn.Printf(`[peer-delete bind="%s" peer="%s"]`, *bindAddr, ps.peer)
 					delete(peers, addr)
 					delete(knownPeers, addr)
 					delete(peersById, *ps.peer.Id)

@@ -3,10 +3,10 @@
 
 @verbatiminclude handshake.utxt
 
-Each handshake message ends with so called @code{IDtag}: it is an XTEA
-encrypted first 64 bits of each message with client's @ref{Identity} as
-a key. It is used to transmit identity and to mark packet as handshake
-message.
+Each handshake message ends with so called @code{IDtag}: it is
+BLAKE2b-MAC of the first 64 bits of the handshake message, with client's
+@ref{Identity} used as a key. It is used to transmit identity and to
+mark packet as handshake message.
 
 If @ref{Noise, noise} is enabled, then data is padded to fill up packet
 to MTU's size.

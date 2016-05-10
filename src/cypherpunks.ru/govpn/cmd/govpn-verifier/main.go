@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 
 	"cypherpunks.ru/govpn"
@@ -53,7 +54,7 @@ func main() {
 	}
 	if *verifier == "" {
 		id := new([govpn.IDSize]byte)
-		if _, err := govpn.Rand.Read(id[:]); err != nil {
+		if _, err = io.ReadFull(govpn.Rand, id[:]); err != nil {
 			log.Fatalln(err)
 		}
 		pid := govpn.PeerId(*id)

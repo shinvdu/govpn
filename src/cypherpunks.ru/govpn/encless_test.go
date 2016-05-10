@@ -20,8 +20,8 @@ package govpn
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/binary"
+	"io"
 	"testing"
 	"testing/quick"
 )
@@ -31,7 +31,7 @@ var (
 )
 
 func init() {
-	rand.Read(testKey[:])
+	io.ReadFull(Rand, testKey[:])
 }
 
 func TestEnclessSymmetric(t *testing.T) {
@@ -56,8 +56,8 @@ func TestEnclessSymmetric(t *testing.T) {
 func BenchmarkEnclessEncode(b *testing.B) {
 	nonce := make([]byte, 8)
 	data := make([]byte, 128)
-	rand.Read(nonce)
-	rand.Read(data)
+	io.ReadFull(Rand, nonce)
+	io.ReadFull(Rand, data)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		EnclessEncode(testKey, nonce, data)
@@ -67,8 +67,8 @@ func BenchmarkEnclessEncode(b *testing.B) {
 func BenchmarkEnclessDecode(b *testing.B) {
 	nonce := make([]byte, 8)
 	data := make([]byte, 128)
-	rand.Read(nonce)
-	rand.Read(data)
+	io.ReadFull(Rand, nonce)
+	io.ReadFull(Rand, data)
 	encoded, _ := EnclessEncode(testKey, nonce, data)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -35,7 +35,7 @@ const (
 
 var (
 	confs    map[govpn.PeerId]*govpn.PeerConf
-	idsCache *govpn.CipherCache
+	idsCache *govpn.MACCache
 )
 
 func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
@@ -62,7 +62,7 @@ func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
 			pc.MTU = govpn.MTUDefault
 		}
 		if pc.MTU > govpn.MTUMax {
-			log.Println("MTU value", pc.MTU, "is too high, overriding to", govpn.MTUMax)
+			govpn.Printf(`[mtu-high bind="%s" value="%d" overriden="%d"]`, *bindAddr, pc.MTU, govpn.MTUMax)
 			pc.MTU = govpn.MTUMax
 		}
 		conf := govpn.PeerConf{
@@ -90,7 +90,7 @@ func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
 func confRefresh() error {
 	newConfs, err := confRead()
 	if err != nil {
-		log.Println("Unable to parse peers configuration:", err)
+		govpn.Printf(`[conf-parse-failed bind="%s" err="%s"]`, *bindAddr, err)
 		return err
 	}
 	confs = *newConfs
@@ -99,7 +99,7 @@ func confRefresh() error {
 }
 
 func confInit() {
-	idsCache = govpn.NewCipherCache()
+	idsCache = govpn.NewMACCache()
 	if err := confRefresh(); err != nil {
 		log.Fatalln(err)
 	}
