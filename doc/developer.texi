@@ -4,12 +4,12 @@
 Pay attention how to get @ref{Sources, development source code}.
 
 @table @asis
-@item Nonce and identity obfuscation
-    @url{https://blake2.net/, BLAKE2b-MAC}.
 @item Data encryption
     @url{http://cr.yp.to/snuffle.html, Salsa20}.
 @item Message authentication
     @url{http://cr.yp.to/mac.html, Poly1305}.
+@item Nonce and identity obfuscation
+    @url{https://blake2.net/, BLAKE2b-MAC}.
 @item Password authenticated key agreement
     DH-A-EKE powered by @url{http://cr.yp.to/ecdh.html, Curve25519}
     and @url{http://ed25519.cr.yp.to/, Ed25519}.

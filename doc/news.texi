@@ -9,9 +9,9 @@ See also this page @ref{Новости, on russian}.
 @item Optional ability to use syslog for logging, with
 @url{https://tools.ietf.org/html/rfc5424, RFC 5424}-like
 structured records.
-@item XTEA algorithm is not used anymore for nonce obfuscation.
-BLAKE2-MAC is used instead. Encryptionless mode now really does not
-depend on encryption functions.
+@item XTEA algorithm is not used anymore for nonce obfuscation, but
+BLAKE2b-MAC instead. Encryptionless mode now really does not depend on
+encryption functions.
 @end itemize
 
 @node Release 5.7

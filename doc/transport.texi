@@ -2,7 +2,7 @@
 @section Transport protocol
 
 @verbatim
-     NONCE = MAC(MAC_KEY, SERIAL)
+     NONCE = 64bit(MAC(MAC_KEY, SERIAL))
    PAYLOAD = DATA || PAD [|| ZEROS]
 CIPHERTEXT = ENCRYPT(KEY, NONCE, PAYLOAD)
        TAG = AUTH(AUTH_KEY, CIPHERTEXT || NONCE)
@@ -41,9 +41,9 @@ drop when receiving duplicate ones.
 In @ref{Encless, encryptionless mode} this scheme is slightly different:
 
 @verbatim
- PACKET = ENCODED || NONCE
-ENCODED = ENCLESS(DATA || PAD || ZEROS)
   NONCE = MAC(MAC_KEY, SERIAL)
+ENCODED = ENCLESS(DATA || PAD || ZEROS)
+ PACKET = ENCODED || NONCE
 @end verbatim
 
 @code{ENCLESS} is AONT and chaffing function. There is no need in
