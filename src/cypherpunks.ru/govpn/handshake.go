@@ -21,6 +21,7 @@ package govpn
 import (
 	"crypto/subtle"
 	"encoding/binary"
+	"errors"
 	"io"
 	"log"
 	"sync"
@@ -148,11 +149,18 @@ func dhKeypairGen() (*[32]byte, *[32]byte) {
 	return priv, repr
 }
 
-func dhKeyGen(priv, pub *[32]byte) *[32]byte {
+func dhKeyGen(priv, pub *[32]byte) (*[32]byte, error) {
 	key := new([32]byte)
 	curve25519.ScalarMult(key, priv, pub)
+	// Low-order points (order 1/2/4/8) collapse to the all-zero shared
+	// secret after clamping, which would make the derived handshake key a
+	// public constant.  Reject them like modern X25519 implementations do.
+	var zero [32]byte
+	if subtle.ConstantTimeCompare(key[:], zero[:]) == 1 {
+		return nil, errors.New("low-order DH point")
+	}
 	hashed := blake2b.Sum256(key[:])
-	return &hashed
+	return &hashed, nil
 }
 
 // Create new handshake state.
@@ -263,7 +271,12 @@ func (h *Handshake) Server(data []byte) *Peer {
 		// Compute shared key
 		cDH := new([32]byte)
 		extra25519.RepresentativeToPublicKey(cDH, cDHRepr)
-		h.key = dhKeyGen(h.dhPriv, cDH)
+		dhKey, dhErr := dhKeyGen(h.dhPriv, cDH)
+		if dhErr != nil {
+			log.Println("Invalid DH point from", h.addr, dhErr)
+			return nil
+		}
+		h.key = dhKey
 
 		var encPub []byte
 		var err error
@@ -424,7 +437,12 @@ func (h *Handshake) Client(data []byte) *Peer {
 		// Compute shared key
 		sDH := new([32]byte)
 		extra25519.RepresentativeToPublicKey(sDH, sDHRepr)
-		h.key = dhKeyGen(h.dhPriv, sDH)
+		dhKey, dhErr := dhKeyGen(h.dhPriv, sDH)
+		if dhErr != nil {
+			log.Println("Invalid DH point from", h.addr, dhErr)
+			return nil
+		}
+		h.key = dhKey
 
 		// Decrypt Rs
 		h.rServer = new([RSize]byte)
