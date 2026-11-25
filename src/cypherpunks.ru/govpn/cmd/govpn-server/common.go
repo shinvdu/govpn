@@ -20,8 +20,12 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"log"
+	"net"
+	"net/netip"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"cypherpunks.ru/govpn"
@@ -33,22 +37,80 @@ type PeerState struct {
 	tap        *govpn.TAP
 }
 
+// terminate asks the peer processing goroutine to stop.  The channel is
+// buffered and the send never blocks: a peer may already be terminated
+// (or terminating) concurrently.
+func (ps *PeerState) terminate() {
+	select {
+	case ps.terminator <- struct{}{}:
+	default:
+	}
+}
+
 var (
-	handshakes map[string]*govpn.Handshake = make(map[string]*govpn.Handshake)
+	handshakes map[netip.AddrPort]*govpn.Handshake = make(map[netip.AddrPort]*govpn.Handshake)
 	hsLock     sync.RWMutex
 
-	peers     map[string]*PeerState = make(map[string]*PeerState)
+	peers     map[netip.AddrPort]*PeerState = make(map[netip.AddrPort]*PeerState)
 	peersLock sync.RWMutex
 
-	peersById     map[govpn.PeerId]string = make(map[govpn.PeerId]string)
+	peersById     map[govpn.PeerId]netip.AddrPort = make(map[govpn.PeerId]netip.AddrPort)
 	peersByIdLock sync.RWMutex
 
 	knownPeers govpn.KnownPeers
 	kpLock     sync.RWMutex
+
+	// peersGeneration is bumped whenever the peer table changes, so
+	// per-reader flow caches can be invalidated without taking locks
+	// on every packet.
+	peersGeneration atomic.Uint64
 )
 
+func peersChanged() { peersGeneration.Add(1) }
+
+type flowCache struct {
+	entries [256]struct {
+		addr  netip.AddrPort
+		ps    *PeerState
+		stamp uint64
+	}
+}
+
+// lookup returns the peer for addr, using a small direct-mapped cache.
+// Cache entries are invalidated by peersGeneration, which is bumped on
+// every peer-table mutation.
+func (c *flowCache) lookup(addr netip.AddrPort) *PeerState {
+	gen := peersGeneration.Load()
+	e := &c.entries[addrHash(addr)%256]
+	if e.stamp == gen && e.addr == addr {
+		return e.ps
+	}
+	peersLock.RLock()
+	ps := peers[addr]
+	peersLock.RUnlock()
+	e.addr = addr
+	e.ps = ps
+	e.stamp = gen
+	return ps
+}
+
+// addrPortOf converts a net.Addr to an allocation-free comparable key.
+func addrPortOf(n net.Addr) netip.AddrPort {
+	switch a := n.(type) {
+	case *net.UDPAddr:
+		return a.AddrPort()
+	case *net.TCPAddr:
+		return a.AddrPort()
+	}
+	ap, err := netip.ParseAddrPort(n.String())
+	if err != nil {
+		log.Println("Unable to parse remote address", n, err)
+		return netip.AddrPort{}
+	}
+	return ap
+}
+
 func peerReady(ps PeerState) {
-	var data []byte
 	heartbeat := time.NewTicker(ps.peer.Timeout)
 Processor:
 	for {
@@ -57,21 +119,27 @@ Processor:
 			ps.peer.EthProcess(nil)
 		case <-ps.terminator:
 			break Processor
-		case data = <-ps.tap.Sink:
+		case data, ok := <-ps.tap.Sink:
+			if !ok {
+				break Processor
+			}
 			ps.peer.EthProcess(data)
 		}
 	}
-	close(ps.terminator)
 	ps.peer.Zero()
 	heartbeat.Stop()
 }
 
 func callUp(peerId *govpn.PeerId, remoteAddr string) (string, error) {
-	ifaceName := confs[*peerId].Iface
-	if confs[*peerId].Up != "" {
-		result, err := govpn.ScriptCall(confs[*peerId].Up, ifaceName, remoteAddr)
+	conf := confGet(*peerId)
+	if conf == nil {
+		return "", errors.New("no configuration for peer")
+	}
+	ifaceName := conf.Iface
+	if conf.Up != "" {
+		result, err := govpn.ScriptCall(conf.Up, ifaceName, remoteAddr)
 		if err != nil {
-			log.Println("Script", confs[*peerId].Up, "call failed", err)
+			log.Println("Script", conf.Up, "call failed", err)
 			return "", err
 		}
 		if ifaceName == "" {

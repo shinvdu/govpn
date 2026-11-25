@@ -96,7 +96,6 @@ MainCycle:
 		terminator = make(chan struct{})
 		go func() {
 			heartbeat := time.NewTicker(peer.Timeout)
-			var data []byte
 		Processor:
 			for {
 				select {
@@ -104,7 +103,10 @@ MainCycle:
 					peer.EthProcess(nil)
 				case <-terminator:
 					break Processor
-				case data = <-tap.Sink:
+				case data, ok := <-tap.Sink:
+					if !ok {
+						break Processor
+					}
 					peer.EthProcess(data)
 				}
 			}

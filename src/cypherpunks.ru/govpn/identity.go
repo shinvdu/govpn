@@ -44,13 +44,15 @@ func (id PeerId) MarshalJSON() ([]byte, error) {
 }
 
 type CipherAndTimeSync struct {
-	c *xtea.Cipher
-	t int
+	id PeerId
+	c  *xtea.Cipher
+	t  int
 }
 
 type CipherCache struct {
-	c map[PeerId]*CipherAndTimeSync
-	l sync.RWMutex
+	c    map[PeerId]*CipherAndTimeSync
+	list []*CipherAndTimeSync
+	l    sync.RWMutex
 }
 
 func NewCipherCache() *CipherCache {
@@ -60,25 +62,35 @@ func NewCipherCache() *CipherCache {
 // Remove disappeared keys, add missing ones with initialized ciphers.
 func (cc *CipherCache) Update(peers *map[PeerId]*PeerConf) {
 	cc.l.Lock()
-	for pid, _ := range cc.c {
+	defer cc.l.Unlock()
+	changed := false
+	for pid := range cc.c {
 		if _, exists := (*peers)[pid]; !exists {
 			log.Println("Cleaning key:", pid)
 			delete(cc.c, pid)
+			changed = true
 		}
 	}
 	for pid, pc := range *peers {
-		if _, exists := cc.c[pid]; exists {
-			cc.c[pid].t = pc.TimeSync
+		if entry, exists := cc.c[pid]; exists {
+			entry.t = pc.TimeSync
 		} else {
 			log.Println("Adding key", pid)
 			cipher, err := xtea.NewCipher(pid[:])
 			if err != nil {
 				panic(err)
 			}
-			cc.c[pid] = &CipherAndTimeSync{cipher, pc.TimeSync}
+			cc.c[pid] = &CipherAndTimeSync{id: pid, c: cipher, t: pc.TimeSync}
+			changed = true
 		}
 	}
-	cc.l.Unlock()
+	if changed || cc.list == nil {
+		// Keep a compact slice for cache-friendly sequential scans.
+		cc.list = make([]*CipherAndTimeSync, 0, len(cc.c))
+		for _, entry := range cc.c {
+			cc.list = append(cc.list, entry)
+		}
+	}
 }
 
 // If timeSync > 0, then XOR timestamp with the data.
@@ -102,11 +114,11 @@ func (cc *CipherCache) Find(data []byte) *PeerId {
 	}
 	buf := make([]byte, xtea.BlockSize)
 	cc.l.RLock()
-	for pid, ct := range cc.c {
-		ct.c.Decrypt(buf, data[len(data)-xtea.BlockSize:])
-		AddTimeSync(ct.t, buf)
+	for _, entry := range cc.list {
+		entry.c.Decrypt(buf, data[len(data)-xtea.BlockSize:])
+		AddTimeSync(entry.t, buf)
 		if subtle.ConstantTimeCompare(buf, data[:xtea.BlockSize]) == 1 {
-			ppid := PeerId(pid)
+			ppid := entry.id
 			cc.l.RUnlock()
 			return &ppid
 		}

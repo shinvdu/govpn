@@ -97,11 +97,13 @@ MainCycle:
 		case <-termSignal:
 			log.Println("Terminating")
 			for _, ps := range peers {
-				govpn.ScriptCall(
-					confs[*ps.peer.Id].Down,
-					ps.tap.Name,
-					ps.peer.Addr,
-				)
+				if conf := confGet(*ps.peer.Id); conf != nil {
+					govpn.ScriptCall(
+						conf.Down,
+						ps.tap.Name,
+						ps.peer.Addr,
+					)
+				}
 			}
 			break MainCycle
 		case <-hsHeartbeat:
@@ -124,14 +126,17 @@ MainCycle:
 				if needsDeletion {
 					log.Println("Deleting peer", ps.peer)
 					delete(peers, addr)
-					delete(knownPeers, addr)
+					delete(knownPeers, ps.peer.Addr)
 					delete(peersById, *ps.peer.Id)
-					go govpn.ScriptCall(
-						confs[*ps.peer.Id].Down,
-						ps.tap.Name,
-						ps.peer.Addr,
-					)
-					ps.terminator <- struct{}{}
+					peersChanged()
+					if conf := confGet(*ps.peer.Id); conf != nil {
+						go govpn.ScriptCall(
+							conf.Down,
+							ps.tap.Name,
+							ps.peer.Addr,
+						)
+					}
+					ps.terminate()
 				}
 			}
 			hsLock.Unlock()

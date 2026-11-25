@@ -20,6 +20,9 @@ package govpn
 
 import (
 	"io"
+	"log"
+	"sync"
+	"time"
 )
 
 type TAP struct {
@@ -29,7 +32,8 @@ type TAP struct {
 }
 
 var (
-	taps = make(map[string]*TAP)
+	taps     = make(map[string]*TAP)
+	tapsLock sync.Mutex
 )
 
 func NewTAP(ifaceName string, mtu int) (*TAP, error) {
@@ -49,6 +53,7 @@ func NewTAP(ifaceName string, mtu int) (*TAP, error) {
 		buf0 := make([]byte, mtu)
 		buf1 := make([]byte, mtu)
 		bufZ := false
+		var lastErr string
 		for {
 			if bufZ {
 				buf = buf0
@@ -58,8 +63,19 @@ func NewTAP(ifaceName string, mtu int) (*TAP, error) {
 			bufZ = !bufZ
 			n, err = tap.dev.Read(buf)
 			if err != nil {
-				panic("Reading TAP:" + err.Error())
+				// The interface may be temporarily unavailable or the
+				// descriptor may not be pollable in this environment.
+				// Do not take the whole daemon down (and do not kill
+				// the peer state either): retry slowly, logging each
+				// distinct error only once.
+				if msg := err.Error(); msg != lastErr {
+					log.Println("Reading TAP:", err)
+					lastErr = msg
+				}
+				time.Sleep(time.Second)
+				continue
 			}
+			lastErr = ""
 			tap.Sink <- buf[:n]
 		}
 	}()
@@ -71,6 +87,8 @@ func (t *TAP) Write(data []byte) (n int, err error) {
 }
 
 func TAPListen(ifaceName string, mtu int) (*TAP, error) {
+	tapsLock.Lock()
+	defer tapsLock.Unlock()
 	tap, exists := taps[ifaceName]
 	if exists {
 		return tap, nil

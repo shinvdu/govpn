@@ -43,27 +43,34 @@ func EnclessEncode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := append(
-		cnw.Chaff(authKey, nonce, aonted[:aont.RSize]),
-		aonted[aont.RSize:]...,
-	)
+	chaffLen := aont.RSize * cnw.EnlargeFactor
+	total := chaffLen + len(aonted) - aont.RSize
+	// Leave room for the 8-byte nonce (or handshake IDtag) appended by
+	// callers, so that append does not reallocate and copy the packet.
+	out := make([]byte, total, total+NonceSize)
+	if err = cnw.ChaffInto(
+		out[:chaffLen], authKey, nonce, aonted[:aont.RSize],
+	); err != nil {
+		return nil, err
+	}
+	copy(out[chaffLen:], aonted[aont.RSize:])
 	SliceZero(aonted[:aont.RSize])
 	return out, nil
 }
 
 // Decode EnclessEncode-ed data.
 func EnclessDecode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
-	var err error
-	winnowed, err := cnw.Winnow(
-		authKey, nonce, in[:aont.RSize*cnw.EnlargeFactor],
-	)
-	if err != nil {
+	var winnowed [aont.RSize]byte
+	if err := cnw.WinnowInto(
+		winnowed[:], authKey, nonce,
+		in[:aont.RSize*cnw.EnlargeFactor],
+	); err != nil {
 		return nil, err
 	}
-	out, err := aont.Decode(append(
-		winnowed, in[aont.RSize*cnw.EnlargeFactor:]...,
-	))
-	SliceZero(winnowed)
+	out, err := aont.DecodeParts(
+		winnowed[:], in[aont.RSize*cnw.EnlargeFactor:],
+	)
+	SliceZero(winnowed[:])
 	if err != nil {
 		return nil, err
 	}

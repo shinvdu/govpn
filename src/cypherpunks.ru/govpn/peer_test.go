@@ -121,12 +121,137 @@ func BenchmarkDec(b *testing.B) {
 	copy(orig, testCt)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		testPeer.nonceBucket0 = make(map[uint64]struct{}, 1)
-		testPeer.nonceBucket1 = make(map[uint64]struct{}, 1)
+		testPeer.nonceInit = false
+		testPeer.nonceWindow = [5]uint64{}
+		testPeer.nonceLatest = 0
 		copy(testCt, orig)
 		if !testPeer.PktProcess(testCt, Dummy{nil}, true) {
 			b.Fail()
 		}
+	}
+}
+
+func TestMaxPayload(t *testing.T) {
+	conf := &PeerConf{Id: &testPeerId, MTU: MTUDefault, Timeout: testConf.Timeout}
+	plain := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
+	if got := plain.maxPayload(); got != MTUDefault-1 {
+		t.Fatalf("plain maxPayload = %d, want %d", got, MTUDefault-1)
+	}
+	noisyConf := &PeerConf{
+		Id: &testPeerId, MTU: MTUDefault, Timeout: testConf.Timeout, Noise: true,
+	}
+	noisy := newPeer(true, "foo", Dummy{nil}, noisyConf, new([SSize]byte))
+	if got := noisy.maxPayload(); got != MTUDefault-25 {
+		t.Fatalf("noise maxPayload = %d, want %d", got, MTUDefault-25)
+	}
+	enclessConf := &PeerConf{
+		Id: &testPeerId, MTU: MTUDefault, Timeout: testConf.Timeout,
+		Noise: true, Encless: true,
+	}
+	encless := newPeer(true, "foo", Dummy{nil}, enclessConf, new([SSize]byte))
+	if got := encless.maxPayload(); got != MTUDefault-9 {
+		t.Fatalf("encless maxPayload = %d, want %d", got, MTUDefault-9)
+	}
+}
+
+func TestNonceWindow(t *testing.T) {
+	var p Peer
+	if !p.nonceAccept(2) {
+		t.Fatal("first serial rejected")
+	}
+	if !p.nonceAccept(6) {
+		t.Fatal("forward jump rejected")
+	}
+	if !p.nonceAccept(4) {
+		t.Fatal("out-of-order serial rejected")
+	}
+	if p.nonceAccept(4) {
+		t.Fatal("duplicate serial accepted")
+	}
+	if !p.nonceAccept(0) {
+		t.Fatal("old serial within window rejected")
+	}
+	if p.nonceAccept(0) {
+		t.Fatal("old duplicate serial accepted")
+	}
+	// Jump beyond the window: all previous serials become stale.
+	if !p.nonceAccept(300) {
+		t.Fatal("large forward jump rejected")
+	}
+	if p.nonceAccept(6) {
+		t.Fatal("serial older than window accepted")
+	}
+	if !p.nonceAccept(300 - 256) {
+		t.Fatal("boundary serial rejected")
+	}
+	if p.nonceAccept(300 - 258) {
+		t.Fatal("serial beyond boundary accepted")
+	}
+}
+
+func TestEthProcessRejectsOversized(t *testing.T) {
+	conf := &PeerConf{
+		Id: &testPeerId, MTU: MTUDefault, Timeout: testConf.Timeout, Noise: true,
+	}
+	var written int
+	peer := newPeer(true, "foo", writerFunc(func(b []byte) (int, error) {
+		written++
+		return len(b), nil
+	}), conf, new([SSize]byte))
+	peer.EthProcess(make([]byte, MTUDefault-25))
+	if written != 1 {
+		t.Fatalf("max-sized packet not sent, written=%d", written)
+	}
+	peer.EthProcess(make([]byte, MTUDefault-24))
+	if written != 1 {
+		t.Fatalf("oversized packet was sent, written=%d", written)
+	}
+}
+
+type writerFunc func([]byte) (int, error)
+
+func (f writerFunc) Write(b []byte) (int, error) { return f(b) }
+
+func BenchmarkEncNoiseMTU(b *testing.B) {
+	conf := &PeerConf{
+		Id: &testPeerId, MTU: MTUDefault, Timeout: testConf.Timeout,
+		Noise: true,
+	}
+	peer := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
+	payload := make([]byte, peer.maxPayload())
+	Rand.Read(payload)
+	b.SetBytes(int64(len(payload)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		peer.EthProcess(payload)
+	}
+}
+
+func BenchmarkEnclessEncodeMTU(b *testing.B) {
+	nonce := make([]byte, NonceSize)
+	data := make([]byte, MTUDefault-9)
+	Rand.Read(nonce)
+	Rand.Read(data)
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		EnclessEncode(testKey, nonce, data)
+	}
+}
+
+func BenchmarkEnclessDecodeMTU(b *testing.B) {
+	nonce := make([]byte, NonceSize)
+	data := make([]byte, MTUDefault-9)
+	Rand.Read(nonce)
+	Rand.Read(data)
+	encoded, _ := EnclessEncode(testKey, nonce, data)
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		EnclessDecode(testKey, nonce, encoded)
 	}
 }
 

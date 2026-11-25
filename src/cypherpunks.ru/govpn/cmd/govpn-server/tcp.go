@@ -50,7 +50,8 @@ func startTCP() {
 }
 
 func handleTCP(conn net.Conn) {
-	addr := conn.RemoteAddr().String()
+	ap := addrPortOf(conn.RemoteAddr())
+	addr := ap.String()
 	buf := make([]byte, govpn.EnclessEnlargeSize+2*govpn.MTUMax)
 	var n int
 	var err error
@@ -76,7 +77,7 @@ func handleTCP(conn net.Conn) {
 			continue
 		}
 		if hs == nil {
-			conf = confs[*peerId]
+			conf = confGet(*peerId)
 			if conf == nil {
 				log.Println("Can not get peer configuration:", peerId.String())
 				break
@@ -95,26 +96,34 @@ func handleTCP(conn net.Conn) {
 		peersByIdLock.RUnlock()
 		if exists {
 			peersLock.Lock()
-			peers[addrPrev].terminator <- struct{}{}
-			tap = peers[addrPrev].tap
-			ps = &PeerState{
-				peer:       peer,
-				tap:        tap,
-				terminator: make(chan struct{}),
+			old := peers[addrPrev]
+			if old == nil {
+				peersLock.Unlock()
+				exists = false
+			} else {
+				old.terminate()
+				tap = old.tap
+				ps = &PeerState{
+					peer:       peer,
+					tap:        tap,
+					terminator: make(chan struct{}, 1),
+				}
+				go peerReady(*ps)
+				peersByIdLock.Lock()
+				kpLock.Lock()
+				delete(peers, addrPrev)
+				delete(knownPeers, old.peer.Addr)
+				peers[ap] = ps
+				knownPeers[peer.Addr] = &peer
+				peersById[*peer.Id] = ap
+				peersLock.Unlock()
+				peersByIdLock.Unlock()
+				kpLock.Unlock()
+				peersChanged()
+				log.Println("Rehandshake processed:", peer.Id.String())
 			}
-			go peerReady(*ps)
-			peersByIdLock.Lock()
-			kpLock.Lock()
-			delete(peers, addrPrev)
-			delete(knownPeers, addrPrev)
-			peers[addr] = ps
-			knownPeers[addr] = &peer
-			peersById[*peer.Id] = addr
-			peersLock.Unlock()
-			peersByIdLock.Unlock()
-			kpLock.Unlock()
-			log.Println("Rehandshake processed:", peer.Id.String())
-		} else {
+		}
+		if !exists {
 			ifaceName, err := callUp(peer.Id, peer.Addr)
 			if err != nil {
 				peer = nil
@@ -135,12 +144,13 @@ func handleTCP(conn net.Conn) {
 			peersLock.Lock()
 			peersByIdLock.Lock()
 			kpLock.Lock()
-			peers[addr] = ps
-			peersById[*peer.Id] = addr
-			knownPeers[addr] = &peer
+			peers[ap] = ps
+			peersById[*peer.Id] = ap
+			knownPeers[peer.Addr] = &peer
 			peersLock.Unlock()
 			peersByIdLock.Unlock()
 			kpLock.Unlock()
+			peersChanged()
 			log.Println("Peer created:", peer.Id.String())
 		}
 		break
@@ -186,6 +196,9 @@ func handleTCP(conn net.Conn) {
 		copy(buf, buf[i+govpn.NonceSize:prev])
 		prev = prev - i - govpn.NonceSize
 		goto CheckMore
+	}
+	if ps != nil {
+		ps.terminate()
 	}
 	peer.Zero()
 }

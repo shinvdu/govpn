@@ -29,9 +29,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // AONT takes 128-bit random r, data M to be encoded and produce the
 // package PKG:
 //
-//     PKG = P1 || P2
-//      P1 = Salsa20(key=r, nonce=0x00, 0x00) XOR (M || BLAKE2b(r || M))
-//      P2 = BLAKE2b(P1) XOR r
+//	PKG = P1 || P2
+//	 P1 = Salsa20(key=r, nonce=0x00, 0x00) XOR (M || BLAKE2b(r || M))
+//	 P2 = BLAKE2b(P1) XOR r
 package aont
 
 import (
@@ -69,6 +69,36 @@ func Encode(r *[RSize]byte, in []byte) ([]byte, error) {
 		out[len(in)+32+i] = b ^ r[i]
 	}
 	return out, nil
+}
+
+// DecodeParts decodes an AONT package split into two consecutive parts
+// (first || second).  It is equivalent to Decode(append(first, second...))
+// but avoids the intermediate copy and allocation.
+func DecodeParts(first, second []byte) ([]byte, error) {
+	if len(first)+len(second) < HSize+RSize {
+		return nil, errors.New("Too small input buffer")
+	}
+	h := blake2b.New256()
+	h.Write(first)
+	h.Write(second[:len(second)-RSize])
+	var digest [HSize]byte
+	h.Sum(digest[:0])
+	salsaKey := new([32]byte)
+	for i, b := range digest[:RSize] {
+		salsaKey[i] = b ^ second[len(second)-RSize+i]
+	}
+	out := make([]byte, len(first)+len(second)-RSize)
+	n := copy(out, first)
+	copy(out[n:], second[:len(second)-RSize])
+	salsa20.XORKeyStream(out, out, dummyNonce, salsaKey)
+	h.Reset()
+	h.Write(salsaKey[:RSize])
+	h.Write(out[:len(out)-HSize])
+	h.Sum(digest[:0])
+	if subtle.ConstantTimeCompare(digest[:], out[len(out)-HSize:]) != 1 {
+		return nil, errors.New("Invalid checksum")
+	}
+	return out[:len(out)-HSize], nil
 }
 
 // Decode the data from AONT package. Data size will be smaller than the

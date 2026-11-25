@@ -89,17 +89,14 @@ type Peer struct {
 	MTU         int
 
 	// Cryptography related
-	Key          *[SSize]byte `json:"-"`
-	NonceCipher  *xtea.Cipher `json:"-"`
-	nonceRecv    uint64
-	nonceLatest  uint64
-	nonceOur     uint64
-	NonceExpect  uint64 `json:"-"`
-	nonceBucket0 map[uint64]struct{}
-	nonceBucket1 map[uint64]struct{}
-	nonceFound0  bool
-	nonceFound1  bool
-	nonceBucketN int32
+	Key         *[SSize]byte `json:"-"`
+	NonceCipher *xtea.Cipher `json:"-"`
+	nonceRecv   uint64
+	nonceLatest uint64
+	nonceOur    uint64
+	NonceExpect uint64    `json:"-"`
+	nonceWindow [5]uint64 // 257-bit sliding replay window
+	nonceInit   bool
 
 	// Timers
 	Timeout       time.Duration `json:"-"`
@@ -118,6 +115,7 @@ type Peer struct {
 	// Transmitter
 	BusyT    sync.Mutex `json:"-"`
 	bufT     []byte
+	outT     []byte
 	tagT     *[TagSize]byte
 	keyAuthT *[SSize]byte
 	frameT   []byte
@@ -144,6 +142,70 @@ func (p *Peer) Zero() {
 func (p *Peer) NonceExpectation(buf []byte) {
 	binary.BigEndian.PutUint64(buf, p.NonceExpect)
 	p.NonceCipher.Encrypt(buf, buf)
+}
+
+// nonceWindowSpan is the maximal serial distance accepted by the
+// anti-replay window (the same bound as the old two-bucket map).
+const nonceWindowSpan = 2 * NonceBucketSize
+
+// nonceWindowShift shifts the replay bitmap by n serial positions
+// (towards older entries), discarding those that fall out of the window.
+func nonceWindowShift(w *[5]uint64, n int) {
+	if n <= 0 {
+		return
+	}
+	if n > nonceWindowSpan {
+		*w = [5]uint64{}
+		return
+	}
+	word := n / 64
+	bit := uint(n % 64)
+	var tmp [5]uint64
+	if bit == 0 {
+		for i := 4; i >= word; i-- {
+			tmp[i] = w[i-word]
+		}
+	} else {
+		for i := 4; i > word; i-- {
+			tmp[i] = w[i-word]<<bit | w[i-word-1]>>(64-bit)
+		}
+		tmp[word] = w[0] << bit
+	}
+	*w = tmp
+}
+
+// nonceAccept records serial in the replay window and reports whether it
+// is fresh.  Serial numbers normally advance by 2, but arbitrary values
+// are handled as well.
+func (p *Peer) nonceAccept(serial uint64) bool {
+	if !p.nonceInit {
+		p.nonceInit = true
+		p.nonceLatest = serial
+		p.nonceWindow = [5]uint64{1}
+		return true
+	}
+	if serial > p.nonceLatest {
+		if diff := serial - p.nonceLatest; diff > nonceWindowSpan {
+			p.nonceWindow = [5]uint64{}
+		} else {
+			nonceWindowShift(&p.nonceWindow, int(diff))
+		}
+		p.nonceLatest = serial
+		p.nonceWindow[0] |= 1
+		return true
+	}
+	diff := p.nonceLatest - serial
+	if diff > nonceWindowSpan {
+		return false
+	}
+	word := diff / 64
+	bit := uint(diff % 64)
+	mask := uint64(1) << bit
+	if p.nonceWindow[word]&mask != 0 {
+		return false
+	}
+	p.nonceWindow[word] |= mask
+	return true
 }
 
 func cprCycleCalculate(conf *PeerConf) time.Duration {
@@ -188,10 +250,8 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		Encless:     conf.Encless,
 		MTU:         conf.MTU,
 
-		Key:          key,
-		NonceCipher:  newNonceCipher(key),
-		nonceBucket0: make(map[uint64]struct{}, NonceBucketSize),
-		nonceBucket1: make(map[uint64]struct{}, NonceBucketSize),
+		Key:         key,
+		NonceCipher: newNonceCipher(key),
 
 		Timeout:     timeout,
 		Established: now,
@@ -204,6 +264,9 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		keyAuthR: new([SSize]byte),
 		keyAuthT: new([SSize]byte),
 	}
+	if !conf.Encless {
+		peer.outT = make([]byte, TagSize, TagSize+2*conf.MTU)
+	}
 	if isClient {
 		peer.nonceOur = 1
 		peer.NonceExpect = 0 + 2
@@ -215,20 +278,41 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 
 }
 
+// maxPayload returns the maximal payload that fits into a single wire
+// packet for the current mode.  In noise/encless modes the packet is
+// padded to MTU, so the trailing nonce (and, without encless, the
+// Poly1305 tag) reduce the usable payload size.
+func (p *Peer) maxPayload() int {
+	if p.Encless {
+		return p.MTU - NonceSize - 1
+	}
+	if p.NoiseEnable {
+		return p.MTU - TagSize - NonceSize - 1
+	}
+	return p.MTU - 1
+}
+
 // Process incoming Ethernet packet.
-// ready channel is TAPListen's synchronization channel used to tell him
-// that he is free to receive new packets. Encrypted and authenticated
-// packets will be sent to remote Peer side immediately.
+// Encrypted and authenticated packets will be sent to the remote Peer
+// side immediately.
 func (p *Peer) EthProcess(data []byte) {
-	if len(data) > p.MTU-1 { // 1 is for padding byte
-		log.Println("Padded data packet size", len(data)+1, "is bigger than MTU", p.MTU, p)
+	if max := p.maxPayload(); len(data) > max {
+		log.Println(
+			"Data packet size", len(data), "exceeds effective maximum",
+			max, "(MTU", p.MTU, "encless:", p.Encless,
+			"noise:", p.NoiseEnable, ")", p,
+		)
 		return
 	}
 	p.now = time.Now()
 	p.BusyT.Lock()
 
-	// Zero size is a heartbeat packet
-	SliceZero(p.bufT)
+	// Zero size is a heartbeat packet.
+	// Only the first SSize bytes of the Salsa20 scratch area have to be
+	// zero: they become the Poly1305 one-time key.  The remaining part
+	// of the header is discarded, so zeroing the whole buffer (several
+	// kilobytes per packet) is unnecessary.
+	SliceZero(p.bufT[:SSize])
 	if len(data) == 0 {
 		// If this heartbeat is necessary
 		if !p.LastSent.Add(p.Timeout).Before(p.now) {
@@ -251,6 +335,15 @@ func (p *Peer) EthProcess(data []byte) {
 		p.frameT = p.bufT[S20BS : S20BS+p.MTU]
 	} else {
 		p.frameT = p.bufT[S20BS : S20BS+len(data)+1+NonceSize]
+	}
+	// Fill the part between the padding byte and the nonce with zeros
+	// only when it actually goes on the wire (noise/encless modes).
+	if p.NoiseEnable || p.Encless {
+		padAt := len(data)
+		end := len(p.frameT) - NonceSize
+		if padAt+1 < end {
+			SliceZero(p.frameT[padAt+1 : end])
+		}
 	}
 	p.nonceOur += 2
 	binary.BigEndian.PutUint64(p.frameT[len(p.frameT)-NonceSize:], p.nonceOur)
@@ -280,7 +373,9 @@ func (p *Peer) EthProcess(data []byte) {
 		copy(p.keyAuthT[:], p.bufT[:SSize])
 		poly1305.Sum(p.tagT, p.frameT, p.keyAuthT)
 		atomic.AddUint64(&p.BytesOut, uint64(len(p.frameT)+TagSize))
-		out = append(p.tagT[:], p.frameT...)
+		out = p.outT[:TagSize+len(p.frameT)]
+		copy(out[:TagSize], p.tagT[:])
+		copy(out[TagSize:], p.frameT)
 	}
 	p.FramesOut++
 
@@ -339,30 +434,17 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 		out = p.bufR[S20BS : S20BS+len(data)-TagSize-NonceSize]
 	}
 
-	// Check if received nonce is known to us in either of two buckets.
-	// If yes, then this is ignored duplicate.
-	// Check from the oldest bucket, as in most cases this will result
-	// in constant time check.
-	// If Bucket0 is filled, then it becomes Bucket1.
+	// Reject duplicates and packets that fell out of the replay window.
 	p.NonceCipher.Decrypt(
 		data[len(data)-NonceSize:],
 		data[len(data)-NonceSize:],
 	)
 	p.nonceRecv = binary.BigEndian.Uint64(data[len(data)-NonceSize:])
 	if reorderable {
-		_, p.nonceFound0 = p.nonceBucket0[p.nonceRecv]
-		_, p.nonceFound1 = p.nonceBucket1[p.nonceRecv]
-		if p.nonceFound0 || p.nonceFound1 || p.nonceRecv+2*NonceBucketSize < p.nonceLatest {
+		if !p.nonceAccept(p.nonceRecv) {
 			p.FramesDup++
 			p.BusyR.Unlock()
 			return false
-		}
-		p.nonceBucket0[p.nonceRecv] = struct{}{}
-		p.nonceBucketN++
-		if p.nonceBucketN == NonceBucketSize {
-			p.nonceBucket1 = p.nonceBucket0
-			p.nonceBucket0 = make(map[uint64]struct{}, NonceBucketSize)
-			p.nonceBucketN = 0
 		}
 	} else {
 		if p.nonceRecv != p.NonceExpect {
@@ -371,9 +453,9 @@ func (p *Peer) PktProcess(data []byte, tap io.Writer, reorderable bool) bool {
 			return false
 		}
 		p.NonceExpect += 2
-	}
-	if p.nonceRecv > p.nonceLatest {
-		p.nonceLatest = p.nonceRecv
+		if p.nonceRecv > p.nonceLatest {
+			p.nonceLatest = p.nonceRecv
+		}
 	}
 
 	p.FramesIn++

@@ -22,6 +22,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/go-yaml/yaml"
@@ -34,9 +35,20 @@ const (
 )
 
 var (
-	confs    map[govpn.PeerId]*govpn.PeerConf
-	idsCache *govpn.CipherCache
+	confs     map[govpn.PeerId]*govpn.PeerConf
+	confsLock sync.RWMutex
+	idsCache  *govpn.CipherCache
 )
+
+// confGet returns the current configuration for a peer.  Configurations
+// are replaced as a whole on refresh, so the returned pointer is an
+// immutable snapshot.
+func confGet(id govpn.PeerId) *govpn.PeerConf {
+	confsLock.RLock()
+	conf := confs[id]
+	confsLock.RUnlock()
+	return conf
+}
 
 func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
 	data, err := ioutil.ReadFile(*confPath)
@@ -93,7 +105,9 @@ func confRefresh() error {
 		log.Println("Unable to parse peers configuration:", err)
 		return err
 	}
+	confsLock.Lock()
 	confs = *newConfs
+	confsLock.Unlock()
 	idsCache.Update(newConfs)
 	return nil
 }
