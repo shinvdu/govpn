@@ -265,7 +265,12 @@ func newPeer(isClient bool, addr string, conn io.Writer, conf *PeerConf, key *[S
 		keyAuthT: new([SSize]byte),
 	}
 	if !conf.Encless {
-		peer.outT = make([]byte, TagSize, TagSize+2*conf.MTU)
+		// Tag + (payload + pad + nonce); the extra TagSize keeps this
+		// safe even for unusually small MTU values.
+		peer.outT = make(
+			[]byte, TagSize,
+			TagSize+conf.MTU+NonceSize+TagSize,
+		)
 	}
 	if isClient {
 		peer.nonceOur = 1

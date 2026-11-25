@@ -55,7 +55,7 @@ var (
 	tap         *govpn.TAP
 	timeout     int
 	firstUpCall bool = true
-	knownPeers  govpn.KnownPeers
+	knownPeers  *govpn.KnownPeers
 	idsCache    *govpn.CipherCache
 )
 
@@ -71,6 +71,9 @@ func main() {
 
 	if *mtu > govpn.MTUMax {
 		log.Fatalln("Maximum allowable MTU is", govpn.MTUMax)
+	}
+	if *mtu < govpn.MTUMin {
+		log.Fatalln("Minimum allowable MTU is", govpn.MTUMin)
 	}
 	if *egdPath != "" {
 		log.Println("Using", *egdPath, "EGD")
@@ -95,6 +98,9 @@ func main() {
 		}
 		*noisy = true
 	}
+	if *noisy && *mtu < govpn.MTUMinNoise {
+		log.Fatalln("Minimum permissible MTU for noise mode is", govpn.MTUMinNoise)
+	}
 	conf = &govpn.PeerConf{
 		Id:       verifier.Id,
 		Iface:    *ifaceName,
@@ -108,6 +114,7 @@ func main() {
 		DSAPriv:  priv,
 	}
 	idsCache = govpn.NewCipherCache()
+	knownPeers = govpn.NewKnownPeers()
 	confs := map[govpn.PeerId]*govpn.PeerConf{*verifier.Id: conf}
 	idsCache.Update(&confs)
 	log.Println(govpn.VersionGet())
@@ -123,7 +130,7 @@ func main() {
 		if err != nil {
 			log.Fatalln("Can not listen on stats port:", err)
 		}
-		go govpn.StatsProcessor(statsPort, &knownPeers)
+		go govpn.StatsProcessor(statsPort, knownPeers)
 	}
 
 	termSignal := make(chan os.Signal, 1)

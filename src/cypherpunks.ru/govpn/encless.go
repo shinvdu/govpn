@@ -19,6 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
+	"errors"
+	"io"
+
 	"cypherpunks.ru/govpn/aont"
 	"cypherpunks.ru/govpn/cnw"
 )
@@ -36,7 +39,7 @@ const (
 func EnclessEncode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
 	r := new([aont.RSize]byte)
 	var err error
-	if _, err = Rand.Read(r[:]); err != nil {
+	if _, err = io.ReadFull(Rand, r[:]); err != nil {
 		return nil, err
 	}
 	aonted, err := aont.Encode(r, in)
@@ -60,6 +63,11 @@ func EnclessEncode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
 
 // Decode EnclessEncode-ed data.
 func EnclessDecode(authKey *[32]byte, nonce, in []byte) ([]byte, error) {
+	// The chaffed part is always present; the remaining AONT package
+	// must contain at least the recovered r and the checksum.
+	if len(in) < aont.RSize*cnw.EnlargeFactor+aont.HSize {
+		return nil, errors.New("Too small input buffer")
+	}
 	var winnowed [aont.RSize]byte
 	if err := cnw.WinnowInto(
 		winnowed[:], authKey, nonce,

@@ -52,7 +52,7 @@ func main() {
 	log.Println(govpn.VersionGet())
 
 	confInit()
-	knownPeers = govpn.KnownPeers(make(map[string]**govpn.Peer))
+	knownPeers = govpn.NewKnownPeers()
 
 	if *egdPath != "" {
 		log.Println("Using", *egdPath, "EGD")
@@ -83,7 +83,7 @@ func main() {
 		if err != nil {
 			log.Fatalln("Can not listen on stats port:", err)
 		}
-		go govpn.StatsProcessor(statsPort, &knownPeers)
+		go govpn.StatsProcessor(statsPort, knownPeers)
 	}
 	if *proxy != "" {
 		go proxyStart()
@@ -96,7 +96,13 @@ MainCycle:
 		select {
 		case <-termSignal:
 			log.Println("Terminating")
+			peersLock.RLock()
+			list := make([]*PeerState, 0, len(peers))
 			for _, ps := range peers {
+				list = append(list, ps)
+			}
+			peersLock.RUnlock()
+			for _, ps := range list {
 				if conf := confGet(*ps.peer.Id); conf != nil {
 					govpn.ScriptCall(
 						conf.Down,
@@ -110,15 +116,13 @@ MainCycle:
 			now := time.Now()
 			hsLock.Lock()
 			for addr, hs := range handshakes {
-				if hs.LastPing.Add(timeout).Before(now) {
+				if hs.Expire(timeout, now) {
 					log.Println("Deleting handshake state", addr)
-					hs.Zero()
 					delete(handshakes, addr)
 				}
 			}
 			peersLock.Lock()
 			peersByIdLock.Lock()
-			kpLock.Lock()
 			for addr, ps := range peers {
 				ps.peer.BusyR.Lock()
 				needsDeletion = ps.peer.LastPing.Add(timeout).Before(now)
@@ -126,7 +130,7 @@ MainCycle:
 				if needsDeletion {
 					log.Println("Deleting peer", ps.peer)
 					delete(peers, addr)
-					delete(knownPeers, ps.peer.Addr)
+					knownPeers.Delete(ps.peer.Addr)
 					delete(peersById, *ps.peer.Id)
 					peersChanged()
 					if conf := confGet(*ps.peer.Id); conf != nil {
@@ -142,7 +146,6 @@ MainCycle:
 			hsLock.Unlock()
 			peersLock.Unlock()
 			peersByIdLock.Unlock()
-			kpLock.Unlock()
 		}
 	}
 }

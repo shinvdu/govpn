@@ -19,6 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package govpn
 
 import (
+	"io"
+	"math/rand"
 	"testing"
 	"testing/quick"
 	"time"
@@ -186,6 +188,119 @@ func TestNonceWindow(t *testing.T) {
 	}
 	if p.nonceAccept(300 - 258) {
 		t.Fatal("serial beyond boundary accepted")
+	}
+}
+
+// naiveWindow is the straightforward set-based equivalent of the
+// 257-bit sliding window, used to verify the bitmap/shrink logic.
+type naiveWindow struct {
+	seen   map[uint64]struct{}
+	latest uint64
+	init   bool
+}
+
+func (w *naiveWindow) accept(serial uint64) bool {
+	if !w.init {
+		w.init = true
+		w.latest = serial
+		w.seen = map[uint64]struct{}{serial: {}}
+		return true
+	}
+	if serial > w.latest {
+		w.latest = serial
+	} else if w.latest-serial > 256 {
+		return false
+	}
+	if _, found := w.seen[serial]; found {
+		return false
+	}
+	w.seen[serial] = struct{}{}
+	return true
+}
+
+func TestNonceWindowMatchesNaive(t *testing.T) {
+	rng := rand.New(rand.NewSource(1))
+	var p Peer
+	var ref naiveWindow
+	var serial uint64
+	for i := 0; i < 200000; i++ {
+		switch rng.Intn(5) {
+		case 0:
+			serial = uint64(rng.Intn(2000))
+		case 1:
+			serial += 2
+		case 2:
+			serial += 2 * uint64(rng.Intn(20))
+		case 3:
+			if serial >= 2*uint64(rng.Intn(500)) {
+				serial -= 2 * uint64(rng.Intn(500))
+			}
+		default:
+			// Replay a recent value.
+			if serial >= 2 {
+				serial -= 2 * uint64(rng.Intn(10))
+			}
+		}
+		got := p.nonceAccept(serial)
+		want := ref.accept(serial)
+		if got != want {
+			t.Fatalf(
+				"op %d: serial %d: window=%v naive=%v (latest=%d)",
+				i, serial, got, want, p.nonceLatest,
+			)
+		}
+	}
+}
+
+func TestPktProcessEnclessShort(t *testing.T) {
+	conf := &PeerConf{
+		Id: &testPeerId, MTU: MTUDefault, Timeout: testConf.Timeout,
+		Noise: true, Encless: true,
+	}
+	peer := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
+	if peer.PktProcess(make([]byte, MinPktLength), Dummy{nil}, true) {
+		t.Fatal("short encless packet accepted")
+	}
+}
+
+func TestPktProcessMalformedNoPanic(t *testing.T) {
+	rng := rand.New(rand.NewSource(2))
+	for _, encless := range []bool{false, true} {
+		conf := &PeerConf{
+			Id: &testPeerId, MTU: MTUDefault, Timeout: testConf.Timeout,
+			Noise: true, Encless: encless,
+		}
+		peer := newPeer(true, "foo", Dummy{nil}, conf, new([SSize]byte))
+		base := 4096
+		for i := 0; i < 5000; i++ {
+			var n int
+			if encless && i%2 == 0 {
+				n = base + rng.Intn(2000)
+			} else {
+				n = rng.Intn(2000)
+			}
+			data := make([]byte, n)
+			rng.Read(data)
+			peer.PktProcess(data, io.Discard, i%3 != 0)
+		}
+	}
+}
+
+func TestEthProcessMinMTU(t *testing.T) {
+	for _, encless := range []bool{false, true} {
+		conf := &PeerConf{
+			Id: &testPeerId, MTU: MTUMin, Timeout: testConf.Timeout,
+			Noise: true, Encless: encless,
+		}
+		var written int
+		peer := newPeer(true, "foo", writerFunc(func(b []byte) (int, error) {
+			written++
+			return len(b), nil
+		}), conf, new([SSize]byte))
+		peer.EthProcess(make([]byte, peer.maxPayload()))
+		if written != 1 {
+			t.Fatalf("encless=%v: min-MTU packet not sent", encless)
+		}
 	}
 }
 

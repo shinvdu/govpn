@@ -57,16 +57,15 @@ var (
 	peersById     map[govpn.PeerId]netip.AddrPort = make(map[govpn.PeerId]netip.AddrPort)
 	peersByIdLock sync.RWMutex
 
-	knownPeers govpn.KnownPeers
-	kpLock     sync.RWMutex
+	knownPeers *govpn.KnownPeers
 
 	// peersGeneration is bumped whenever the peer table changes, so
 	// per-reader flow caches can be invalidated without taking locks
 	// on every packet.
-	peersGeneration atomic.Uint64
+	peersGeneration uint64
 )
 
-func peersChanged() { peersGeneration.Add(1) }
+func peersChanged() { atomic.AddUint64(&peersGeneration, 1) }
 
 type flowCache struct {
 	entries [256]struct {
@@ -80,7 +79,7 @@ type flowCache struct {
 // Cache entries are invalidated by peersGeneration, which is bumped on
 // every peer-table mutation.
 func (c *flowCache) lookup(addr netip.AddrPort) *PeerState {
-	gen := peersGeneration.Load()
+	gen := atomic.LoadUint64(&peersGeneration)
 	e := &c.entries[addrHash(addr)%256]
 	if e.stamp == gen && e.addr == addr {
 		return e.ps
@@ -92,6 +91,15 @@ func (c *flowCache) lookup(addr netip.AddrPort) *PeerState {
 	e.ps = ps
 	e.stamp = gen
 	return ps
+}
+
+// addrString formats an address the way net.UDPAddr/net.TCPAddr did,
+// unmapping IPv4-in-IPv6 addresses so scripts/log records stay stable.
+func addrString(ap netip.AddrPort) string {
+	if ap.Addr().Is4In6() {
+		return netip.AddrPortFrom(ap.Addr().Unmap(), ap.Port()).String()
+	}
+	return ap.String()
 }
 
 // addrPortOf converts a net.Addr to an allocation-free comparable key.

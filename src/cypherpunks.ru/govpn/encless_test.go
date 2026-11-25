@@ -24,6 +24,9 @@ import (
 	"encoding/binary"
 	"testing"
 	"testing/quick"
+
+	"cypherpunks.ru/govpn/aont"
+	"cypherpunks.ru/govpn/cnw"
 )
 
 var (
@@ -32,6 +35,29 @@ var (
 
 func init() {
 	rand.Read(testKey[:])
+}
+
+func TestEnclessDecodeRejectsShort(t *testing.T) {
+	key := new([32]byte)
+	nonce := make([]byte, NonceSize)
+	for _, n := range []int{
+		0, 1, NonceSize, 100,
+		aont.RSize*cnw.EnlargeFactor - 1,
+		aont.RSize * cnw.EnlargeFactor,
+		aont.RSize*cnw.EnlargeFactor + aont.HSize - 1,
+	} {
+		if _, err := EnclessDecode(key, nonce, make([]byte, n)); err == nil {
+			t.Fatalf("length %d: short input accepted", n)
+		}
+	}
+	// Exactly the minimal size must not panic; it should just fail
+	// authentication/checksum with overwhelming probability.
+	if _, err := EnclessDecode(
+		key, nonce,
+		make([]byte, aont.RSize*cnw.EnlargeFactor+aont.HSize),
+	); err == nil {
+		t.Fatal("random minimal input unexpectedly authenticated")
+	}
 }
 
 func TestEnclessSymmetric(t *testing.T) {

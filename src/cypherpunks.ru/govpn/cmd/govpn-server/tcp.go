@@ -51,7 +51,7 @@ func startTCP() {
 
 func handleTCP(conn net.Conn) {
 	ap := addrPortOf(conn.RemoteAddr())
-	addr := ap.String()
+	addr := addrString(ap)
 	buf := make([]byte, govpn.EnclessEnlargeSize+2*govpn.MTUMax)
 	var n int
 	var err error
@@ -110,15 +110,13 @@ func handleTCP(conn net.Conn) {
 				}
 				go peerReady(*ps)
 				peersByIdLock.Lock()
-				kpLock.Lock()
 				delete(peers, addrPrev)
-				delete(knownPeers, old.peer.Addr)
+				knownPeers.Delete(old.peer.Addr)
 				peers[ap] = ps
-				knownPeers[peer.Addr] = &peer
+				knownPeers.Set(peer.Addr, peer)
 				peersById[*peer.Id] = ap
 				peersLock.Unlock()
 				peersByIdLock.Unlock()
-				kpLock.Unlock()
 				peersChanged()
 				log.Println("Rehandshake processed:", peer.Id.String())
 			}
@@ -143,13 +141,11 @@ func handleTCP(conn net.Conn) {
 			go peerReady(*ps)
 			peersLock.Lock()
 			peersByIdLock.Lock()
-			kpLock.Lock()
 			peers[ap] = ps
 			peersById[*peer.Id] = ap
-			knownPeers[peer.Addr] = &peer
+			knownPeers.Set(peer.Addr, peer)
 			peersLock.Unlock()
 			peersByIdLock.Unlock()
-			kpLock.Unlock()
 			peersChanged()
 			log.Println("Peer created:", peer.Id.String())
 		}

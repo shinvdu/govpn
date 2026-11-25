@@ -87,7 +87,7 @@ MainCycle:
 			continue
 		}
 		log.Println("Handshake completed")
-		knownPeers = govpn.KnownPeers(map[string]**govpn.Peer{*remoteAddr: &peer})
+		knownPeers.Set(*remoteAddr, peer)
 		if firstUpCall {
 			go govpn.ScriptCall(*upPath, *ifaceName, *remoteAddr)
 			firstUpCall = false

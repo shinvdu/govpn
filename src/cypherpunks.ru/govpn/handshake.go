@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"io"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/agl/ed25519"
@@ -51,6 +52,12 @@ type Handshake struct {
 	rClient  *[RSize]byte
 	sServer  *[SSize]byte // secret string for main key calculation
 	sClient  *[SSize]byte
+
+	// busy serializes state transitions between the handshake worker and
+	// the timeout/cleanup path.  closed prevents a worker that obtained
+	// the state just before it was removed from using it afterwards.
+	busy   sync.Mutex
+	closed bool
 }
 
 func keyFromSecrets(server, client []byte) *[SSize]byte {
@@ -61,8 +68,16 @@ func keyFromSecrets(server, client []byte) *[SSize]byte {
 	return k
 }
 
-// Zero handshake's memory state
-func (h *Handshake) Zero() {
+// LastPingTime returns the last activity time of the handshake state.
+func (h *Handshake) LastPingTime() time.Time {
+	h.busy.Lock()
+	defer h.busy.Unlock()
+	return h.LastPing
+}
+
+// zeroLocked clears sensitive state.  h.busy must be held.
+func (h *Handshake) zeroLocked() {
+	h.closed = true
 	if h.rNonce != nil {
 		SliceZero(h.rNonce[:])
 	}
@@ -87,6 +102,29 @@ func (h *Handshake) Zero() {
 	if h.sClient != nil {
 		SliceZero(h.sClient[:])
 	}
+}
+
+// Zero handshake's memory state.
+func (h *Handshake) Zero() {
+	h.busy.Lock()
+	defer h.busy.Unlock()
+	h.zeroLocked()
+}
+
+// Expire atomically checks whether the handshake has been idle for
+// longer than timeout and, if so, wipes it.  If a handshake message is
+// being processed concurrently, it reports false and leaves the state
+// alone; the next cleanup tick will retry.
+func (h *Handshake) Expire(timeout time.Duration, now time.Time) bool {
+	if !h.busy.TryLock() {
+		return false
+	}
+	defer h.busy.Unlock()
+	if !h.LastPing.Add(timeout).Before(now) {
+		return false
+	}
+	h.zeroLocked()
+	return true
 }
 
 func (h *Handshake) rNonceNext(count uint64) []byte {
@@ -185,6 +223,11 @@ func HandshakeStart(addr string, conn io.Writer, conf *PeerConf) *Handshake {
 // will be created and used as a transport. If no mutually
 // authenticated Peer is ready, then return nil.
 func (h *Handshake) Server(data []byte) *Peer {
+	h.busy.Lock()
+	defer h.busy.Unlock()
+	if h.closed {
+		return nil
+	}
 	// R + ENC(H(DSAPub), R, El(CDHPub)) + IDtag
 	if h.rNonce == nil && ((!h.Conf.Encless && len(data) >= 48) ||
 		(h.Conf.Encless && len(data) == EnclessEnlargeSize+h.Conf.MTU)) {
@@ -270,8 +313,9 @@ func (h *Handshake) Server(data []byte) *Peer {
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+1, RS + RC + SC + Sign(DSAPriv, K)) + IDtag
-	if h.rClient == nil && ((!h.Conf.Encless && len(data) >= 120) ||
-		(h.Conf.Encless && len(data) == EnclessEnlargeSize+h.Conf.MTU)) {
+	if h.rClient == nil && h.key != nil && h.rServer != nil &&
+		((!h.Conf.Encless && len(data) >= 120) ||
+			(h.Conf.Encless && len(data) == EnclessEnlargeSize+h.Conf.MTU)) {
 		var dec []byte
 		var err error
 		if h.Conf.Encless {
@@ -344,6 +388,11 @@ func (h *Handshake) Server(data []byte) *Peer {
 // will be created and used as a transport. If no mutually
 // authenticated Peer is ready, then return nil.
 func (h *Handshake) Client(data []byte) *Peer {
+	h.busy.Lock()
+	defer h.busy.Unlock()
+	if h.closed {
+		return nil
+	}
 	// ENC(H(DSAPub), R+1, El(SDHPub)) + ENC(K, R, RS + SS) + IDtag
 	if h.rServer == nil && h.key == nil &&
 		((!h.Conf.Encless && len(data) >= 80) ||
@@ -439,8 +488,10 @@ func (h *Handshake) Client(data []byte) *Peer {
 		h.LastPing = time.Now()
 	} else
 	// ENC(K, R+2, RC) + IDtag
-	if h.key != nil && ((!h.Conf.Encless && len(data) >= 16) ||
-		(h.Conf.Encless && len(data) == EnclessEnlargeSize+h.Conf.MTU)) {
+	if h.key != nil && h.rServer != nil && h.sServer != nil &&
+		h.rClient != nil &&
+		((!h.Conf.Encless && len(data) >= 16) ||
+			(h.Conf.Encless && len(data) == EnclessEnlargeSize+h.Conf.MTU)) {
 		var err error
 		// Decrypt rClient
 		var dec []byte

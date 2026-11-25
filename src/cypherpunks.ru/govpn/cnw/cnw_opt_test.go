@@ -96,9 +96,38 @@ type authError struct{}
 
 func (*authError) Error() string { return "invalid authenticator received" }
 
+func TestTags1EdgeKeys(t *testing.T) {
+	var keys [][32]byte
+	var zero, ones, rZero, sOnes [32]byte
+	for i := range ones {
+		ones[i] = 0xff
+	}
+	for i := range sOnes {
+		if i >= 16 {
+			sOnes[i] = 0xff
+		}
+	}
+	keys = append(keys, zero, ones, rZero, sOnes)
+	for i := range keys {
+		key := keys[i]
+		t0lo, t0hi, t1lo, t1hi := tags1(key[:])
+		var p0, p1 [16]byte
+		poly1305.Sum(&p0, []byte("0"), &key)
+		poly1305.Sum(&p1, []byte("1"), &key)
+		if binary.LittleEndian.Uint64(p0[0:8]) != t0lo ||
+			binary.LittleEndian.Uint64(p0[8:16]) != t0hi {
+			t.Fatalf("edge key %d: tag0 mismatch", i)
+		}
+		if binary.LittleEndian.Uint64(p1[0:8]) != t1lo ||
+			binary.LittleEndian.Uint64(p1[8:16]) != t1hi {
+			t.Fatalf("edge key %d: tag1 mismatch", i)
+		}
+	}
+}
+
 func TestTags1MatchesPoly1305(t *testing.T) {
 	var key [32]byte
-	for i := 0; i < 5000; i++ {
+	for i := 0; i < 20000; i++ {
 		if _, err := rand.Read(key[:]); err != nil {
 			t.Fatal(err)
 		}

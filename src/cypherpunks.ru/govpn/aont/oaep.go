@@ -75,7 +75,7 @@ func Encode(r *[RSize]byte, in []byte) ([]byte, error) {
 // (first || second).  It is equivalent to Decode(append(first, second...))
 // but avoids the intermediate copy and allocation.
 func DecodeParts(first, second []byte) ([]byte, error) {
-	if len(first)+len(second) < HSize+RSize {
+	if len(first)+len(second) < HSize+RSize || len(second) < RSize {
 		return nil, errors.New("Too small input buffer")
 	}
 	h := blake2b.New256()

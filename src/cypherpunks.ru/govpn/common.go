@@ -28,6 +28,8 @@ import (
 const (
 	TimeoutDefault = 60
 	EtherSize      = 14
+	MTUMin         = 68
+	MTUMinNoise    = 120 // noise/encless handshake messages are MTU-sized
 	MTUMax         = 9000 + EtherSize + 1
 	MTUDefault     = 1500 + EtherSize + 1
 

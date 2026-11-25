@@ -73,6 +73,20 @@ func confRead() (*map[govpn.PeerId]*govpn.PeerConf, error) {
 		if pc.MTU == 0 {
 			pc.MTU = govpn.MTUDefault
 		}
+		if pc.MTU < govpn.MTUMin {
+			log.Println(
+				"MTU value", pc.MTU, "is too low, overriding to",
+				govpn.MTUMin,
+			)
+			pc.MTU = govpn.MTUMin
+		}
+		if pc.Noise && pc.MTU < govpn.MTUMinNoise {
+			log.Println(
+				"MTU value", pc.MTU, "is too low for noise mode,",
+				"overriding to", govpn.MTUMinNoise,
+			)
+			pc.MTU = govpn.MTUMinNoise
+		}
 		if pc.MTU > govpn.MTUMax {
 			log.Println("MTU value", pc.MTU, "is too high, overriding to", govpn.MTUMax)
 			pc.MTU = govpn.MTUMax

@@ -27,7 +27,7 @@ encless MTU 单核解码从 **20.0 MB/s → 108.8 MB/s（5.44×）**，是本次
 ## 2. 测试环境与方法
 
 - CPU：AMD Ryzen 5 PRO 5675U（Zen3，AVX2）
-- Go：1.22.2 linux/amd64
+- Go：1.22.2 linux/amd64；代码现在要求 **Go ≥ 1.18**（`net/netip`、`ReadFromUDPAddrPort`、`Mutex.TryLock`）
 - 编译：`GO111MODULE=off GOPATH=$(pwd) go build/test`（项目无 `go.mod`）
 - 基准：`go test -run XXX -bench . -benchmem -count 3`，取中位数
 - 这台机器为共享环境，单次结果波动可到 ±50%；本文数字均来自同一时段、同一批命令的稳定复测
@@ -333,6 +333,7 @@ GO111MODULE=off GOPATH=$(pwd) go vet cypherpunks.ru/govpn/...
    - 若用户原来用 `MTU=1515 + noise` 承载完整 1500B IP 包（以太帧 1514B），现在会被判超限。需要把 MTU 配置增大（如 1540）或接受载荷上限降低。这是协议/MTU 语义原本就存在的限制，本轮只是显式暴露。
 2. **UDP 握手队列有界**：极端握手洪峰下会丢包并记录，替代原来的无界处理。
 3. **TAP 读错误策略**：从 panic 改为重试；接口永久损坏时会每秒打一条（相同错误只打一次）并持续重试。
+4. **MTU 下限**：全局最小 68；noise/encless 最低 120。低于下限的服务端配置会被提升并记录，客户端直接拒绝启动。小于 120 的 noise/encless 配置在旧代码里会在握手阶段 panic 或失败。
 4. **TCP 会话结束**：会主动停止 peer 处理 goroutine；peer 表条目仍按原逻辑等待超时清理。
 
 ---
@@ -350,7 +351,60 @@ GO111MODULE=off GOPATH=$(pwd) go vet cypherpunks.ru/govpn/...
 
 ---
 
-## 9. 变更文件
+## 9. 代码审查补充修复（2026-11-25）
+
+在提交后的对抗性 review 中发现并修复了以下问题（均已补回归测试）：
+
+### 9.1 encless 短包远程 panic
+
+`EnclessDecode` 原先直接切 `in[:16*256]`。攻击者向 encless peer 发送 25 字节 UDP 包即可触发 slice 越界 panic，导致服务端崩溃。现增加最小长度校验：
+
+```
+len(in) >= aont.RSize*cnw.EnlargeFactor + aont.HSize  // 4096 + 32
+```
+
+`TestEnclessDecodeRejectsShort` 覆盖 0/1/100/4095/4096/4127 长度；`TestPktProcessEnclessShort` 直接验证 25 字节真实数据包被拒绝而不是 panic。
+
+### 9.2 握手阶段空指针 panic
+
+- Server：第一条 encless 消息解码失败后 `rNonce` 已设置但 `key` 为 nil；下一条消息会进入第二阶段并用 nil key 解码 → panic。现第二阶段的进入条件要求 `key != nil && rServer != nil`。
+- Client：服务端第一条回复的"公钥部分"解码成功、但 RS/SS 部分失败时，`key` 已设置而 `rClient` 为 nil；下一包会比较 nil `rClient[:]` → panic。现第二阶段条件要求 `rServer/sServer/rClient` 均非 nil。
+
+`TestHandshakeMalformedStages` 构造两端的半完成状态并验证后续消息被拒绝、不会 panic。
+
+### 9.3 握手状态并发与清理
+
+- `Handshake` 增加内部 `busy sync.Mutex` 与 `closed` 标志：`Server`/`Client`/`Zero` 串行化，已清理状态不会被迟到 worker 使用。
+- 新增 `Expire(timeout, now)`：使用 `TryLock`，若握手正在处理则跳过本轮清理，避免清理线程被卡在慢速 `Write` 上；同时保证检查与清零原子。
+- 手握手状态清理不再与 worker 的 `LastPing` 写入竞争。
+
+### 9.4 stats 并发安全
+
+- `KnownPeers` 由裸 `map` 改为带 `RWMutex` 的结构（`NewKnownPeers`/`Set`/`Delete`/`Snapshot`），消除 stats 读与 peer 增删之间的 map 并发 panic。
+- 新增 `PeerStats` 快照：在 `BusyT` + `BusyR` 下读取字段（`BytesIn/Out` 用 atomic load），stats JSON 字段名与旧版完全一致。
+- 服务端退出流程对 `peers` 做加锁快照后再执行 down 脚本，避免并发 map 迭代。
+
+### 9.5 其他健壮性
+
+- UDP 握手队列：先取"槽位"令牌再分配/复制数据，队列满时不再产生无用的每包分配；丢弃日志每 1000 条打一次，防日志洪水。
+- UDP reader 非关闭类读错误增加 100 ms 退避，避免错误循环打满 CPU。
+- MTU 下限校验：全局最小 `MTUMin=68`；noise/encless 需 `MTUMinNoise=120`（否则握手消息/第三阶段载荷长度不足）。
+- `outT` 容量改为 `Tag + MTU + Nonce + Tag`，消除极小 MTU 下的潜在切片越界。
+- encless 随机数改用 `io.ReadFull`，避免短读导致 `r` 未填满。
+- TCP/UDP 对 IPv4-in-IPv6 地址做 `Unmap` 格式化，保证脚本的 `GOVPN_REMOTE` 与旧实现一致；内部 map/写回仍使用原始 `netip.AddrPort`。
+
+### 9.6 审查后仍保留
+
+- TAP reader 在 peer 终止后可能在 `tap.Sink <-` 上阻塞（接口仍被缓存，重连后可恢复消费）；这是原设计遗留，未改。
+- TCP 的 nonce 定界搜索 + memmove（协议决定）。
+- 批量 syscall / io_uring（Rust 版处理）。
+- `recvmmsg` 等平台能力未在 Go 侧实现。
+
+回归结果：`go test`、`go test -race`、`go vet`、`-shuffle=on -count=3` 全部通过；UDP/TCP loopback + root TAP 端到端均保持 `FramesIn=5`、`FramesUnauth=0`；用 `-race` 编译的服务端跑 UDP/TCP 及 8 客户端并发握手 stress，未出现 `DATA RACE`/panic。
+
+---
+
+## 10. 变更文件
 
 核心：
 
@@ -358,10 +412,12 @@ GO111MODULE=off GOPATH=$(pwd) go vet cypherpunks.ru/govpn/...
 - `src/cypherpunks.ru/govpn/cnw/cnw_opt_test.go`（新增）
 - `src/cypherpunks.ru/govpn/aont/oaep.go`
 - `src/cypherpunks.ru/govpn/aont/decodeparts_test.go`（新增）
-- `src/cypherpunks.ru/govpn/encless.go`
-- `src/cypherpunks.ru/govpn/peer.go`
-- `src/cypherpunks.ru/govpn/peer_test.go`
+- `src/cypherpunks.ru/govpn/encless.go`、`encless_test.go`
+- `src/cypherpunks.ru/govpn/peer.go`、`peer_test.go`
+- `src/cypherpunks.ru/govpn/handshake.go`、`handshake_test.go`
+- `src/cypherpunks.ru/govpn/stats.go`、`stats_test.go`（新增）
 - `src/cypherpunks.ru/govpn/identity.go`
+- `src/cypherpunks.ru/govpn/common.go`（MTU 下限常量）
 - `src/cypherpunks.ru/govpn/tap.go`
 - `src/cypherpunks.ru/govpn/tap_linux.go`、`tap_freebsd.go`（gofmt 补 `//go:build`）
 
@@ -372,6 +428,7 @@ GO111MODULE=off GOPATH=$(pwd) go vet cypherpunks.ru/govpn/...
 - `cmd/govpn-server/conf.go`
 - `cmd/govpn-server/tcp.go`
 - `cmd/govpn-server/main.go`
+- `cmd/govpn-client/main.go`
 - `cmd/govpn-client/udp.go`、`cmd/govpn-client/tcp.go`
 
 文档：

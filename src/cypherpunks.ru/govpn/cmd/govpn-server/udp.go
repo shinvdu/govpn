@@ -25,6 +25,8 @@ import (
 	"net"
 	"net/netip"
 	"runtime"
+	"sync/atomic"
+	"time"
 
 	"cypherpunks.ru/govpn"
 )
@@ -46,9 +48,20 @@ type handshakeTask struct {
 const handshakeQueueSize = 256
 
 var (
-	udpConn  *net.UDPConn
-	hsQueues []chan handshakeTask
+	udpConn   *net.UDPConn
+	hsQueues  []chan handshakeTask
+	hsSlots   []chan struct{}
+	hsDropped uint64
 )
+
+func logHandshakeDrop(addr netip.AddrPort) {
+	if n := atomic.AddUint64(&hsDropped, 1); n%1000 == 1 {
+		log.Println(
+			"Handshake queue is full, dropped", n,
+			"packets so far (last from", addr, ")",
+		)
+	}
+}
 
 // addrHash is a cheap allocation-free hash used for flow-cache slots
 // and to keep packets from the same address on the same handshake
@@ -83,9 +96,11 @@ func startUDP() {
 		hsWorkers = workers
 	}
 	hsQueues = make([]chan handshakeTask, hsWorkers)
+	hsSlots = make([]chan struct{}, hsWorkers)
 	for i := range hsQueues {
 		hsQueues[i] = make(chan handshakeTask, handshakeQueueSize)
-		go handshakeWorker(hsQueues[i])
+		hsSlots[i] = make(chan struct{}, handshakeQueueSize)
+		go handshakeWorker(i)
 	}
 
 	// Several concurrent readers: the cost of a packet (syscall,
@@ -110,6 +125,7 @@ func udpReader() {
 				return
 			}
 			log.Println("Unexpected error when receiving", err)
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 		if n == 0 {
@@ -125,20 +141,31 @@ func udpReader() {
 		// packet from a disappeared peer).  Handshakes are rare, have
 		// to be validated against the identity cache, and are better
 		// processed off the data path.
+		qi := int(addrHash(addr) % uint32(len(hsQueues)))
+		select {
+		case hsSlots[qi] <- struct{}{}:
+		default:
+			logHandshakeDrop(addr)
+			continue
+		}
+		// Only allocate/copy once a queue slot is reserved.
 		data := make([]byte, n)
 		copy(data, buf[:n])
-		q := hsQueues[int(addrHash(addr)%uint32(len(hsQueues)))]
 		select {
-		case q <- handshakeTask{addr: addr, data: data}:
+		case hsQueues[qi] <- handshakeTask{addr: addr, data: data}:
 		default:
-			log.Println("Handshake queue is full, dropping packet from", addr)
+			<-hsSlots[qi]
+			logHandshakeDrop(addr)
 		}
 	}
 }
 
-func handshakeWorker(q chan handshakeTask) {
+func handshakeWorker(i int) {
+	q := hsQueues[i]
+	slots := hsSlots[i]
 	for task := range q {
 		handleUDPHandshake(task.addr, task.data)
+		<-slots
 	}
 }
 
@@ -191,7 +218,7 @@ func handleUDPHandshake(addr netip.AddrPort, data []byte) {
 		return
 	}
 	hs = govpn.NewHandshake(
-		addr.String(),
+		addrString(addr),
 		UDPSender{conn: udpConn, addr: addr},
 		conf,
 	)
@@ -221,15 +248,13 @@ func udpSwitchPeer(addr netip.AddrPort, peer *govpn.Peer) {
 		}
 		go peerReady(*ps)
 		peersByIdLock.Lock()
-		kpLock.Lock()
 		delete(peers, addrPrev)
-		delete(knownPeers, old.peer.Addr)
+		knownPeers.Delete(old.peer.Addr)
 		peers[addr] = ps
-		knownPeers[peer.Addr] = &peer
+		knownPeers.Set(peer.Addr, peer)
 		peersById[*peer.Id] = addr
 		peersLock.Unlock()
 		peersByIdLock.Unlock()
-		kpLock.Unlock()
 		peersChanged()
 		log.Println("Rehandshake processed:", peer.Id.String())
 		return
@@ -255,13 +280,11 @@ func udpNewPeer(addr netip.AddrPort, peer *govpn.Peer) {
 	go peerReady(*ps)
 	peersLock.Lock()
 	peersByIdLock.Lock()
-	kpLock.Lock()
 	peers[addr] = ps
-	knownPeers[peer.Addr] = &peer
+	knownPeers.Set(peer.Addr, peer)
 	peersById[*peer.Id] = addr
 	peersLock.Unlock()
 	peersByIdLock.Unlock()
-	kpLock.Unlock()
 	peersChanged()
 	log.Println("Peer created:", peer.Id.String())
 }
