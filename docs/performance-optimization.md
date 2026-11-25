@@ -1,5 +1,10 @@
 # GoVPN 5.7 性能优化记录
 
+> **Note:** 本文的性能数据与结论已合并进 Rust 代码树的三语文档：
+> [`rust/docs/en/performance.md`](../rust/docs/en/performance.md) ·
+> [`rust/docs/zh/performance.md`](../rust/docs/zh/performance.md) ·
+> [`rust/docs/ru/performance.md`](../rust/docs/ru/performance.md)。本文保留为 Go 侧原始记录。
+
 > 日期：2026-11-25
 > 范围：Go 版 `govpn`（GOPATH 工程）热路径、encless 编解码、UDP 服务端数据面
 > 状态：已实现、已回归、已复测；改动未提交 git

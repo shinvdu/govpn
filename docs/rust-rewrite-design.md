@@ -1,5 +1,10 @@
 # GoVPN → Rust 重写技术设计
 
+> **Note:** 本设计文档的维护版本（含实施后的架构说明）已三语化并迁入 Rust 代码树：
+> [`rust/docs/en/design.md`](../rust/docs/en/design.md) ·
+> [`rust/docs/zh/design.md`](../rust/docs/zh/design.md) ·
+> [`rust/docs/ru/design.md`](../rust/docs/ru/design.md)。本文保留为历史设计记录。
+
 > 目标版本：GoVPN 5.7（GPLv3+）
 > 文档状态：Draft v0.1（2026-11-25）
 > 适用范围：Linux 数据面重写；FreeBSD 作为第二阶段
